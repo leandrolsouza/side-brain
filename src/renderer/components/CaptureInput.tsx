@@ -1,8 +1,18 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, CheckCircle2, Mic, MicOff } from 'lucide-react'
+import { Send, CheckCircle2, Mic, MicOff, Users, Gavel, AlertTriangle, MessageSquare, Lightbulb, RefreshCw } from 'lucide-react'
+import { CAPTURE_TEMPLATES, CaptureTemplate } from '@shared/types'
 
 interface CaptureInputProps {
   onProjectsChanged?: () => void
+}
+
+const ICON_MAP: Record<string, React.ComponentType<{ size?: number }>> = {
+  Users,
+  Gavel,
+  AlertTriangle,
+  MessageSquare,
+  Lightbulb,
+  RefreshCw,
 }
 
 export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
@@ -10,11 +20,27 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [lastSubmitted, setLastSubmitted] = useState<string | null>(null)
   const [isListening, setIsListening] = useState(false)
+  const [activeTemplate, setActiveTemplate] = useState<CaptureTemplate | null>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
   const baseTextRef = useRef('')
 
   const speechSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window
+
+  const handleTemplateSelect = useCallback((template: CaptureTemplate) => {
+    if (activeTemplate?.id === template.id) {
+      // Deselect: clear prefix if text matches, otherwise just deselect
+      if (text === template.prefix || text.startsWith(template.prefix)) {
+        setText('')
+      }
+      setActiveTemplate(null)
+    } else {
+      // Select: pre-fill the prefix
+      setText(template.prefix)
+      setActiveTemplate(template)
+    }
+    inputRef.current?.focus()
+  }, [activeTemplate, text])
 
   const toggleVoiceInput = useCallback(() => {
     if (isListening) {
@@ -78,6 +104,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
       await window.electronAPI.createEntry(trimmed)
       setLastSubmitted(trimmed)
       setText('')
+      setActiveTemplate(null)
       onProjectsChanged?.()
       setTimeout(() => setLastSubmitted(null), 3000)
     } catch (error) {
@@ -104,13 +131,36 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
       </p>
 
       <div className="flex-col" style={{ maxWidth: 600 }}>
+        <div className="capture-templates">
+          <span className="capture-templates-label">Templates:</span>
+          <div className="capture-templates-list">
+            {CAPTURE_TEMPLATES.map((template) => {
+              const Icon = ICON_MAP[template.icon]
+              return (
+                <button
+                  key={template.id}
+                  className={`capture-template-chip ${activeTemplate?.id === template.id ? 'active' : ''}`}
+                  onClick={() => handleTemplateSelect(template)}
+                  disabled={isSubmitting}
+                  title={`${template.prefix}${template.placeholder}`}
+                >
+                  {Icon && <Icon size={12} />}
+                  <span>{template.label}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
         <textarea
           ref={inputRef}
           className="vscode-textarea"
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ex: João falou que o prazo do projeto X mudou pra semana que vem..."
+          placeholder={activeTemplate
+            ? `${activeTemplate.prefix}${activeTemplate.placeholder}`
+            : 'Ex: João falou que o prazo do projeto X mudou pra semana que vem...'}
           disabled={isSubmitting}
           rows={4}
           autoFocus

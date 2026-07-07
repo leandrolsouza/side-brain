@@ -187,17 +187,21 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
         </div>
       </div>
 
-      {/* Global summary */}
+      {/* Global summary modal */}
       {globalSummary && (
-        <div className="dashboard-summary-card">
-          <div className="dashboard-summary-header">
-            <Sparkles size={14} />
-            <span>Resumo Geral</span>
-            <button className="icon-button" onClick={() => setGlobalSummary(null)} style={{ opacity: 1 }}>
-              <X size={14} />
-            </button>
+        <div className="summary-modal-overlay" onClick={() => setGlobalSummary(null)}>
+          <div className="summary-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="summary-modal-header">
+              <Sparkles size={16} />
+              <span>Resumo Geral</span>
+              <button className="icon-button" onClick={() => setGlobalSummary(null)}>
+                <X size={16} />
+              </button>
+            </div>
+            <div className="summary-modal-body">
+              <div className="dashboard-summary-text">{globalSummary}</div>
+            </div>
           </div>
-          <div className="dashboard-summary-text">{globalSummary}</div>
         </div>
       )}
 

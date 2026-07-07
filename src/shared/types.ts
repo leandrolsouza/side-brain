@@ -113,3 +113,65 @@ export const DEFAULT_SETTINGS: AppSettings = {
   reviewEnabled: true,
   modelId: 'us.anthropic.claude-sonnet-4-20250514-v1:0',
 }
+
+// === Capture Templates ===
+
+export interface CaptureTemplate {
+  id: string
+  label: string
+  prefix: string
+  placeholder: string
+  icon: string
+  hintType: EntryType
+}
+
+export const CAPTURE_TEMPLATES: CaptureTemplate[] = [
+  {
+    id: 'meeting',
+    label: 'Reunião',
+    prefix: 'Reunião com ',
+    placeholder: '[pessoa/equipe]: [o que foi discutido/decidido]',
+    icon: 'Users',
+    hintType: 'information',
+  },
+  {
+    id: 'decision',
+    label: 'Decisão',
+    prefix: 'Decisão sobre ',
+    placeholder: '[assunto]: [o que foi decidido e por quê]',
+    icon: 'Gavel',
+    hintType: 'decision',
+  },
+  {
+    id: 'blocker',
+    label: 'Bloqueio',
+    prefix: 'Bloqueio em ',
+    placeholder: '[projeto/tarefa]: [descrição do impedimento]',
+    icon: 'AlertTriangle',
+    hintType: 'blocker',
+  },
+  {
+    id: 'request',
+    label: 'Pedido',
+    prefix: 'Pedido de ',
+    placeholder: '[pessoa]: [o que foi solicitado e prazo]',
+    icon: 'MessageSquare',
+    hintType: 'request',
+  },
+  {
+    id: 'idea',
+    label: 'Ideia',
+    prefix: 'Ideia: ',
+    placeholder: '[descrição da ideia ou sugestão]',
+    icon: 'Lightbulb',
+    hintType: 'idea',
+  },
+  {
+    id: 'update',
+    label: 'Atualização',
+    prefix: 'Atualização: ',
+    placeholder: '[o que mudou ou progresso feito]',
+    icon: 'RefreshCw',
+    hintType: 'update',
+  },
+]

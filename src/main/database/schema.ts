@@ -24,8 +24,9 @@ function runMigrations(database: Database.Database): void {
   const hasDueDate = columns.some((col) => col.name === 'due_date')
   if (!hasDueDate) {
     database.exec(`ALTER TABLE tasks ADD COLUMN due_date TEXT`)
-    database.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date)`)
   }
+  // Always ensure the index exists (safe for both new and migrated DBs)
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date)`)
 }
 
 function initializeSchema(database: Database.Database): void {
@@ -75,7 +76,6 @@ function initializeSchema(database: Database.Database): void {
 
     CREATE INDEX IF NOT EXISTS idx_tasks_project_id ON tasks(project_id);
     CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
-    CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date);
   `)
 }
 
