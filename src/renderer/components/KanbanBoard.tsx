@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Plus, GripVertical, Trash2, ChevronRight } from 'lucide-react'
+import { Plus, GripVertical, Trash2, ChevronRight, Calendar } from 'lucide-react'
 
 interface Task {
   id: string
@@ -7,6 +7,7 @@ interface Task {
   title: string
   description?: string
   status: TaskStatus
+  dueDate?: string | null
   sourceEntryId?: string
   createdAt: string
   updatedAt: string
@@ -31,6 +32,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
   const [addingInColumn, setAddingInColumn] = useState<TaskStatus | null>(null)
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState('')
+  const [editingDueDateTaskId, setEditingDueDateTaskId] = useState<string | null>(null)
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -86,6 +88,29 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
   const startEditing = (task: Task) => {
     setEditingTaskId(task.id)
     setEditingTitle(task.title)
+  }
+
+  const handleDueDateChange = async (taskId: string, dateValue: string) => {
+    const dueDate = dateValue || null
+    await window.electronAPI.updateTask(taskId, { dueDate })
+    setEditingDueDateTaskId(null)
+    await loadTasks()
+  }
+
+  const getDueDateInfo = (dueDate: string | null | undefined): { label: string; className: string } | null => {
+    if (!dueDate) return null
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const due = new Date(dueDate + 'T00:00:00')
+    const diffDays = Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+
+    const formatted = due.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+
+    if (diffDays < 0) return { label: `${formatted} (vencida)`, className: 'due-overdue' }
+    if (diffDays === 0) return { label: `${formatted} (hoje)`, className: 'due-today' }
+    if (diffDays === 1) return { label: `${formatted} (amanhã)`, className: 'due-tomorrow' }
+    if (diffDays <= 7) return { label: `${formatted} (${diffDays}d)`, className: 'due-soon' }
+    return { label: formatted, className: 'due-normal' }
   }
 
   // Drag and drop handlers
@@ -205,6 +230,30 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
                     )}
                     {task.description && (
                       <span className="kanban-card-description">{task.description}</span>
+                    )}
+
+                    {/* Due date display / edit */}
+                    {editingDueDateTaskId === task.id ? (
+                      <input
+                        type="date"
+                        className="vscode-input kanban-due-input"
+                        defaultValue={task.dueDate || ''}
+                        onChange={(e) => handleDueDateChange(task.id, e.target.value)}
+                        onBlur={() => setEditingDueDateTaskId(null)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Escape') setEditingDueDateTaskId(null)
+                        }}
+                        autoFocus
+                      />
+                    ) : (
+                      <span
+                        className={`kanban-card-due ${getDueDateInfo(task.dueDate)?.className || ''}`}
+                        onClick={() => setEditingDueDateTaskId(task.id)}
+                        title="Definir prazo"
+                      >
+                        <Calendar size={10} />
+                        {getDueDateInfo(task.dueDate)?.label || 'Sem prazo'}
+                      </span>
                     )}
                   </div>
 

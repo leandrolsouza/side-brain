@@ -925,6 +925,52 @@ kbd {
   word-break: break-word;
 }
 
+.kanban-card-due {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  cursor: pointer;
+  margin-top: 2px;
+  width: fit-content;
+  color: var(--vscode-descriptionForeground);
+  background: var(--vscode-badge-background, #4d4d4d);
+  transition: background 0.15s;
+}
+
+.kanban-card-due:hover {
+  background: var(--vscode-input-background);
+}
+
+.kanban-card-due.due-overdue {
+  color: #f48771;
+  background: rgba(244, 135, 113, 0.12);
+}
+
+.kanban-card-due.due-today {
+  color: #f9c74f;
+  background: rgba(249, 199, 79, 0.12);
+}
+
+.kanban-card-due.due-tomorrow {
+  color: #fca311;
+  background: rgba(252, 163, 17, 0.1);
+}
+
+.kanban-card-due.due-soon {
+  color: #4fc1ff;
+  background: rgba(79, 193, 255, 0.1);
+}
+
+.kanban-due-input {
+  font-size: 11px !important;
+  padding: 2px 4px !important;
+  margin-top: 2px;
+  width: fit-content;
+}
+
 .kanban-card-actions {
   display: flex;
   flex-direction: column;
@@ -1053,6 +1099,86 @@ kbd {
   letter-spacing: 0.5px;
   color: var(--vscode-descriptionForeground);
   margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Due this week section */
+.dashboard-due-week {
+  grid-column: 1 / -1;
+}
+
+.dashboard-due-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dashboard-due-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  background: var(--vscode-sideBar-background);
+  transition: background 0.15s;
+}
+
+.dashboard-due-item:hover {
+  background: var(--vscode-list-hoverBackground, #2a2d2e);
+}
+
+.dashboard-due-item.due-overdue {
+  border-left: 3px solid #f48771;
+}
+
+.dashboard-due-item.due-today {
+  border-left: 3px solid #f9c74f;
+}
+
+.dashboard-due-item.due-soon {
+  border-left: 3px solid #4fc1ff;
+}
+
+.dashboard-due-date {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--vscode-descriptionForeground);
+  min-width: 40px;
+}
+
+.dashboard-due-title {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dashboard-due-project {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.8;
+}
+
+.dashboard-due-badge {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.dashboard-due-badge.overdue {
+  color: #f48771;
+  background: rgba(244, 135, 113, 0.12);
+}
+
+.dashboard-due-badge.today {
+  color: #f9c74f;
+  background: rgba(249, 199, 79, 0.12);
 }
 
 .dashboard-empty {

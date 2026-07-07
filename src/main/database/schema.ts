@@ -14,7 +14,18 @@ export function getDatabase(): Database.Database {
   db.pragma('journal_mode = WAL')
 
   initializeSchema(db)
+  runMigrations(db)
   return db
+}
+
+function runMigrations(database: Database.Database): void {
+  // Add due_date column to tasks if it doesn't exist
+  const columns = database.prepare("PRAGMA table_info(tasks)").all() as { name: string }[]
+  const hasDueDate = columns.some((col) => col.name === 'due_date')
+  if (!hasDueDate) {
+    database.exec(`ALTER TABLE tasks ADD COLUMN due_date TEXT`)
+    database.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date)`)
+  }
 }
 
 function initializeSchema(database: Database.Database): void {
@@ -54,6 +65,7 @@ function initializeSchema(database: Database.Database): void {
       title TEXT NOT NULL,
       description TEXT,
       status TEXT NOT NULL DEFAULT 'todo',
+      due_date TEXT,
       source_entry_id TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -63,6 +75,7 @@ function initializeSchema(database: Database.Database): void {
 
     CREATE INDEX IF NOT EXISTS idx_tasks_project_id ON tasks(project_id);
     CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+    CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date);
   `)
 }
 

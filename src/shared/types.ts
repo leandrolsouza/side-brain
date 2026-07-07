@@ -65,6 +65,7 @@ export interface Task {
   title: string
   description?: string
   status: TaskStatus
+  dueDate?: string | null
   sourceEntryId?: string
   createdAt: string
   updatedAt: string

@@ -16,7 +16,9 @@ export interface ElectronAPI {
   // Tasks
   getTasksByProject: (projectId: string) => Promise<any[]>
   getAllTasks: () => Promise<any[]>
-  createTask: (data: { projectId: string; title: string; description?: string }) => Promise<any>
+  getTasksDueThisWeek: () => Promise<any[]>
+  getOverdueTasks: () => Promise<any[]>
+  createTask: (data: { projectId: string; title: string; description?: string; dueDate?: string | null }) => Promise<any>
   updateTask: (id: string, updates: Record<string, any>) => Promise<any>
   deleteTask: (id: string) => Promise<void>
 
@@ -68,7 +70,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('task:getByProject', projectId),
   getAllTasks: () =>
     ipcRenderer.invoke('task:getAll'),
-  createTask: (data: { projectId: string; title: string; description?: string }) =>
+  getTasksDueThisWeek: () =>
+    ipcRenderer.invoke('task:getDueThisWeek'),
+  getOverdueTasks: () =>
+    ipcRenderer.invoke('task:getOverdue'),
+  createTask: (data: { projectId: string; title: string; description?: string; dueDate?: string | null }) =>
     ipcRenderer.invoke('task:create', data),
   updateTask: (id: string, updates: Record<string, any>) =>
     ipcRenderer.invoke('task:update', id, updates),

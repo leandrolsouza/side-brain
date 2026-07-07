@@ -2,8 +2,10 @@ import { app, BrowserWindow, globalShortcut } from 'electron'
 import path from 'path'
 import { registerIpcHandlers } from './ipc/handlers'
 import { closeDatabase } from './database/schema'
+import { NotificationService } from './services/notification-service'
 
 let mainWindow: BrowserWindow | null = null
+let notificationService: NotificationService | null = null
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -48,6 +50,10 @@ app.whenReady().then(() => {
   createWindow()
   registerGlobalShortcut()
 
+  // Start notification service for deadline reminders
+  notificationService = new NotificationService()
+  notificationService.start()
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow()
@@ -63,5 +69,6 @@ app.on('window-all-closed', () => {
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll()
+  if (notificationService) notificationService.stop()
   closeDatabase()
 })

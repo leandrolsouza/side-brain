@@ -101,6 +101,15 @@ export function registerIpcHandlers(): void {
     return taskRepo.delete(id)
   })
 
+  // Task deadline handlers
+  ipcMain.handle('task:getDueThisWeek', async () => {
+    return taskRepo.getDueThisWeek()
+  })
+
+  ipcMain.handle('task:getOverdue', async () => {
+    return taskRepo.getOverdue()
+  })
+
   // Daily Digest handler
   ipcMain.handle('digest:generate', async () => {
     return digestService.generateDailyDigest()

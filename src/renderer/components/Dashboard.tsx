@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Circle, Clock, FolderOpen, CheckCircle2, AlertCircle, Timer, ArrowRight, Sparkles, X } from 'lucide-react'
+import { Circle, Clock, FolderOpen, CheckCircle2, AlertCircle, Timer, ArrowRight, Sparkles, X, Calendar } from 'lucide-react'
 
 interface Task {
   id: string
@@ -7,6 +7,7 @@ interface Task {
   title: string
   description?: string
   status: string
+  dueDate?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -42,6 +43,8 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [entries, setEntries] = useState<Entry[]>([])
   const [projects, setProjects] = useState<Project[]>([])
+  const [dueThisWeek, setDueThisWeek] = useState<Task[]>([])
+  const [overdueTasks, setOverdueTasks] = useState<Task[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [globalSummary, setGlobalSummary] = useState<string | null>(null)
   const [isLoadingSummary, setIsLoadingSummary] = useState(false)
@@ -53,14 +56,18 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
   const loadData = async () => {
     setIsLoading(true)
     try {
-      const [tasksData, entriesData, projectsData] = await Promise.all([
+      const [tasksData, entriesData, projectsData, dueThisWeekData, overdueData] = await Promise.all([
         window.electronAPI.getAllTasks(),
         window.electronAPI.getEntries(),
         window.electronAPI.getProjects(),
+        window.electronAPI.getTasksDueThisWeek(),
+        window.electronAPI.getOverdueTasks(),
       ])
       setTasks(tasksData)
       setEntries(entriesData)
       setProjects(projectsData)
+      setDueThisWeek(dueThisWeekData)
+      setOverdueTasks(overdueData)
     } finally {
       setIsLoading(false)
     }
@@ -195,6 +202,50 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
       )}
 
       <div className="dashboard-grid">
+        {/* Section: Due this week */}
+        {(dueThisWeek.length > 0 || overdueTasks.length > 0) && (
+          <div className="dashboard-section dashboard-due-week">
+            <h3 className="dashboard-section-title">
+              <Calendar size={14} />
+              Vencendo essa semana
+            </h3>
+            <div className="dashboard-due-list">
+              {overdueTasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="dashboard-due-item due-overdue"
+                  onClick={() => onNavigateToProject(task.projectId, getProjectName(task.projectId))}
+                >
+                  <span className="dashboard-due-date">
+                    {new Date(task.dueDate + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                  </span>
+                  <span className="dashboard-due-title">{task.title}</span>
+                  <span className="dashboard-due-project">{getProjectName(task.projectId)}</span>
+                  <span className="dashboard-due-badge overdue">Vencida</span>
+                </div>
+              ))}
+              {dueThisWeek.map((task) => {
+                const today = new Date().toISOString().split('T')[0]
+                const isToday = task.dueDate === today
+                return (
+                  <div
+                    key={task.id}
+                    className={`dashboard-due-item ${isToday ? 'due-today' : 'due-soon'}`}
+                    onClick={() => onNavigateToProject(task.projectId, getProjectName(task.projectId))}
+                  >
+                    <span className="dashboard-due-date">
+                      {new Date(task.dueDate + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                    </span>
+                    <span className="dashboard-due-title">{task.title}</span>
+                    <span className="dashboard-due-project">{getProjectName(task.projectId)}</span>
+                    {isToday && <span className="dashboard-due-badge today">Hoje</span>}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Section 1: Pending tasks */}
         <div className="dashboard-section dashboard-tasks">
           <h3 className="dashboard-section-title">Tarefas Pendentes</h3>
