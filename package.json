@@ -1,0 +1,58 @@
+{
+  "name": "work-organizer",
+  "version": "0.1.0",
+  "description": "Organize your work life with AI-powered note categorization",
+  "main": "dist/main/main/index.js",
+  "scripts": {
+    "dev": "concurrently -k \"npm run dev:renderer\" \"npm run dev:main\" \"npm run dev:electron\"",
+    "dev:renderer": "vite",
+    "dev:main": "tsc -p tsconfig.main.json --watch",
+    "dev:electron": "node scripts/wait-and-start.js",
+    "postinstall": "electron-rebuild -f -w better-sqlite3",
+    "build": "npm run build:renderer && npm run build:main",
+    "build:renderer": "vite build",
+    "build:main": "tsc -p tsconfig.main.json",
+    "start": "electron dist/main/main/index.js",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "dependencies": {
+    "better-sqlite3": "12.6.2",
+    "lucide-react": "^1.23.0",
+    "uuid": "13.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "7.6.12",
+    "@types/react": "19.1.13",
+    "@types/react-dom": "19.1.6",
+    "@types/uuid": "10.0.0",
+    "@electron/rebuild": "3.7.1",
+    "@vitejs/plugin-react": "6.0.0",
+    "concurrently": "9.2.1",
+    "electron": "35.0.0",
+    "electron-builder": "26.0.12",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "typescript": "5.8.3",
+    "vite": "8.0.0"
+  },
+  "build": {
+    "appId": "com.workorganizer.app",
+    "productName": "Work Organizer",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  }
+}
