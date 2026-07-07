@@ -125,6 +125,17 @@ ${projectsSummaryText}`
   }
 
   /**
+   * Public wrapper for invokeConverse, used by other services (e.g. DigestService).
+   */
+  async invokeConversePublic(
+    systemPrompt: string,
+    userMessage: string,
+    settings: AppSettings
+  ): Promise<string> {
+    return this.invokeConverse(systemPrompt, userMessage, settings)
+  }
+
+  /**
    * Calls the Bedrock Converse API using the API Key (Bearer Token).
    * Docs: https://docs.aws.amazon.com/bedrock/latest/userguide/api-keys-use.html
    */

@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react'
-import { Send, CheckCircle2 } from 'lucide-react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
+import { Send, CheckCircle2, Mic, MicOff } from 'lucide-react'
 
 interface CaptureInputProps {
   onProjectsChanged?: () => void
@@ -9,12 +9,64 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
   const [text, setText] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [lastSubmitted, setLastSubmitted] = useState<string | null>(null)
+  const [isListening, setIsListening] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const recognitionRef = useRef<SpeechRecognition | null>(null)
+  const baseTextRef = useRef('')
+
+  const speechSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window
+
+  const toggleVoiceInput = useCallback(() => {
+    if (isListening) {
+      recognitionRef.current?.stop()
+      setIsListening(false)
+      return
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SpeechRecognition) return
+
+    const recognition = new SpeechRecognition()
+    recognition.lang = 'pt-BR'
+    recognition.interimResults = true
+    recognition.continuous = true
+
+    // Save the current text as the base before voice input starts
+    baseTextRef.current = text ? (text.endsWith(' ') ? text : text + ' ') : ''
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let transcript = ''
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript
+      }
+      setText(baseTextRef.current + transcript)
+    }
+
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      console.error('Speech recognition error:', event.error)
+      setIsListening(false)
+    }
+
+    recognition.onend = () => {
+      setIsListening(false)
+    }
+
+    recognitionRef.current = recognition
+    recognition.start()
+    setIsListening(true)
+  }, [isListening])
 
   useEffect(() => {
     window.electronAPI.onFocusCaptureInput(() => {
       inputRef.current?.focus()
     })
+  }, [])
+
+  // Cleanup speech recognition on unmount
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.stop()
+    }
   }, [])
 
   const handleSubmit = async () => {
@@ -73,6 +125,23 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
             <Send size={14} />
             {isSubmitting ? 'Processando...' : 'Enviar'}
           </button>
+
+          {speechSupported && (
+            <button
+              className={`vscode-button ${isListening ? 'vscode-button-active' : 'vscode-button-secondary'}`}
+              onClick={toggleVoiceInput}
+              disabled={isSubmitting}
+              title={isListening ? 'Parar gravação' : 'Entrada por voz'}
+              style={isListening ? {
+                background: 'var(--vscode-inputValidation-errorBackground, #5a1d1d)',
+                borderColor: 'var(--vscode-inputValidation-errorBorder, #be1100)',
+                animation: 'pulse 1.5s infinite'
+              } : undefined}
+            >
+              {isListening ? <MicOff size={14} /> : <Mic size={14} />}
+              {isListening ? 'Parar' : 'Voz'}
+            </button>
+          )}
 
           <span style={{ color: 'var(--vscode-descriptionForeground)', fontSize: 12 }}>
             <kbd>Enter</kbd> para enviar, <kbd>Shift+Enter</kbd> nova linha

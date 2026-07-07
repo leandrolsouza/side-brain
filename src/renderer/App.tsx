@@ -8,6 +8,7 @@ import { ProjectView } from './components/ProjectView'
 import { ReviewInbox } from './components/ReviewInbox'
 import { Settings } from './components/Settings'
 import { GlobalSearch } from './components/GlobalSearch'
+import { DailyDigest } from './components/DailyDigest'
 
 export type View = 'dashboard' | 'capture' | 'projects' | 'entries' | 'review' | 'settings'
 
@@ -17,6 +18,17 @@ export function App() {
   const [selectedProjectName, setSelectedProjectName] = useState<string>('')
   const [projectsRefreshKey, setProjectsRefreshKey] = useState(0)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [showDigest, setShowDigest] = useState(false)
+
+  // Show Daily Digest on app start
+  useEffect(() => {
+    const digestKey = `digest-shown-${new Date().toISOString().slice(0, 10)}`
+    const alreadyShown = sessionStorage.getItem(digestKey)
+    if (!alreadyShown) {
+      setShowDigest(true)
+      sessionStorage.setItem(digestKey, 'true')
+    }
+  }, [])
 
   // Ctrl+K global shortcut
   useEffect(() => {
@@ -112,6 +124,14 @@ export function App() {
         onClose={() => setIsSearchOpen(false)}
         onNavigateToProject={handleProjectSelect}
       />
+
+      {/* Daily Digest Modal */}
+      {showDigest && (
+        <DailyDigest
+          onClose={() => setShowDigest(false)}
+          onNavigateToProject={handleProjectSelect}
+        />
+      )}
 
       {/* Status Bar */}
       <div className="status-bar">

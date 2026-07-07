@@ -24,6 +24,9 @@ export interface ElectronAPI {
   generateSummary: (projectId: string) => Promise<string>
   generateGlobalSummary: () => Promise<string>
 
+  // Daily Digest
+  generateDailyDigest: () => Promise<any>
+
   // Review
   approveEntry: (id: string) => Promise<void>
   correctEntry: (id: string, corrections: Record<string, any>) => Promise<void>
@@ -77,6 +80,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('ai:generateSummary', projectId),
   generateGlobalSummary: () =>
     ipcRenderer.invoke('ai:generateGlobalSummary'),
+
+  // Daily Digest
+  generateDailyDigest: () =>
+    ipcRenderer.invoke('digest:generate'),
 
   // Review
   approveEntry: (id: string) =>

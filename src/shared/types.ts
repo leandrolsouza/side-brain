@@ -79,6 +79,24 @@ export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   done: 'Concluído',
 }
 
+// === Daily Digest Types ===
+
+export interface DailyDigestData {
+  greeting: string
+  tasksNeedingAttention: {
+    overdue: Task[]
+    inProgress: Task[]
+    waiting: Task[]
+  }
+  yesterdayActivity: {
+    entriesCreated: Entry[]
+    tasksCompleted: Task[]
+    tasksCreated: Task[]
+  }
+  aiSuggestion: string | null
+  generatedAt: string
+}
+
 // === Settings ===
 
 export interface AppSettings {
