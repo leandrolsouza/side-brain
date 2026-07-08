@@ -468,6 +468,16 @@ body {
   cursor: default;
 }
 
+.status-bar-item.clickable {
+  cursor: pointer;
+  border-radius: 3px;
+  padding: 0 4px;
+}
+
+.status-bar-item.clickable:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
 .status-bar-right {
   margin-left: auto;
   display: flex;

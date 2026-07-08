@@ -1,14 +1,20 @@
 import React, { useState, useEffect } from 'react'
-import { CheckCircle2, Download, Upload, Trash2, RotateCcw, HardDrive, AlertTriangle, FolderOpen, Database, Settings as SettingsIcon, Cpu } from 'lucide-react'
+import { CheckCircle2, Download, Upload, Trash2, RotateCcw, HardDrive, AlertTriangle, FolderOpen, Database, Settings as SettingsIcon, Cpu, Cloud, Monitor } from 'lucide-react'
 import { ConfirmModal } from './ConfirmModal'
 
 interface SettingsProps {
 }
 
+type AIProvider = 'bedrock' | 'local'
+
 interface AppSettings {
+  aiProvider: AIProvider
   awsRegion: string
   bedrockApiKey: string
   modelId: string
+  localEndpoint: string
+  localModelId: string
+  localApiKey: string
 }
 
 const AVAILABLE_MODELS = [
@@ -36,9 +42,13 @@ type SettingsTab = 'geral' | 'dados' | 'avancado'
 export function Settings({ }: SettingsProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>('geral')
   const [settings, setSettings] = useState<AppSettings>({
+    aiProvider: 'bedrock',
     awsRegion: 'us-east-1',
     bedrockApiKey: '',
     modelId: 'us.anthropic.claude-sonnet-4-20250514-v1:0',
+    localEndpoint: 'http://localhost:1234',
+    localModelId: '',
+    localApiKey: '',
   })
   const [isSaving, setIsSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -297,63 +307,149 @@ export function Settings({ }: SettingsProps) {
 
   const renderGeralTab = () => (
     <div className="settings-tab-content">
-      {/* AI Settings */}
+      {/* Provider Selection */}
       <div className="settings-group">
         <div className="settings-item">
-          <div className="settings-item-label">Região AWS</div>
+          <div className="settings-item-label">Provedor de IA</div>
           <div className="settings-item-description">
-            Região do AWS Bedrock para chamadas de IA.
+            Escolha entre AWS Bedrock (nuvem) ou um LLM local (LM Studio, Ollama, etc).
           </div>
-          <select
-            className="vscode-select"
-            value={settings.awsRegion}
-            onChange={(e) => setSettings({ ...settings, awsRegion: e.target.value })}
-          >
-            {AWS_REGIONS.map((region) => (
-              <option key={region} value={region}>{region}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="settings-item">
-          <div className="settings-item-label">API Key (Bedrock)</div>
-          <div className="settings-item-description">
-            Gere em: Console AWS → Bedrock → API Keys. Usada como Bearer Token.
+          <div className="provider-toggle" style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            <button
+              className={`vscode-button ${settings.aiProvider === 'bedrock' ? '' : 'secondary'}`}
+              onClick={() => setSettings({ ...settings, aiProvider: 'bedrock' })}
+              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              <Cloud size={14} />
+              AWS Bedrock
+            </button>
+            <button
+              className={`vscode-button ${settings.aiProvider === 'local' ? '' : 'secondary'}`}
+              onClick={() => setSettings({ ...settings, aiProvider: 'local' })}
+              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              <Monitor size={14} />
+              LLM Local
+            </button>
           </div>
-          <input
-            type="password"
-            className="vscode-input"
-            value={settings.bedrockApiKey}
-            onChange={(e) => setSettings({ ...settings, bedrockApiKey: e.target.value })}
-            placeholder="Cole aqui sua API Key..."
-            style={{ maxWidth: 400 }}
-          />
         </div>
-
-        <div className="settings-item">
-          <div className="settings-item-label">Modelo</div>
-          <div className="settings-item-description">
-            Modelo de IA para categorização e resumos.
-          </div>
-          <select
-            className="vscode-select"
-            value={settings.modelId}
-            onChange={(e) => setSettings({ ...settings, modelId: e.target.value })}
-          >
-            <optgroup label="Claude (Anthropic)">
-              {AVAILABLE_MODELS.filter(m => m.category === 'Claude').map((model) => (
-                <option key={model.id} value={model.id}>{model.label}</option>
-              ))}
-            </optgroup>
-            <optgroup label="Amazon Nova">
-              {AVAILABLE_MODELS.filter(m => m.category === 'Nova').map((model) => (
-                <option key={model.id} value={model.id}>{model.label}</option>
-              ))}
-            </optgroup>
-          </select>
-        </div>
-
       </div>
+
+      {/* Bedrock Settings */}
+      {settings.aiProvider === 'bedrock' && (
+        <div className="settings-group">
+          <div className="settings-item">
+            <div className="settings-item-label">Região AWS</div>
+            <div className="settings-item-description">
+              Região do AWS Bedrock para chamadas de IA.
+            </div>
+            <select
+              className="vscode-select"
+              value={settings.awsRegion}
+              onChange={(e) => setSettings({ ...settings, awsRegion: e.target.value })}
+            >
+              {AWS_REGIONS.map((region) => (
+                <option key={region} value={region}>{region}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="settings-item">
+            <div className="settings-item-label">API Key (Bedrock)</div>
+            <div className="settings-item-description">
+              Gere em: Console AWS → Bedrock → API Keys. Usada como Bearer Token.
+            </div>
+            <input
+              type="password"
+              className="vscode-input"
+              value={settings.bedrockApiKey}
+              onChange={(e) => setSettings({ ...settings, bedrockApiKey: e.target.value })}
+              placeholder="Cole aqui sua API Key..."
+              style={{ maxWidth: 400 }}
+            />
+          </div>
+
+          <div className="settings-item">
+            <div className="settings-item-label">Modelo</div>
+            <div className="settings-item-description">
+              Modelo de IA para categorização e resumos.
+            </div>
+            <select
+              className="vscode-select"
+              value={settings.modelId}
+              onChange={(e) => setSettings({ ...settings, modelId: e.target.value })}
+            >
+              <optgroup label="Claude (Anthropic)">
+                {AVAILABLE_MODELS.filter(m => m.category === 'Claude').map((model) => (
+                  <option key={model.id} value={model.id}>{model.label}</option>
+                ))}
+              </optgroup>
+              <optgroup label="Amazon Nova">
+                {AVAILABLE_MODELS.filter(m => m.category === 'Nova').map((model) => (
+                  <option key={model.id} value={model.id}>{model.label}</option>
+                ))}
+              </optgroup>
+            </select>
+          </div>
+        </div>
+      )}
+
+      {/* Local LLM Settings */}
+      {settings.aiProvider === 'local' && (
+        <div className="settings-group">
+          <div className="settings-item">
+            <div className="settings-item-label">Endpoint</div>
+            <div className="settings-item-description">
+              URL base do servidor local. LM Studio usa <code>http://localhost:1234</code> por padrão.
+            </div>
+            <input
+              type="text"
+              className="vscode-input"
+              value={settings.localEndpoint}
+              onChange={(e) => setSettings({ ...settings, localEndpoint: e.target.value })}
+              placeholder="http://localhost:1234"
+              style={{ maxWidth: 400 }}
+            />
+          </div>
+
+          <div className="settings-item">
+            <div className="settings-item-label">Modelo (opcional)</div>
+            <div className="settings-item-description">
+              Nome do modelo carregado no servidor. No LM Studio, deixe vazio para usar o modelo ativo.
+            </div>
+            <input
+              type="text"
+              className="vscode-input"
+              value={settings.localModelId}
+              onChange={(e) => setSettings({ ...settings, localModelId: e.target.value })}
+              placeholder="Ex: qwen2.5-7b-instruct"
+              style={{ maxWidth: 400 }}
+            />
+          </div>
+
+          <div className="settings-item">
+            <div className="settings-item-label">API Key (opcional)</div>
+            <div className="settings-item-description">
+              Apenas se o servidor local exigir autenticação. A maioria não precisa.
+            </div>
+            <input
+              type="password"
+              className="vscode-input"
+              value={settings.localApiKey}
+              onChange={(e) => setSettings({ ...settings, localApiKey: e.target.value })}
+              placeholder="Deixe vazio se não necessário"
+              style={{ maxWidth: 400 }}
+            />
+          </div>
+
+          <div className="settings-item" style={{ padding: '12px', borderRadius: 4, background: 'var(--vscode-editor-background)', border: '1px solid var(--vscode-panel-border)' }}>
+            <div style={{ fontSize: 12, opacity: 0.8, lineHeight: 1.5 }}>
+              <strong>Dica:</strong> Para melhores resultados, use modelos com pelo menos 7B parâmetros e
+              que suportem instruções em português. Recomendados: Qwen 2.5, Llama 3, Mistral.
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Save */}
       <div className="flex-row" style={{ marginTop: 16 }}>

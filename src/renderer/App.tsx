@@ -60,7 +60,10 @@ export function App() {
     const loadModel = async () => {
       try {
         const data = await window.electronAPI.getSettings()
-        if (data?.modelId) {
+        if (data?.aiProvider === 'local') {
+          const modelName = data.localModelId || 'LLM Local'
+          setActiveModelLabel(`Local: ${modelName}`)
+        } else if (data?.modelId) {
           setActiveModelLabel(MODEL_LABELS[data.modelId] || data.modelId)
         }
       } catch { /* ignore */ }
@@ -206,7 +209,7 @@ export function App() {
           <span>SideBrain v0.1.0</span>
         </div>
         <div className="status-bar-right">
-          <div className="status-bar-item">
+          <div className="status-bar-item clickable" onClick={() => setCurrentView('settings')} title="Clique para alterar o provedor de IA">
             <span>AI: {activeModelLabel}</span>
           </div>
         </div>

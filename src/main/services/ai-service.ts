@@ -1,4 +1,4 @@
-import { AICategorizationResult, AIOperationType, AppSettings, MeetingProcessResult, Project } from '../../shared/types'
+import { AICategorizationResult, AIOperationType, AIProvider, AppSettings, MeetingProcessResult, Project } from '../../shared/types'
 import { AIUsageRepository } from '../database/repositories/ai-usage-repository'
 import { SettingsRepository } from '../database/repositories/settings-repository'
 
@@ -203,10 +203,101 @@ ${projectsSummaryText}`
   }
 
   /**
+   * Routes to the appropriate provider based on settings.
+   */
+  private async invokeConverse(
+    systemPrompt: string,
+    userMessage: string,
+    settings: AppSettings,
+    operationType: AIOperationType = 'categorization'
+  ): Promise<string> {
+    if (settings.aiProvider === 'local') {
+      return this.invokeLocal(systemPrompt, userMessage, settings, operationType)
+    }
+    return this.invokeBedrock(systemPrompt, userMessage, settings, operationType)
+  }
+
+  /**
+   * Calls a local OpenAI-compatible API (e.g. LM Studio, Ollama, LocalAI).
+   * Endpoint default: http://localhost:1234/v1/chat/completions
+   */
+  private async invokeLocal(
+    systemPrompt: string,
+    userMessage: string,
+    settings: AppSettings,
+    operationType: AIOperationType
+  ): Promise<string> {
+    const baseUrl = (settings.localEndpoint || 'http://localhost:1234').replace(/\/+$/, '')
+    const url = `${baseUrl}/v1/chat/completions`
+
+    const body = {
+      model: settings.localModelId || undefined,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage },
+      ],
+      temperature: 0.3,
+      max_tokens: 2048,
+    }
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    }
+
+    // Some local servers support optional API key
+    if (settings.localApiKey) {
+      headers['Authorization'] = `Bearer ${settings.localApiKey}`
+    }
+
+    const startTime = Date.now()
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Local LLM API error (${response.status}): ${errorText}`)
+    }
+
+    const data = await response.json()
+    const latencyMs = Date.now() - startTime
+
+    // OpenAI-compatible response format
+    const inputTokens = data.usage?.prompt_tokens ?? 0
+    const outputTokens = data.usage?.completion_tokens ?? 0
+
+    // Local LLMs are free, but we still record for stats
+    const estimatedCost = 0
+
+    try {
+      this.aiUsageRepo.record({
+        operationType,
+        model: settings.localModelId || 'local',
+        inputTokens,
+        outputTokens,
+        estimatedCost,
+        latencyMs,
+      })
+    } catch (e) {
+      console.error('Failed to record AI usage:', e)
+    }
+
+    const choice = data.choices?.[0]
+    if (!choice?.message?.content) {
+      throw new Error('Local LLM did not return a valid response')
+    }
+
+    return choice.message.content
+  }
+
+  /**
    * Calls the Bedrock Converse API using the API Key (Bearer Token).
    * Docs: https://docs.aws.amazon.com/bedrock/latest/userguide/api-keys-use.html
    */
-  private async invokeConverse(
+  private async invokeBedrock(
     systemPrompt: string,
     userMessage: string,
     settings: AppSettings,
