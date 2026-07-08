@@ -1,4 +1,4 @@
-import { Entry, ReviewStatus } from '../../shared/types'
+import { Entry, EntryConfirmRequest, EntryPreviewResult } from '../../shared/types'
 import { EntryRepository } from '../database/repositories/entry-repository'
 import { ProjectRepository } from '../database/repositories/project-repository'
 import { TaskRepository } from '../database/repositories/task-repository'
@@ -49,9 +49,6 @@ export class EntryService {
       projectId = uncategorized.id
     }
 
-    // Determine review status
-    const reviewStatus: ReviewStatus = settings.reviewEnabled ? 'pending' : 'auto_approved'
-
     // Create the entry
     const entry = this.entryRepo.create({
       rawText,
@@ -59,7 +56,7 @@ export class EntryService {
       projectId,
       type: result.type,
       action: result.action,
-      reviewStatus,
+      reviewStatus: 'auto_approved',
     })
 
     // Create task from AI suggestion if present
@@ -72,6 +69,93 @@ export class EntryService {
           projectId,
           title: result.suggestedTask.title,
           description: result.suggestedTask.description,
+          status: taskStatus,
+          sourceEntryId: entry.id,
+        })
+      }
+    }
+
+    return { ...entry, autoSuggestedProject }
+  }
+
+  async previewEntry(rawText: string, projectIdHint?: string): Promise<EntryPreviewResult> {
+    const settings = this.settingsRepo.get()
+    const projects = this.projectRepo.getAll()
+
+    // Call AI to categorize (does NOT persist anything)
+    const result = await this.aiService.categorize(rawText, projects, settings)
+
+    // If user pre-selected a project, use that as the resolved project
+    // unless AI has high confidence in a different one
+    let resolvedProject = result.project
+    if (projectIdHint) {
+      const hintedProject = projects.find((p) => p.id === projectIdHint)
+      if (hintedProject && (!result.project.id || result.project.confidence < 0.8)) {
+        resolvedProject = { id: projectIdHint, suggestedName: null, confidence: 1.0 }
+      }
+    }
+
+    return {
+      rawText,
+      improvedText: result.improvedText,
+      project: resolvedProject,
+      type: result.type,
+      action: result.action,
+      reasoning: result.reasoning,
+      suggestedTask: result.suggestedTask,
+    }
+  }
+
+  async confirmEntry(data: EntryConfirmRequest): Promise<Entry & { autoSuggestedProject?: { id: string; name: string } }> {
+    // Resolve project
+    let projectId: string
+    let autoSuggestedProject: { id: string; name: string } | undefined
+
+    if (data.projectId) {
+      // User confirmed an existing project
+      projectId = data.projectId
+    } else if (data.newProjectName) {
+      // User wants to create a new project
+      const existing = this.projectRepo.findByName(data.newProjectName)
+      if (existing) {
+        projectId = existing.id
+      } else {
+        const newProject = this.projectRepo.create(
+          data.newProjectName,
+          undefined,
+          true // isAutoSuggested
+        )
+        projectId = newProject.id
+        autoSuggestedProject = { id: newProject.id, name: newProject.name }
+      }
+    } else {
+      // Fallback: create "Sem Projeto"
+      let uncategorized = this.projectRepo.findByName('Sem Projeto')
+      if (!uncategorized) {
+        uncategorized = this.projectRepo.create('Sem Projeto', 'Entradas não categorizadas')
+      }
+      projectId = uncategorized.id
+    }
+
+    // Create the entry
+    const entry = this.entryRepo.create({
+      rawText: data.rawText,
+      improvedText: data.improvedText,
+      projectId,
+      type: data.type,
+      action: data.action,
+      reviewStatus: 'auto_approved',
+    })
+
+    // Create task from suggestion if present
+    if (data.suggestedTask) {
+      const existing = this.taskRepo.findSimilar(projectId, data.suggestedTask.title)
+      if (!existing) {
+        const taskStatus = data.action === 'waiting_response' ? 'waiting' : 'todo'
+        this.taskRepo.create({
+          projectId,
+          title: data.suggestedTask.title,
+          description: data.suggestedTask.description,
           status: taskStatus,
           sourceEntryId: entry.id,
         })
@@ -95,14 +179,6 @@ export class EntryService {
 
   deleteEntry(id: string): void {
     this.entryRepo.delete(id)
-  }
-
-  approveEntry(id: string): Entry | null {
-    return this.entryRepo.update(id, { reviewStatus: 'approved' })
-  }
-
-  correctEntry(id: string, corrections: Record<string, any>): Entry | null {
-    return this.entryRepo.update(id, { ...corrections, reviewStatus: 'corrected' })
   }
 
   async generateSummary(projectId: string): Promise<string> {

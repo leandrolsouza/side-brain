@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Circle, Clock, FolderOpen, CheckCircle2, AlertCircle, Timer, ArrowRight, Sparkles, X, Calendar } from 'lucide-react'
+import { MarkdownViewer } from './MarkdownViewer'
 
 interface Task {
   id: string
@@ -199,7 +200,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
               </button>
             </div>
             <div className="summary-modal-body">
-              <div className="dashboard-summary-text">{globalSummary}</div>
+              <MarkdownViewer content={globalSummary} />
             </div>
           </div>
         </div>

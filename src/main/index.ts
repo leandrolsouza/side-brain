@@ -16,7 +16,7 @@ function createWindow(): void {
     height: 680,
     minWidth: 600,
     minHeight: 400,
-    title: 'Work Organizer',
+    title: 'SideBrain',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

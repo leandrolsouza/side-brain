@@ -1,23 +1,30 @@
 import { app, dialog, BrowserWindow } from 'electron'
 import fs from 'fs'
 import path from 'path'
+import { v4 as uuidv4 } from 'uuid'
 import { closeDatabase } from '../database/schema'
+import type { Workspace, WorkspaceConfig } from '../../shared/types'
 
 const CONFIG_FILENAME = 'config.json'
 const DB_FILENAME = 'work-organizer.db'
 const LOCK_FILENAME = 'work-organizer.lock'
 
-interface AppConfig {
-  databasePath: string
+const DEFAULT_WORKSPACE: Workspace = {
+  id: 'default',
+  name: 'Principal',
+  emoji: '🏢',
+  databasePath: '',
+  createdAt: new Date().toISOString(),
 }
 
-const DEFAULT_CONFIG: AppConfig = {
-  databasePath: '',
+const DEFAULT_CONFIG: WorkspaceConfig = {
+  activeWorkspaceId: 'default',
+  workspaces: [],
 }
 
 /**
- * Gerencia o config.json local (nunca na nuvem) e o lock file da database.
- * O config.json guarda apenas o caminho da DB — é lido antes de abrir a database.
+ * Gerencia workspaces (multi-database) e o lock file.
+ * O config.json guarda a lista de workspaces e qual está ativo.
  */
 export class ConfigService {
   private configPath: string
@@ -25,17 +32,188 @@ export class ConfigService {
 
   constructor() {
     this.configPath = path.join(app.getPath('userData'), CONFIG_FILENAME)
+    this.migrateIfNeeded()
+  }
+
+  // === Workspace Management ===
+
+  /**
+   * Retorna todos os workspaces configurados.
+   */
+  getWorkspaces(): Workspace[] {
+    const config = this.readConfig()
+    if (config.workspaces.length === 0) {
+      // Garante que pelo menos o workspace padrão exista
+      const defaultWs: Workspace = {
+        ...DEFAULT_WORKSPACE,
+        databasePath: this.getDefaultDatabasePath(),
+      }
+      config.workspaces = [defaultWs]
+      config.activeWorkspaceId = defaultWs.id
+      this.writeConfig(config)
+      return [defaultWs]
+    }
+    return config.workspaces
   }
 
   /**
-   * Retorna o caminho da database configurado, ou o padrão se não configurado.
+   * Retorna o workspace ativo.
+   */
+  getActiveWorkspace(): Workspace {
+    const config = this.readConfig()
+    const workspaces = this.getWorkspaces()
+    const active = workspaces.find((ws) => ws.id === config.activeWorkspaceId)
+    return active || workspaces[0]
+  }
+
+  /**
+   * Cria um novo workspace.
+   */
+  createWorkspace(data: { name: string; emoji: string; databasePath: string }): Workspace {
+    const config = this.readConfig()
+    const workspaces = this.getWorkspaces()
+
+    const newWorkspace: Workspace = {
+      id: uuidv4(),
+      name: data.name,
+      emoji: data.emoji,
+      databasePath: data.databasePath.endsWith('.db')
+        ? data.databasePath
+        : path.join(data.databasePath, DB_FILENAME),
+      createdAt: new Date().toISOString(),
+    }
+
+    // Garante que o diretório existe
+    const dir = path.dirname(newWorkspace.databasePath)
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true })
+    }
+
+    workspaces.push(newWorkspace)
+    config.workspaces = workspaces
+    this.writeConfig(config)
+
+    return newWorkspace
+  }
+
+  /**
+   * Atualiza um workspace existente (nome, emoji).
+   */
+  updateWorkspace(id: string, updates: { name?: string; emoji?: string }): Workspace | null {
+    const config = this.readConfig()
+    const workspaces = this.getWorkspaces()
+    const index = workspaces.findIndex((ws) => ws.id === id)
+
+    if (index === -1) return null
+
+    if (updates.name) workspaces[index].name = updates.name
+    if (updates.emoji) workspaces[index].emoji = updates.emoji
+
+    config.workspaces = workspaces
+    this.writeConfig(config)
+
+    return workspaces[index]
+  }
+
+  /**
+   * Remove um workspace (não remove o arquivo .db).
+   * Não permite remover o último workspace.
+   */
+  deleteWorkspace(id: string): { success: boolean; error?: string } {
+    const config = this.readConfig()
+    const workspaces = this.getWorkspaces()
+
+    if (workspaces.length <= 1) {
+      return { success: false, error: 'Não é possível remover o único workspace.' }
+    }
+
+    const index = workspaces.findIndex((ws) => ws.id === id)
+    if (index === -1) {
+      return { success: false, error: 'Workspace não encontrado.' }
+    }
+
+    workspaces.splice(index, 1)
+    config.workspaces = workspaces
+
+    // Se removeu o ativo, troca pro primeiro da lista
+    if (config.activeWorkspaceId === id) {
+      config.activeWorkspaceId = workspaces[0].id
+    }
+
+    this.writeConfig(config)
+    return { success: true }
+  }
+
+  /**
+   * Troca o workspace ativo. Fecha a DB atual e recarrega a janela.
+   */
+  async switchWorkspace(workspaceId: string): Promise<{ success: boolean; error?: string }> {
+    const config = this.readConfig()
+    const workspaces = this.getWorkspaces()
+    const target = workspaces.find((ws) => ws.id === workspaceId)
+
+    if (!target) {
+      return { success: false, error: 'Workspace não encontrado.' }
+    }
+
+    if (config.activeWorkspaceId === workspaceId) {
+      return { success: true } // Já é o ativo
+    }
+
+    try {
+      // Checkpoint WAL e fecha a DB antes de trocar
+      try {
+        const { getDatabase } = require('../database/schema')
+        const db = getDatabase()
+        db.pragma('wal_checkpoint(TRUNCATE)')
+      } catch {
+        // Segue em frente
+      }
+
+      closeDatabase()
+      this.releaseLock()
+
+      // Salva o novo workspace ativo
+      config.activeWorkspaceId = workspaceId
+      this.writeConfig(config)
+
+      // Recarrega a janela para usar o novo banco
+      const windows = BrowserWindow.getAllWindows()
+      if (windows.length > 0) {
+        windows[0].reload()
+      }
+
+      return { success: true }
+    } catch (error) {
+      console.error('[ConfigService] Erro ao trocar workspace:', error)
+      return { success: false, error: 'Erro ao trocar de workspace.' }
+    }
+  }
+
+  /**
+   * Abre dialog para escolher a pasta do novo workspace.
+   */
+  async selectWorkspaceFolder(): Promise<string | null> {
+    const result = await dialog.showOpenDialog({
+      title: 'Escolher pasta para o workspace',
+      properties: ['openDirectory', 'createDirectory'],
+    })
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return null
+    }
+
+    return path.join(result.filePaths[0], DB_FILENAME)
+  }
+
+  // === Database Path (compatibilidade) ===
+
+  /**
+   * Retorna o caminho da database do workspace ativo.
    */
   getDatabasePath(): string {
-    const config = this.readConfig()
-    if (config.databasePath && config.databasePath.trim() !== '') {
-      return config.databasePath
-    }
-    return this.getDefaultDatabasePath()
+    const active = this.getActiveWorkspace()
+    return active.databasePath
   }
 
   /**
@@ -49,12 +227,12 @@ export class ConfigService {
    * Verifica se o caminho configurado é customizado (diferente do padrão).
    */
   isCustomPath(): boolean {
-    const config = this.readConfig()
-    return config.databasePath !== '' && config.databasePath !== this.getDefaultDatabasePath()
+    const active = this.getActiveWorkspace()
+    return active.databasePath !== this.getDefaultDatabasePath()
   }
 
   /**
-   * Muda o caminho da database.
+   * Muda o caminho da database do workspace ativo.
    * mode: 'move' = move a DB atual pro novo local, 'new' = começa nova DB no local
    */
   async setDatabasePath(
@@ -70,17 +248,14 @@ export class ConfigService {
     }
 
     try {
-      // Resolve o caminho completo do arquivo DB no novo diretório
       const newDbPath = newPath.endsWith('.db') ? newPath : path.join(newPath, DB_FILENAME)
       const newDir = path.dirname(newDbPath)
 
-      // Garante que o diretório existe
       if (!fs.existsSync(newDir)) {
         fs.mkdirSync(newDir, { recursive: true })
       }
 
       if (mode === 'move' && fs.existsSync(currentDbPath)) {
-        // Checkpoint WAL e fecha a DB antes de mover
         try {
           const { getDatabase } = require('../database/schema')
           const db = getDatabase()
@@ -92,26 +267,28 @@ export class ConfigService {
         closeDatabase()
         this.releaseLock()
 
-        // Move o arquivo principal
         fs.copyFileSync(currentDbPath, newDbPath)
         fs.unlinkSync(currentDbPath)
 
-        // Move WAL/SHM se existirem
         const walPath = currentDbPath + '-wal'
         const shmPath = currentDbPath + '-shm'
         if (fs.existsSync(walPath)) fs.unlinkSync(walPath)
         if (fs.existsSync(shmPath)) fs.unlinkSync(shmPath)
       } else if (mode === 'new') {
-        // Fecha a DB atual
         closeDatabase()
         this.releaseLock()
-        // Não precisa fazer nada — getDatabase() vai criar uma nova no novo caminho
       }
 
-      // Salva o novo caminho no config
-      this.writeConfig({ databasePath: newDbPath })
+      // Atualiza o workspace ativo com o novo caminho
+      const config = this.readConfig()
+      const workspaces = config.workspaces
+      const activeIdx = workspaces.findIndex((ws) => ws.id === config.activeWorkspaceId)
+      if (activeIdx !== -1) {
+        workspaces[activeIdx].databasePath = newDbPath
+        config.workspaces = workspaces
+        this.writeConfig(config)
+      }
 
-      // Recarrega a janela para usar o novo caminho
       const windows = BrowserWindow.getAllWindows()
       if (windows.length > 0) {
         windows[0].reload()
@@ -126,7 +303,6 @@ export class ConfigService {
 
   /**
    * Reseta o caminho para o padrão (userData).
-   * mode: 'move' = traz a DB de volta, 'new' = começa nova no local padrão
    */
   async resetToDefaultPath(mode: 'move' | 'new'): Promise<{ success: boolean; error?: string }> {
     const defaultPath = this.getDefaultDatabasePath()
@@ -151,10 +327,6 @@ export class ConfigService {
 
   // === Lock File ===
 
-  /**
-   * Tenta adquirir o lock da database.
-   * Retorna true se conseguiu, false se já existe um lock (outra máquina usando).
-   */
   acquireLock(): { acquired: boolean; owner?: string } {
     const dbPath = this.getDatabasePath()
     this.lockFilePath = dbPath.replace(/\.db$/, '.lock')
@@ -164,7 +336,6 @@ export class ConfigService {
         const lockData = JSON.parse(fs.readFileSync(this.lockFilePath, 'utf-8'))
         const lockAge = Date.now() - new Date(lockData.timestamp).getTime()
 
-        // Se o lock tem mais de 5 minutos, considera abandonado
         if (lockAge > 5 * 60 * 1000) {
           this.writeLockFile()
           return { acquired: true }
@@ -172,7 +343,6 @@ export class ConfigService {
 
         return { acquired: false, owner: lockData.machine || 'outra máquina' }
       } catch {
-        // Lock corrompido, sobrescreve
         this.writeLockFile()
         return { acquired: true }
       }
@@ -182,9 +352,6 @@ export class ConfigService {
     return { acquired: true }
   }
 
-  /**
-   * Libera o lock file.
-   */
   releaseLock(): void {
     if (this.lockFilePath && fs.existsSync(this.lockFilePath)) {
       try {
@@ -195,9 +362,6 @@ export class ConfigService {
     }
   }
 
-  /**
-   * Renova o lock (chamado periodicamente enquanto o app está aberto).
-   */
   renewLock(): void {
     if (this.lockFilePath) {
       this.writeLockFile()
@@ -220,7 +384,7 @@ export class ConfigService {
 
   // === Config File ===
 
-  private readConfig(): AppConfig {
+  private readConfig(): WorkspaceConfig {
     try {
       if (fs.existsSync(this.configPath)) {
         const raw = fs.readFileSync(this.configPath, 'utf-8')
@@ -233,13 +397,47 @@ export class ConfigService {
     return { ...DEFAULT_CONFIG }
   }
 
-  private writeConfig(config: Partial<AppConfig>): void {
-    const current = this.readConfig()
-    const merged = { ...current, ...config }
+  private writeConfig(config: WorkspaceConfig): void {
     try {
-      fs.writeFileSync(this.configPath, JSON.stringify(merged, null, 2), 'utf-8')
+      fs.writeFileSync(this.configPath, JSON.stringify(config, null, 2), 'utf-8')
     } catch (error) {
       console.error('[ConfigService] Erro ao escrever config.json:', error)
+    }
+  }
+
+  /**
+   * Migra o config.json antigo (com databasePath string) para o formato de workspaces.
+   */
+  private migrateIfNeeded(): void {
+    try {
+      if (!fs.existsSync(this.configPath)) return
+
+      const raw = fs.readFileSync(this.configPath, 'utf-8')
+      const parsed = JSON.parse(raw)
+
+      // Se já tem workspaces, não precisa migrar
+      if (parsed.workspaces && Array.isArray(parsed.workspaces)) return
+
+      // Config antigo: { databasePath: string }
+      const oldDbPath = parsed.databasePath || this.getDefaultDatabasePath()
+
+      const migratedConfig: WorkspaceConfig = {
+        activeWorkspaceId: 'default',
+        workspaces: [
+          {
+            id: 'default',
+            name: 'Principal',
+            emoji: '🏢',
+            databasePath: oldDbPath && oldDbPath.trim() !== '' ? oldDbPath : this.getDefaultDatabasePath(),
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      }
+
+      this.writeConfig(migratedConfig)
+      console.log('[ConfigService] Config migrado para formato de workspaces.')
+    } catch (error) {
+      console.error('[ConfigService] Erro na migração do config:', error)
     }
   }
 
@@ -250,17 +448,15 @@ export class ConfigService {
     const resolvedPath = targetPath.endsWith('.db') ? targetPath : path.join(targetPath, DB_FILENAME)
     const dir = path.dirname(resolvedPath)
 
-    // Verifica se o diretório existe ou pode ser criado
     try {
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true })
-        fs.rmdirSync(dir) // Remove pra não poluir — será criado de verdade no setDatabasePath
+        fs.rmdirSync(dir)
       }
     } catch {
       return { valid: false, error: 'Não foi possível acessar ou criar o diretório.' }
     }
 
-    // Verifica permissão de escrita
     try {
       const testFile = path.join(dir, '.write-test-' + Date.now())
       fs.writeFileSync(testFile, 'test')
@@ -273,7 +469,7 @@ export class ConfigService {
   }
 }
 
-// Singleton para garantir que o mesmo config é lido em todo o app
+// Singleton
 let instance: ConfigService | null = null
 
 export function getConfigService(): ConfigService {

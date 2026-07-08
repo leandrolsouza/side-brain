@@ -1,3 +1,18 @@
+// === Workspace Types ===
+
+export interface Workspace {
+  id: string
+  name: string
+  emoji: string
+  databasePath: string
+  createdAt: string
+}
+
+export interface WorkspaceConfig {
+  activeWorkspaceId: string
+  workspaces: Workspace[]
+}
+
 // === Core Domain Types ===
 
 export interface Project {
@@ -6,6 +21,7 @@ export interface Project {
   description?: string
   createdAt: string
   isAutoSuggested: boolean
+  active: boolean
 }
 
 export interface Entry {
@@ -22,7 +38,7 @@ export interface Entry {
 export type EntryType =
   | 'information'
   | 'decision'
-  | 'request'
+  | 'demand'
   | 'idea'
   | 'blocker'
   | 'update'
@@ -35,7 +51,6 @@ export type ActionStatus =
 
 export type ReviewStatus =
   | 'auto_approved'
-  | 'pending'
   | 'approved'
   | 'corrected'
 
@@ -51,6 +66,43 @@ export interface AICategorizationResult {
   action: ActionStatus
   improvedText: string
   reasoning: string
+  suggestedTask: {
+    title: string
+    description?: string
+  } | null
+}
+
+// === Entry Preview Types ===
+
+export interface EntryPreviewRequest {
+  rawText: string
+  projectIdHint?: string // optional pre-selected project from the user
+}
+
+export interface EntryPreviewResult {
+  rawText: string
+  improvedText: string
+  project: {
+    id: string | null
+    suggestedName: string | null
+    confidence: number
+  }
+  type: EntryType
+  action: ActionStatus
+  reasoning: string
+  suggestedTask: {
+    title: string
+    description?: string
+  } | null
+}
+
+export interface EntryConfirmRequest {
+  rawText: string
+  improvedText: string
+  projectId: string | null
+  newProjectName: string | null // if creating a new project
+  type: EntryType
+  action: ActionStatus
   suggestedTask: {
     title: string
     description?: string
@@ -112,15 +164,17 @@ export interface BackupInfo {
 export interface AppSettings {
   awsRegion: string
   bedrockApiKey: string
-  reviewEnabled: boolean
   modelId: string
+  aiPriceInputPer1k: string
+  aiPriceOutputPer1k: string
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
   awsRegion: 'us-east-1',
   bedrockApiKey: '',
-  reviewEnabled: true,
   modelId: 'us.anthropic.claude-sonnet-4-20250514-v1:0',
+  aiPriceInputPer1k: '0.003',
+  aiPriceOutputPer1k: '0.015',
 }
 
 // === Meeting Types ===
@@ -152,6 +206,48 @@ export interface MeetingProcessResult {
     title: string
     description?: string
   }[]
+}
+
+// === AI Usage Types ===
+
+export type AIOperationType =
+  | 'categorization'
+  | 'summary'
+  | 'global_summary'
+  | 'digest'
+  | 'meeting_processing'
+
+export interface AIUsageRecord {
+  id: string
+  operationType: AIOperationType
+  model: string
+  inputTokens: number
+  outputTokens: number
+  estimatedCost: number
+  latencyMs: number
+  createdAt: string
+}
+
+export interface AIUsageSummary {
+  totalCalls: number
+  totalInputTokens: number
+  totalOutputTokens: number
+  totalEstimatedCost: number
+  byOperation: {
+    operationType: AIOperationType
+    calls: number
+    inputTokens: number
+    outputTokens: number
+    estimatedCost: number
+  }[]
+}
+
+export interface AIUsageDailyPoint {
+  date: string
+  calls: number
+  inputTokens: number
+  outputTokens: number
+  estimatedCost: number
 }
 
 // === Capture Templates ===
@@ -191,12 +287,12 @@ export const CAPTURE_TEMPLATES: CaptureTemplate[] = [
     hintType: 'blocker',
   },
   {
-    id: 'request',
-    label: 'Pedido',
-    prefix: 'Pedido de ',
-    placeholder: '[pessoa]: [o que foi solicitado e prazo]',
+    id: 'demand',
+    label: 'Demanda',
+    prefix: 'Demanda de ',
+    placeholder: '[pessoa/área]: [o que foi solicitado e prazo]',
     icon: 'MessageSquare',
-    hintType: 'request',
+    hintType: 'demand',
   },
   {
     id: 'idea',

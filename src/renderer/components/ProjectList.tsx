@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { FolderOpen, Plus, Sparkles, Pencil, Check, X } from 'lucide-react'
+import { FolderOpen, Plus, Sparkles, Pencil, Check, X, Archive, ArchiveRestore, Eye, EyeOff } from 'lucide-react'
 
 interface Project {
   id: string
   name: string
   description?: string
   isAutoSuggested: boolean
+  active: boolean
   entryCount?: number
 }
 
@@ -21,11 +22,12 @@ export function ProjectList({ onSelectProject, onProjectsChanged }: ProjectListP
   const [showCreateInput, setShowCreateInput] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
+  const [showInactive, setShowInactive] = useState(false)
   const editInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     loadProjects()
-  }, [])
+  }, [showInactive])
 
   useEffect(() => {
     if (editingId && editInputRef.current) {
@@ -35,8 +37,15 @@ export function ProjectList({ onSelectProject, onProjectsChanged }: ProjectListP
   }, [editingId])
 
   const loadProjects = async () => {
-    const data = await window.electronAPI.getProjects()
+    const data = await window.electronAPI.getProjects(showInactive)
     setProjects(data)
+  }
+
+  const handleToggleActive = async (e: React.MouseEvent, project: Project) => {
+    e.stopPropagation()
+    await window.electronAPI.setProjectActive(project.id, !project.active)
+    await loadProjects()
+    onProjectsChanged?.()
   }
 
   const handleCreateProject = async () => {
@@ -93,13 +102,23 @@ export function ProjectList({ onSelectProject, onProjectsChanged }: ProjectListP
     <div className="flex-col">
       <div className="panel-header">
         <span className="panel-title">Projetos</span>
-        <button
-          className="vscode-button secondary"
-          onClick={() => setShowCreateInput(!showCreateInput)}
-        >
-          <Plus size={14} />
-          Novo Projeto
-        </button>
+        <div className="flex-row">
+          <button
+            className={`vscode-button secondary`}
+            onClick={() => setShowInactive(!showInactive)}
+            title={showInactive ? 'Ocultar arquivados' : 'Mostrar arquivados'}
+          >
+            {showInactive ? <EyeOff size={14} /> : <Eye size={14} />}
+            {showInactive ? 'Ocultar arquivados' : 'Ver arquivados'}
+          </button>
+          <button
+            className="vscode-button secondary"
+            onClick={() => setShowCreateInput(!showCreateInput)}
+          >
+            <Plus size={14} />
+            Novo Projeto
+          </button>
+        </div>
       </div>
 
       {showCreateInput && (
@@ -143,11 +162,14 @@ export function ProjectList({ onSelectProject, onProjectsChanged }: ProjectListP
               key={project.id}
               className="vscode-card"
               onClick={() => editingId !== project.id && onSelectProject(project.id, project.name)}
-              style={{ cursor: editingId === project.id ? 'default' : 'pointer' }}
+              style={{
+                cursor: editingId === project.id ? 'default' : 'pointer',
+                opacity: project.active ? 1 : 0.6,
+              }}
             >
               <div className="vscode-card-header">
                 <div className="flex-row">
-                  <FolderOpen size={16} style={{ color: 'var(--vscode-notificationsInfoIcon-foreground)' }} />
+                  <FolderOpen size={16} style={{ color: project.active ? 'var(--vscode-notificationsInfoIcon-foreground)' : 'var(--vscode-descriptionForeground)' }} />
 
                   {editingId === project.id ? (
                     <>
@@ -179,12 +201,25 @@ export function ProjectList({ onSelectProject, onProjectsChanged }: ProjectListP
                   ) : (
                     <>
                       <span style={{ fontWeight: 600, flex: 1 }}>{project.name}</span>
+                      {!project.active && (
+                        <span className="vscode-badge" style={{ opacity: 0.8 }}>
+                          <Archive size={10} style={{ display: 'inline', marginRight: 2 }} />
+                          arquivado
+                        </span>
+                      )}
                       {project.isAutoSuggested && (
                         <span className="vscode-badge warning">
                           <Sparkles size={10} style={{ display: 'inline', marginRight: 2 }} />
                           sugerido
                         </span>
                       )}
+                      <button
+                        className="icon-button"
+                        onClick={(e) => handleToggleActive(e, project)}
+                        title={project.active ? 'Arquivar projeto' : 'Reativar projeto'}
+                      >
+                        {project.active ? <Archive size={14} /> : <ArchiveRestore size={14} />}
+                      </button>
                       <button
                         className="icon-button"
                         onClick={(e) => startEditing(e, project)}

@@ -113,7 +113,7 @@ export class BackupService {
 
     const result = await dialog.showSaveDialog({
       title: 'Exportar Backup',
-      defaultPath: `work-organizer_backup_${timestamp}.db`,
+      defaultPath: `sidebrain_backup_${timestamp}.db`,
       filters: [
         { name: 'SQLite Database', extensions: ['db'] },
         { name: 'Todos os arquivos', extensions: ['*'] },

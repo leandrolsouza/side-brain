@@ -1,19 +1,22 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, CheckCircle2, Mic, MicOff, Users, Gavel, AlertTriangle, MessageSquare, Lightbulb, RefreshCw, Sparkles, X } from 'lucide-react'
-import { CAPTURE_TEMPLATES, CaptureTemplate } from '@shared/types'
+import {
+  Send, CheckCircle2, Mic, MicOff, Users, Gavel, AlertTriangle,
+  MessageSquare, Lightbulb, RefreshCw, Sparkles, X, Eye, Edit3,
+  FolderPlus, ChevronDown
+} from 'lucide-react'
+import { CAPTURE_TEMPLATES, CaptureTemplate, EntryPreviewResult, EntryType, ActionStatus } from '@shared/types'
 
 interface CaptureInputProps {
   onProjectsChanged?: () => void
 }
 
-interface AutoSuggestedToast {
-  projectId: string
-  projectName: string
-  isRenaming: boolean
-  newName: string
-  isMerging: boolean
-  mergeTargetId: string
+interface ProjectOption {
+  id: string
+  name: string
+  isAutoSuggested?: boolean
 }
+
+type CaptureState = 'idle' | 'processing' | 'previewing' | 'confirming'
 
 const ICON_MAP: Record<string, React.ComponentType<{ size?: number }>> = {
   Users,
@@ -24,29 +27,69 @@ const ICON_MAP: Record<string, React.ComponentType<{ size?: number }>> = {
   RefreshCw,
 }
 
+const TYPE_LABELS: Record<EntryType, string> = {
+  information: 'Informação',
+  decision: 'Decisão',
+  demand: 'Demanda',
+  idea: 'Ideia',
+  blocker: 'Bloqueio',
+  update: 'Atualização',
+}
+
+const ACTION_LABELS: Record<ActionStatus, string> = {
+  none: 'Nenhuma',
+  action_needed: 'Ação necessária',
+  waiting_response: 'Aguardando resposta',
+  done: 'Concluído',
+}
+
 export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
+  // Input state
   const [text, setText] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [lastSubmitted, setLastSubmitted] = useState<string | null>(null)
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('')
   const [isListening, setIsListening] = useState(false)
   const [activeTemplate, setActiveTemplate] = useState<CaptureTemplate | null>(null)
-  const [autoSuggestedToast, setAutoSuggestedToast] = useState<AutoSuggestedToast | null>(null)
-  const [existingProjects, setExistingProjects] = useState<{ id: string; name: string }[]>([])
+
+  // Flow state
+  const [captureState, setCaptureState] = useState<CaptureState>('idle')
+  const [preview, setPreview] = useState<EntryPreviewResult | null>(null)
+
+  // Preview editable fields
+  const [editedImprovedText, setEditedImprovedText] = useState('')
+  const [editedProjectId, setEditedProjectId] = useState<string>('')
+  const [editedType, setEditedType] = useState<EntryType>('information')
+  const [editedAction, setEditedAction] = useState<ActionStatus>('none')
+  const [newProjectName, setNewProjectName] = useState('')
+  const [isCreatingProject, setIsCreatingProject] = useState(false)
+  const [includeSuggestedTask, setIncludeSuggestedTask] = useState(true)
+
+  // UI state
+  const [lastSubmitted, setLastSubmitted] = useState<string | null>(null)
+  const [projects, setProjects] = useState<ProjectOption[]>([])
+
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
   const baseTextRef = useRef('')
 
   const speechSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window
 
+  // Load projects on mount
+  useEffect(() => {
+    loadProjects()
+  }, [])
+
+  const loadProjects = async () => {
+    const result = await window.electronAPI.getProjects()
+    setProjects(result)
+  }
+
   const handleTemplateSelect = useCallback((template: CaptureTemplate) => {
     if (activeTemplate?.id === template.id) {
-      // Deselect: clear prefix if text matches, otherwise just deselect
       if (text === template.prefix || text.startsWith(template.prefix)) {
         setText('')
       }
       setActiveTemplate(null)
     } else {
-      // Select: pre-fill the prefix
       setText(template.prefix)
       setActiveTemplate(template)
     }
@@ -68,7 +111,6 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
     recognition.interimResults = true
     recognition.continuous = true
 
-    // Save the current text as the base before voice input starts
     baseTextRef.current = text ? (text.endsWith(' ') ? text : text + ' ') : ''
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
@@ -79,8 +121,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
       setText(baseTextRef.current + transcript)
     }
 
-    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      console.error('Speech recognition error:', event.error)
+    recognition.onerror = () => {
       setIsListening(false)
     }
 
@@ -91,7 +132,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
     recognitionRef.current = recognition
     recognition.start()
     setIsListening(true)
-  }, [isListening])
+  }, [isListening, text])
 
   useEffect(() => {
     window.electronAPI.onFocusCaptureInput(() => {
@@ -99,78 +140,116 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
     })
   }, [])
 
-  // Cleanup speech recognition on unmount
   useEffect(() => {
     return () => {
       recognitionRef.current?.stop()
     }
   }, [])
 
-  const handleSubmit = async () => {
+  // Submit for preview (calls AI without persisting)
+  const handlePreview = async () => {
     const trimmed = text.trim()
-    if (!trimmed || isSubmitting) return
+    if (!trimmed || captureState === 'processing') return
 
-    setIsSubmitting(true)
+    setCaptureState('processing')
     try {
-      const result = await window.electronAPI.createEntry(trimmed)
-      setLastSubmitted(trimmed)
-      setText('')
-      setActiveTemplate(null)
-      onProjectsChanged?.()
+      const result = await window.electronAPI.previewEntry(
+        trimmed,
+        selectedProjectId || undefined
+      )
+      setPreview(result)
 
-      // Show auto-suggested project toast if applicable
-      if (result?.autoSuggestedProject) {
-        const projects = await window.electronAPI.getProjects()
-        setExistingProjects(projects.filter((p: any) => p.id !== result.autoSuggestedProject!.id))
-        setAutoSuggestedToast({
-          projectId: result.autoSuggestedProject.id,
-          projectName: result.autoSuggestedProject.name,
-          isRenaming: false,
-          newName: result.autoSuggestedProject.name,
-          isMerging: false,
-          mergeTargetId: '',
-        })
+      // Populate editable fields from preview
+      setEditedImprovedText(result.improvedText)
+      setEditedType(result.type)
+      setEditedAction(result.action)
+      setIncludeSuggestedTask(!!result.suggestedTask)
+
+      // Resolve project selection in preview
+      if (result.project.id) {
+        setEditedProjectId(result.project.id)
+        setIsCreatingProject(false)
+        setNewProjectName('')
+      } else if (result.project.suggestedName) {
+        setEditedProjectId('')
+        setIsCreatingProject(true)
+        setNewProjectName(result.project.suggestedName)
+      } else {
+        setEditedProjectId('')
+        setIsCreatingProject(false)
+        setNewProjectName('')
       }
+
+      setCaptureState('previewing')
+    } catch (error) {
+      console.error('Failed to preview entry:', error)
+      setCaptureState('idle')
+    }
+  }
+
+  // Confirm and persist the entry
+  const handleConfirm = async () => {
+    if (!preview) return
+
+    // Validate: must have a project
+    const hasProject = editedProjectId || (isCreatingProject && newProjectName.trim())
+    if (!hasProject) return
+
+    setCaptureState('confirming')
+    try {
+      await window.electronAPI.confirmEntry({
+        rawText: preview.rawText,
+        improvedText: editedImprovedText,
+        projectId: isCreatingProject ? null : editedProjectId,
+        newProjectName: isCreatingProject ? newProjectName.trim() : null,
+        type: editedType,
+        action: editedAction,
+        suggestedTask: includeSuggestedTask ? preview.suggestedTask : null,
+      })
+
+      setLastSubmitted(preview.rawText)
+      resetForm()
+      onProjectsChanged?.()
+      await loadProjects()
 
       setTimeout(() => setLastSubmitted(null), 3000)
     } catch (error) {
-      console.error('Failed to create entry:', error)
+      console.error('Failed to confirm entry:', error)
     } finally {
-      setIsSubmitting(false)
+      setCaptureState('idle')
     }
   }
 
-  const handleRenameProject = async () => {
-    if (!autoSuggestedToast || !autoSuggestedToast.newName.trim()) return
-    await window.electronAPI.updateProject(autoSuggestedToast.projectId, { name: autoSuggestedToast.newName.trim() })
-    setAutoSuggestedToast(null)
-    onProjectsChanged?.()
+  const handleCancel = () => {
+    // Go back to idle with text preserved
+    setCaptureState('idle')
+    setPreview(null)
   }
 
-  const handleMergeProject = async () => {
-    if (!autoSuggestedToast || !autoSuggestedToast.mergeTargetId) return
-    // Move all entries from the auto-suggested project to the merge target
-    const entries = await window.electronAPI.getEntries(autoSuggestedToast.projectId)
-    for (const entry of entries) {
-      await window.electronAPI.updateEntry(entry.id, { projectId: autoSuggestedToast.mergeTargetId })
-    }
-    // Delete the auto-suggested project
-    await window.electronAPI.deleteProject(autoSuggestedToast.projectId)
-    setAutoSuggestedToast(null)
-    onProjectsChanged?.()
+  const resetForm = () => {
+    setText('')
+    setSelectedProjectId('')
+    setActiveTemplate(null)
+    setPreview(null)
+    setCaptureState('idle')
+    setIsCreatingProject(false)
+    setNewProjectName('')
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      handleSubmit()
+      handlePreview()
     }
-    // Ctrl+Enter also submits (explicit shortcut)
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault()
-      handleSubmit()
+      handlePreview()
     }
   }
+
+  const isIdle = captureState === 'idle'
+  const isProcessing = captureState === 'processing'
+  const isPreviewing = captureState === 'previewing'
 
   return (
     <div className="flex-col">
@@ -181,7 +260,8 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
         Digite o que aconteceu e pressione Enter. A IA vai organizar automaticamente.
       </p>
 
-      <div className="flex-col" style={{ maxWidth: 600 }}>
+      <div className="flex-col" style={{ maxWidth: 640 }}>
+        {/* Templates */}
         <div className="capture-templates">
           <span className="capture-templates-label">Templates:</span>
           <div className="capture-templates-list">
@@ -192,7 +272,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
                   key={template.id}
                   className={`capture-template-chip ${activeTemplate?.id === template.id ? 'active' : ''}`}
                   onClick={() => handleTemplateSelect(template)}
-                  disabled={isSubmitting}
+                  disabled={!isIdle}
                   title={`${template.prefix}${template.placeholder}`}
                 >
                   {Icon && <Icon size={12} />}
@@ -203,6 +283,26 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
           </div>
         </div>
 
+        {/* Project selector (always visible) */}
+        <div className="capture-project-select">
+          <label className="capture-project-label">
+            <ChevronDown size={12} />
+            Projeto (opcional):
+          </label>
+          <select
+            className="vscode-select"
+            value={selectedProjectId}
+            onChange={(e) => setSelectedProjectId(e.target.value)}
+            disabled={!isIdle}
+          >
+            <option value="">IA identifica automaticamente</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Textarea input */}
         <textarea
           ref={inputRef}
           className="vscode-textarea"
@@ -212,26 +312,36 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
           placeholder={activeTemplate
             ? `${activeTemplate.prefix}${activeTemplate.placeholder}`
             : 'Ex: João falou que o prazo do projeto X mudou pra semana que vem...'}
-          disabled={isSubmitting}
+          disabled={!isIdle}
           rows={4}
           autoFocus
         />
 
+        {/* Action buttons */}
         <div className="flex-row">
           <button
             className="vscode-button"
-            onClick={handleSubmit}
-            disabled={!text.trim() || isSubmitting}
+            onClick={handlePreview}
+            disabled={!text.trim() || !isIdle}
           >
-            <Send size={14} />
-            {isSubmitting ? 'Processando...' : 'Enviar'}
+            {isProcessing ? (
+              <>
+                <Sparkles size={14} className="spin" />
+                Analisando...
+              </>
+            ) : (
+              <>
+                <Eye size={14} />
+                Enviar
+              </>
+            )}
           </button>
 
           {speechSupported && (
             <button
               className={`vscode-button ${isListening ? 'vscode-button-active' : 'vscode-button-secondary'}`}
               onClick={toggleVoiceInput}
-              disabled={isSubmitting}
+              disabled={!isIdle}
               title={isListening ? 'Parar gravação' : 'Entrada por voz'}
               style={isListening ? {
                 background: 'var(--vscode-inputValidation-errorBackground, #5a1d1d)',
@@ -249,81 +359,192 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
           </span>
         </div>
 
+        {/* Preview Card */}
+        {isPreviewing && preview && (
+          <div className="capture-preview-card">
+            <div className="capture-preview-header">
+              <Sparkles size={14} />
+              <span>Prévia da IA</span>
+              <button className="capture-preview-close" onClick={handleCancel} title="Cancelar">
+                <X size={14} />
+              </button>
+            </div>
+
+            {/* Improved text comparison */}
+            <div className="capture-preview-section">
+              <label className="capture-preview-label">
+                <Edit3 size={12} />
+                Texto melhorado:
+              </label>
+              <textarea
+                className="vscode-textarea capture-preview-textarea"
+                value={editedImprovedText}
+                onChange={(e) => setEditedImprovedText(e.target.value)}
+                rows={3}
+              />
+              {editedImprovedText !== preview.rawText && (
+                <div className="capture-preview-original">
+                  <span className="capture-preview-original-label">Original:</span>
+                  <span className="capture-preview-original-text">{preview.rawText}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Project selection in preview */}
+            <div className="capture-preview-section">
+              <label className="capture-preview-label">Projeto:</label>
+              <div className="capture-preview-project">
+                {!isCreatingProject ? (
+                  <select
+                    className="vscode-select"
+                    value={editedProjectId}
+                    onChange={(e) => {
+                      if (e.target.value === '__new__') {
+                        setIsCreatingProject(true)
+                        setEditedProjectId('')
+                        setNewProjectName(preview.project.suggestedName || '')
+                      } else {
+                        setEditedProjectId(e.target.value)
+                      }
+                    }}
+                  >
+                    <option value="">Selecionar projeto...</option>
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                    <option value="__new__">+ Criar novo projeto</option>
+                  </select>
+                ) : (
+                  <div className="capture-preview-new-project">
+                    <FolderPlus size={14} />
+                    <input
+                      type="text"
+                      className="vscode-input"
+                      value={newProjectName}
+                      onChange={(e) => setNewProjectName(e.target.value)}
+                      placeholder="Nome do novo projeto"
+                      autoFocus
+                    />
+                    <button
+                      className="vscode-button secondary"
+                      onClick={() => {
+                        setIsCreatingProject(false)
+                        setNewProjectName('')
+                        // Restore AI suggestion if available
+                        if (preview.project.id) {
+                          setEditedProjectId(preview.project.id)
+                        }
+                      }}
+                      title="Cancelar criação"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                )}
+                {preview.project.suggestedName && !isCreatingProject && !editedProjectId && (
+                  <div className="capture-preview-suggestion">
+                    <Sparkles size={12} />
+                    <span>Sugestão da IA: </span>
+                    <button
+                      className="capture-preview-suggestion-btn"
+                      onClick={() => {
+                        setIsCreatingProject(true)
+                        setNewProjectName(preview.project.suggestedName || '')
+                      }}
+                    >
+                      Criar "{preview.project.suggestedName}"
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Type and Action badges */}
+            <div className="capture-preview-section capture-preview-row">
+              <div className="capture-preview-field">
+                <label className="capture-preview-label">Tipo:</label>
+                <select
+                  className="vscode-select capture-preview-select-sm"
+                  value={editedType}
+                  onChange={(e) => setEditedType(e.target.value as EntryType)}
+                >
+                  {Object.entries(TYPE_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="capture-preview-field">
+                <label className="capture-preview-label">Ação:</label>
+                <select
+                  className="vscode-select capture-preview-select-sm"
+                  value={editedAction}
+                  onChange={(e) => setEditedAction(e.target.value as ActionStatus)}
+                >
+                  {Object.entries(ACTION_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Suggested task */}
+            {preview.suggestedTask && (
+              <div className="capture-preview-section">
+                <label className="capture-preview-label capture-preview-task-label">
+                  <input
+                    type="checkbox"
+                    checked={includeSuggestedTask}
+                    onChange={(e) => setIncludeSuggestedTask(e.target.checked)}
+                  />
+                  Criar tarefa sugerida:
+                </label>
+                <div className={`capture-preview-task ${!includeSuggestedTask ? 'disabled' : ''}`}>
+                  <strong>{preview.suggestedTask.title}</strong>
+                  {preview.suggestedTask.description && (
+                    <span className="capture-preview-task-desc">{preview.suggestedTask.description}</span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* AI reasoning */}
+            {preview.reasoning && (
+              <div className="capture-preview-reasoning">
+                <span className="capture-preview-reasoning-text">{preview.reasoning}</span>
+              </div>
+            )}
+
+            {/* Confirm / Cancel */}
+            <div className="capture-preview-actions">
+              <button
+                className="vscode-button"
+                onClick={handleConfirm}
+                disabled={captureState === 'confirming' || (!editedProjectId && !isCreatingProject) || (isCreatingProject && !newProjectName.trim())}
+              >
+                <CheckCircle2 size={14} />
+                {captureState === 'confirming' ? 'Salvando...' : 'Confirmar'}
+              </button>
+              <button
+                className="vscode-button secondary"
+                onClick={handleCancel}
+                disabled={captureState === 'confirming'}
+              >
+                Voltar e editar
+              </button>
+              {!editedProjectId && !isCreatingProject && (
+                <span className="capture-preview-warning">
+                  Selecione um projeto para confirmar
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Success toast */}
         {lastSubmitted && (
           <div className="toast">
             <CheckCircle2 size={14} />
             Registrado com sucesso
-          </div>
-        )}
-
-        {autoSuggestedToast && (
-          <div className="auto-suggest-toast">
-            <div className="auto-suggest-toast-header">
-              <Sparkles size={14} />
-              <span>Projeto <strong>'{autoSuggestedToast.projectName}'</strong> criado automaticamente.</span>
-              <button className="auto-suggest-toast-close" onClick={() => setAutoSuggestedToast(null)}>
-                <X size={12} />
-              </button>
-            </div>
-            <div className="auto-suggest-toast-actions">
-              {!autoSuggestedToast.isRenaming && !autoSuggestedToast.isMerging && (
-                <>
-                  <button
-                    className="vscode-button secondary"
-                    onClick={() => setAutoSuggestedToast({ ...autoSuggestedToast, isRenaming: true })}
-                  >
-                    Renomear
-                  </button>
-                  <button
-                    className="vscode-button secondary"
-                    onClick={() => setAutoSuggestedToast({ ...autoSuggestedToast, isMerging: true })}
-                  >
-                    Mesclar com existente
-                  </button>
-                </>
-              )}
-
-              {autoSuggestedToast.isRenaming && (
-                <div className="flex-row">
-                  <input
-                    type="text"
-                    className="vscode-input"
-                    value={autoSuggestedToast.newName}
-                    onChange={(e) => setAutoSuggestedToast({ ...autoSuggestedToast, newName: e.target.value })}
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleRenameProject() }}
-                    autoFocus
-                    style={{ maxWidth: 200 }}
-                  />
-                  <button className="vscode-button" onClick={handleRenameProject}>
-                    Salvar
-                  </button>
-                  <button className="vscode-button secondary" onClick={() => setAutoSuggestedToast({ ...autoSuggestedToast, isRenaming: false })}>
-                    Cancelar
-                  </button>
-                </div>
-              )}
-
-              {autoSuggestedToast.isMerging && (
-                <div className="flex-row">
-                  <select
-                    className="vscode-select"
-                    value={autoSuggestedToast.mergeTargetId}
-                    onChange={(e) => setAutoSuggestedToast({ ...autoSuggestedToast, mergeTargetId: e.target.value })}
-                  >
-                    <option value="">Selecionar projeto...</option>
-                    {existingProjects.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
-                  <button className="vscode-button" onClick={handleMergeProject} disabled={!autoSuggestedToast.mergeTargetId}>
-                    Mesclar
-                  </button>
-                  <button className="vscode-button secondary" onClick={() => setAutoSuggestedToast({ ...autoSuggestedToast, isMerging: false })}>
-                    Cancelar
-                  </button>
-                </div>
-              )}
-            </div>
           </div>
         )}
       </div>

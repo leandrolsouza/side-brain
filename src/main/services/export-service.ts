@@ -8,7 +8,7 @@ import { TaskRepository } from '../database/repositories/task-repository'
 const ENTRY_TYPE_LABELS: Record<EntryType, string> = {
   information: 'Informação',
   decision: 'Decisão',
-  request: 'Pedido',
+  demand: 'Demanda',
   idea: 'Ideia',
   blocker: 'Bloqueio',
   update: 'Atualização',
@@ -132,7 +132,7 @@ export class ExportService {
     if (entries.length > 0) {
       md += `## Entradas\n\n`
 
-      const typeOrder: EntryType[] = ['decision', 'blocker', 'request', 'idea', 'update', 'information']
+      const typeOrder: EntryType[] = ['decision', 'blocker', 'demand', 'idea', 'update', 'information']
       for (const type of typeOrder) {
         const typeEntries = entriesByType[type]
         if (typeEntries && typeEntries.length > 0) {
@@ -151,7 +151,7 @@ export class ExportService {
     }
 
     md += `---\n\n`
-    md += `_Relatório gerado pelo Work Organizer em ${dateStr}_\n`
+    md += `_Relatório gerado pelo SideBrain em ${dateStr}_\n`
 
     return md
   }

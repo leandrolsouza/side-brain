@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { ChevronDown, FolderOpen, PenLine, ClipboardCheck, Sparkles } from 'lucide-react'
+import { ChevronDown, FolderOpen, PenLine, Sparkles } from 'lucide-react'
 import type { View } from '../App'
 
 interface Project {
@@ -19,7 +19,6 @@ interface SidebarProps {
 
 export function Sidebar({ currentView, onViewChange, onProjectSelect, refreshKey }: SidebarProps) {
   const [projects, setProjects] = useState<Project[]>([])
-  const [pendingCount, setPendingCount] = useState(0)
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     projects: true,
     quickActions: true,
@@ -27,24 +26,11 @@ export function Sidebar({ currentView, onViewChange, onProjectSelect, refreshKey
 
   useEffect(() => {
     loadProjects()
-    loadPendingCount()
   }, [refreshKey])
-
-  // Poll pending count periodically (entries can be added/approved elsewhere)
-  useEffect(() => {
-    const interval = setInterval(loadPendingCount, 5000)
-    return () => clearInterval(interval)
-  }, [])
 
   const loadProjects = async () => {
     const data = await window.electronAPI.getProjects()
     setProjects(data)
-  }
-
-  const loadPendingCount = async () => {
-    const entries = await window.electronAPI.getEntries()
-    const count = entries.filter((e: any) => e.reviewStatus === 'pending').length
-    setPendingCount(count)
   }
 
   const toggleSection = (section: string) => {
@@ -60,7 +46,6 @@ export function Sidebar({ currentView, onViewChange, onProjectSelect, refreshKey
       case 'capture': return 'Captura'
       case 'projects':
       case 'entries': return 'Explorer'
-      case 'review': return 'Revisão'
       case 'meeting': return 'Reunião'
       case 'settings': return 'Configurações'
     }
@@ -93,16 +78,6 @@ export function Sidebar({ currentView, onViewChange, onProjectSelect, refreshKey
               >
                 <PenLine size={16} className="tree-item-icon" />
                 <span className="tree-item-label">Nova Captura</span>
-              </div>
-              <div
-                className={`tree-item ${currentView === 'review' ? 'selected' : ''}`}
-                onClick={() => onViewChange('review')}
-              >
-                <ClipboardCheck size={16} className="tree-item-icon" />
-                <span className="tree-item-label">Revisão Pendente</span>
-                {pendingCount > 0 && (
-                  <span className="tree-item-badge">{pendingCount}</span>
-                )}
               </div>
             </div>
           )}

@@ -33,13 +33,23 @@ export function getDatabase(): Database.Database {
 
 function runMigrations(database: Database.Database): void {
   // Add due_date column to tasks if it doesn't exist
-  const columns = database.prepare("PRAGMA table_info(tasks)").all() as { name: string }[]
-  const hasDueDate = columns.some((col) => col.name === 'due_date')
+  const taskColumns = database.prepare("PRAGMA table_info(tasks)").all() as { name: string }[]
+  const hasDueDate = taskColumns.some((col) => col.name === 'due_date')
   if (!hasDueDate) {
     database.exec(`ALTER TABLE tasks ADD COLUMN due_date TEXT`)
   }
   // Always ensure the index exists (safe for both new and migrated DBs)
   database.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date)`)
+
+  // Add active column to projects if it doesn't exist
+  const projectColumns = database.prepare("PRAGMA table_info(projects)").all() as { name: string }[]
+  const hasActive = projectColumns.some((col) => col.name === 'active')
+  if (!hasActive) {
+    database.exec(`ALTER TABLE projects ADD COLUMN active INTEGER DEFAULT 1`)
+  }
+  // Ensure all projects without an explicit active value are set to active
+  database.exec(`UPDATE projects SET active = 1 WHERE active IS NULL OR active NOT IN (0, 1)`)
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_projects_active ON projects(active)`)
 }
 
 function initializeSchema(database: Database.Database): void {
@@ -49,7 +59,8 @@ function initializeSchema(database: Database.Database): void {
       name TEXT NOT NULL,
       description TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      is_auto_suggested INTEGER NOT NULL DEFAULT 0
+      is_auto_suggested INTEGER NOT NULL DEFAULT 0,
+      active INTEGER DEFAULT 1
     );
 
     CREATE TABLE IF NOT EXISTS entries (
@@ -107,6 +118,20 @@ function initializeSchema(database: Database.Database): void {
 
     CREATE INDEX IF NOT EXISTS idx_meetings_project_id ON meetings(project_id);
     CREATE INDEX IF NOT EXISTS idx_meetings_status ON meetings(status);
+
+    CREATE TABLE IF NOT EXISTS ai_usage (
+      id TEXT PRIMARY KEY,
+      operation_type TEXT NOT NULL,
+      model TEXT NOT NULL,
+      input_tokens INTEGER NOT NULL DEFAULT 0,
+      output_tokens INTEGER NOT NULL DEFAULT 0,
+      estimated_cost REAL NOT NULL DEFAULT 0,
+      latency_ms INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_ai_usage_operation_type ON ai_usage(operation_type);
+    CREATE INDEX IF NOT EXISTS idx_ai_usage_created_at ON ai_usage(created_at);
   `)
 }
 

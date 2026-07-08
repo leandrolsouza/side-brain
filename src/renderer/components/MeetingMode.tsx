@@ -267,7 +267,7 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
   const typeLabels: Record<string, string> = {
     information: 'Info',
     decision: 'Decisão',
-    request: 'Pedido',
+    demand: 'Demanda',
     idea: 'Ideia',
     blocker: 'Bloqueio',
     update: 'Atualização',

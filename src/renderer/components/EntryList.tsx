@@ -20,7 +20,7 @@ interface EntryListProps {
 const typeLabels: Record<string, string> = {
   information: 'Info',
   decision: 'Decisão',
-  request: 'Pedido',
+  demand: 'Demanda',
   idea: 'Ideia',
   blocker: 'Bloqueio',
   update: 'Atualização',

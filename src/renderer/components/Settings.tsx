@@ -8,7 +8,6 @@ interface SettingsProps {
 interface AppSettings {
   awsRegion: string
   bedrockApiKey: string
-  reviewEnabled: boolean
   modelId: string
 }
 
@@ -39,7 +38,6 @@ export function Settings({ }: SettingsProps) {
   const [settings, setSettings] = useState<AppSettings>({
     awsRegion: 'us-east-1',
     bedrockApiKey: '',
-    reviewEnabled: true,
     modelId: 'us.anthropic.claude-sonnet-4-20250514-v1:0',
   })
   const [isSaving, setIsSaving] = useState(false)
@@ -355,19 +353,6 @@ export function Settings({ }: SettingsProps) {
           </select>
         </div>
 
-        <div className="settings-item">
-          <label className="vscode-checkbox">
-            <input
-              type="checkbox"
-              checked={settings.reviewEnabled}
-              onChange={(e) => setSettings({ ...settings, reviewEnabled: e.target.checked })}
-            />
-            Habilitar revisão manual
-          </label>
-          <div className="settings-item-description" style={{ marginTop: 4, marginLeft: 24 }}>
-            Aprovar categorização da IA antes de salvar definitivamente.
-          </div>
-        </div>
       </div>
 
       {/* Save */}

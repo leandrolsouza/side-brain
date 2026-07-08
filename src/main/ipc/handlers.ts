@@ -8,7 +8,9 @@ import { getConfigService } from '../services/config-service'
 import { ProjectRepository } from '../database/repositories/project-repository'
 import { TaskRepository } from '../database/repositories/task-repository'
 import { SettingsRepository } from '../database/repositories/settings-repository'
+import { AIUsageRepository } from '../database/repositories/ai-usage-repository'
 import type { ExportFormat } from '../services/export-service'
+import type { EntryConfirmRequest } from '../../shared/types'
 
 export function registerIpcHandlers(): void {
   const entryService = new EntryService()
@@ -19,10 +21,19 @@ export function registerIpcHandlers(): void {
   const projectRepo = new ProjectRepository()
   const taskRepo = new TaskRepository()
   const settingsRepo = new SettingsRepository()
+  const aiUsageRepo = new AIUsageRepository()
 
   // Entry handlers
   ipcMain.handle('entry:create', async (_event, rawText: string) => {
     return entryService.createEntry(rawText)
+  })
+
+  ipcMain.handle('entry:preview', async (_event, rawText: string, projectIdHint?: string) => {
+    return entryService.previewEntry(rawText, projectIdHint)
+  })
+
+  ipcMain.handle('entry:confirm', async (_event, data: EntryConfirmRequest) => {
+    return entryService.confirmEntry(data)
   })
 
   ipcMain.handle('entry:getAll', async (_event, projectId?: string) => {
@@ -37,17 +48,9 @@ export function registerIpcHandlers(): void {
     return entryService.deleteEntry(id)
   })
 
-  ipcMain.handle('entry:approve', async (_event, id: string) => {
-    return entryService.approveEntry(id)
-  })
-
-  ipcMain.handle('entry:correct', async (_event, id: string, corrections: Record<string, any>) => {
-    return entryService.correctEntry(id, corrections)
-  })
-
   // Project handlers
-  ipcMain.handle('project:getAll', async () => {
-    return projectRepo.getAll()
+  ipcMain.handle('project:getAll', async (_event, includeInactive?: boolean) => {
+    return projectRepo.getAll(includeInactive)
   })
 
   ipcMain.handle('project:create', async (_event, name: string, description?: string) => {
@@ -56,6 +59,10 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('project:update', async (_event, id: string, updates: Record<string, any>) => {
     return projectRepo.update(id, updates)
+  })
+
+  ipcMain.handle('project:setActive', async (_event, id: string, active: boolean) => {
+    return projectRepo.setActive(id, active)
   })
 
   ipcMain.handle('project:delete', async (_event, id: string) => {
@@ -194,9 +201,38 @@ export function registerIpcHandlers(): void {
     return backupService.resetDatabase()
   })
 
-  // Database path handlers
+  // Workspace handlers
   const configService = getConfigService()
 
+  ipcMain.handle('workspace:list', async () => {
+    return configService.getWorkspaces()
+  })
+
+  ipcMain.handle('workspace:getActive', async () => {
+    return configService.getActiveWorkspace()
+  })
+
+  ipcMain.handle('workspace:create', async (_event, data: { name: string; emoji: string; databasePath: string }) => {
+    return configService.createWorkspace(data)
+  })
+
+  ipcMain.handle('workspace:update', async (_event, id: string, updates: { name?: string; emoji?: string }) => {
+    return configService.updateWorkspace(id, updates)
+  })
+
+  ipcMain.handle('workspace:delete', async (_event, id: string) => {
+    return configService.deleteWorkspace(id)
+  })
+
+  ipcMain.handle('workspace:switch', async (_event, workspaceId: string) => {
+    return configService.switchWorkspace(workspaceId)
+  })
+
+  ipcMain.handle('workspace:selectFolder', async () => {
+    return configService.selectWorkspaceFolder()
+  })
+
+  // Database path handlers (compatibilidade)
   ipcMain.handle('database:getPath', async () => {
     return {
       currentPath: configService.getDatabasePath(),
@@ -215,5 +251,18 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('database:resetPath', async (_event, mode: 'move' | 'new') => {
     return configService.resetToDefaultPath(mode)
+  })
+
+  // AI Usage handlers
+  ipcMain.handle('ai-usage:getSummary', async (_event, dateFrom?: string, dateTo?: string) => {
+    return aiUsageRepo.getSummary(dateFrom, dateTo)
+  })
+
+  ipcMain.handle('ai-usage:getDailyUsage', async (_event, dateFrom?: string, dateTo?: string) => {
+    return aiUsageRepo.getDailyUsage(dateFrom, dateTo)
+  })
+
+  ipcMain.handle('ai-usage:getHistory', async (_event, limit?: number, offset?: number) => {
+    return aiUsageRepo.getHistory(limit, offset)
   })
 }

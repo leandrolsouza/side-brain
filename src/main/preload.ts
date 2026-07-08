@@ -1,16 +1,29 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import type { EntryConfirmRequest, EntryPreviewResult, AIUsageSummary, AIUsageDailyPoint, AIUsageRecord, Workspace } from '../shared/types'
 
 export interface ElectronAPI {
+  // Workspaces
+  getWorkspaces: () => Promise<Workspace[]>
+  getActiveWorkspace: () => Promise<Workspace>
+  createWorkspace: (data: { name: string; emoji: string; databasePath: string }) => Promise<Workspace>
+  updateWorkspace: (id: string, updates: { name?: string; emoji?: string }) => Promise<Workspace | null>
+  deleteWorkspace: (id: string) => Promise<{ success: boolean; error?: string }>
+  switchWorkspace: (workspaceId: string) => Promise<{ success: boolean; error?: string }>
+  selectWorkspaceFolder: () => Promise<string | null>
+
   // Entries
   createEntry: (rawText: string) => Promise<any>
+  previewEntry: (rawText: string, projectIdHint?: string) => Promise<EntryPreviewResult>
+  confirmEntry: (data: EntryConfirmRequest) => Promise<any>
   getEntries: (projectId?: string) => Promise<any[]>
   updateEntry: (id: string, updates: Record<string, any>) => Promise<any>
   deleteEntry: (id: string) => Promise<void>
 
   // Projects
-  getProjects: () => Promise<any[]>
+  getProjects: (includeInactive?: boolean) => Promise<any[]>
   createProject: (name: string, description?: string) => Promise<any>
   updateProject: (id: string, updates: Record<string, any>) => Promise<any>
+  setProjectActive: (id: string, active: boolean) => Promise<any>
   deleteProject: (id: string) => Promise<void>
 
   // Tasks
@@ -28,10 +41,6 @@ export interface ElectronAPI {
 
   // Daily Digest
   generateDailyDigest: () => Promise<any>
-
-  // Review
-  approveEntry: (id: string) => Promise<void>
-  correctEntry: (id: string, corrections: Record<string, any>) => Promise<void>
 
   // Settings
   getSettings: () => Promise<Record<string, any>>
@@ -69,14 +78,39 @@ export interface ElectronAPI {
   setDatabasePath: (newPath: string, mode: 'move' | 'new') => Promise<{ success: boolean; error?: string }>
   resetDatabasePath: (mode: 'move' | 'new') => Promise<{ success: boolean; error?: string }>
 
+  // AI Usage
+  getAIUsageSummary: (dateFrom?: string, dateTo?: string) => Promise<AIUsageSummary>
+  getAIUsageDailyUsage: (dateFrom?: string, dateTo?: string) => Promise<AIUsageDailyPoint[]>
+  getAIUsageHistory: (limit?: number, offset?: number) => Promise<AIUsageRecord[]>
+
   // Events
   onFocusCaptureInput: (callback: () => void) => void
 }
 
 contextBridge.exposeInMainWorld('electronAPI', {
+  // Workspaces
+  getWorkspaces: () =>
+    ipcRenderer.invoke('workspace:list'),
+  getActiveWorkspace: () =>
+    ipcRenderer.invoke('workspace:getActive'),
+  createWorkspace: (data: { name: string; emoji: string; databasePath: string }) =>
+    ipcRenderer.invoke('workspace:create', data),
+  updateWorkspace: (id: string, updates: { name?: string; emoji?: string }) =>
+    ipcRenderer.invoke('workspace:update', id, updates),
+  deleteWorkspace: (id: string) =>
+    ipcRenderer.invoke('workspace:delete', id),
+  switchWorkspace: (workspaceId: string) =>
+    ipcRenderer.invoke('workspace:switch', workspaceId),
+  selectWorkspaceFolder: () =>
+    ipcRenderer.invoke('workspace:selectFolder'),
+
   // Entries
   createEntry: (rawText: string) =>
     ipcRenderer.invoke('entry:create', rawText),
+  previewEntry: (rawText: string, projectIdHint?: string) =>
+    ipcRenderer.invoke('entry:preview', rawText, projectIdHint),
+  confirmEntry: (data: EntryConfirmRequest) =>
+    ipcRenderer.invoke('entry:confirm', data),
   getEntries: (projectId?: string) =>
     ipcRenderer.invoke('entry:getAll', projectId),
   updateEntry: (id: string, updates: Record<string, any>) =>
@@ -85,12 +119,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('entry:delete', id),
 
   // Projects
-  getProjects: () =>
-    ipcRenderer.invoke('project:getAll'),
+  getProjects: (includeInactive?: boolean) =>
+    ipcRenderer.invoke('project:getAll', includeInactive),
   createProject: (name: string, description?: string) =>
     ipcRenderer.invoke('project:create', name, description),
   updateProject: (id: string, updates: Record<string, any>) =>
     ipcRenderer.invoke('project:update', id, updates),
+  setProjectActive: (id: string, active: boolean) =>
+    ipcRenderer.invoke('project:setActive', id, active),
   deleteProject: (id: string) =>
     ipcRenderer.invoke('project:delete', id),
 
@@ -119,12 +155,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Daily Digest
   generateDailyDigest: () =>
     ipcRenderer.invoke('digest:generate'),
-
-  // Review
-  approveEntry: (id: string) =>
-    ipcRenderer.invoke('entry:approve', id),
-  correctEntry: (id: string, corrections: Record<string, any>) =>
-    ipcRenderer.invoke('entry:correct', id, corrections),
 
   // Settings
   getSettings: () =>
@@ -185,6 +215,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('database:setPath', newPath, mode),
   resetDatabasePath: (mode: 'move' | 'new') =>
     ipcRenderer.invoke('database:resetPath', mode),
+
+  // AI Usage
+  getAIUsageSummary: (dateFrom?: string, dateTo?: string) =>
+    ipcRenderer.invoke('ai-usage:getSummary', dateFrom, dateTo),
+  getAIUsageDailyUsage: (dateFrom?: string, dateTo?: string) =>
+    ipcRenderer.invoke('ai-usage:getDailyUsage', dateFrom, dateTo),
+  getAIUsageHistory: (limit?: number, offset?: number) =>
+    ipcRenderer.invoke('ai-usage:getHistory', limit, offset),
 
   // Events
   onFocusCaptureInput: (callback: () => void) => {

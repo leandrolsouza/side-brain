@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { ArrowLeft, List, LayoutGrid, Sparkles, X, Download, Video } from 'lucide-react'
+import { MarkdownViewer } from './MarkdownViewer'
 import { EntryList } from './EntryList'
 import { KanbanBoard } from './KanbanBoard'
 import { MeetingMode } from './MeetingMode'
@@ -138,7 +139,7 @@ export function ProjectView({ projectId, projectName, onBack }: ProjectViewProps
               <X size={14} />
             </button>
           </div>
-          <div className="dashboard-summary-text">{summary}</div>
+          <MarkdownViewer content={summary} />
         </div>
       )}
 
@@ -151,7 +152,7 @@ export function ProjectView({ projectId, projectName, onBack }: ProjectViewProps
           <KanbanBoard projectId={projectId} />
         )}
         {activeTab === 'meetings' && (
-          <div className="flex-col" style={{ gap: 16 }}>
+          <div className="flex-col" style={{ gap: 16, flex: 1, minHeight: 0, overflow: 'auto' }}>
             <MeetingMode projectId={projectId} onFinished={() => setActiveTab('meetings')} />
             <MeetingHistory projectId={projectId} />
           </div>

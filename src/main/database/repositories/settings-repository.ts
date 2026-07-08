@@ -11,11 +11,7 @@ export class SettingsRepository {
     for (const row of rows) {
       if (row.key in settings) {
         const key = row.key as keyof AppSettings
-        if (key === 'reviewEnabled') {
-          ;(settings as any)[key] = row.value === 'true'
-        } else {
-          ;(settings as any)[key] = row.value
-        }
+          ; (settings as any)[key] = row.value
       }
     }
 

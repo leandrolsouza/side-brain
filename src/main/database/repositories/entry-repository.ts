@@ -35,17 +35,6 @@ export class EntryRepository {
     return row || null
   }
 
-  getPending(): Entry[] {
-    const db = getDatabase()
-    return db.prepare(`
-      SELECT id, raw_text as rawText, improved_text as improvedText,
-             project_id as projectId, type, action, review_status as reviewStatus,
-             created_at as createdAt
-      FROM entries WHERE review_status = 'pending'
-      ORDER BY created_at DESC
-    `).all() as Entry[]
-  }
-
   create(data: {
     rawText: string
     improvedText: string

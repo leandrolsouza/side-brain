@@ -5,14 +5,26 @@ import { Dashboard } from './components/Dashboard'
 import { CaptureInput } from './components/CaptureInput'
 import { ProjectList } from './components/ProjectList'
 import { ProjectView } from './components/ProjectView'
-import { ReviewInbox } from './components/ReviewInbox'
 import { MeetingMode } from './components/MeetingMode'
 import { Settings } from './components/Settings'
 import { GlobalSearch } from './components/GlobalSearch'
 import { DailyDigest } from './components/DailyDigest'
+import { AIUsageDashboard } from './components/AIUsageDashboard'
+import { AboutModal } from './components/AboutModal'
+import { WorkspaceSwitcher } from './components/WorkspaceSwitcher'
 
-export type View = 'dashboard' | 'capture' | 'projects' | 'entries' | 'review' | 'meeting' | 'settings'
+export type View = 'dashboard' | 'capture' | 'projects' | 'entries' | 'meeting' | 'settings' | 'ai-usage'
 export type Theme = 'dark' | 'light'
+
+const MODEL_LABELS: Record<string, string> = {
+  'us.anthropic.claude-sonnet-5': 'Claude Sonnet 5',
+  'us.anthropic.claude-sonnet-4-20250514-v1:0': 'Claude Sonnet 4',
+  'us.anthropic.claude-haiku-4-5-20251001-v1:0': 'Claude Haiku 4.5',
+  'us.amazon.nova-2-lite-v1:0': 'Nova 2 Lite',
+  'us.amazon.nova-pro-v1:0': 'Nova Pro',
+  'us.amazon.nova-lite-v1:0': 'Nova Lite',
+  'us.amazon.nova-micro-v1:0': 'Nova Micro',
+}
 
 export function App() {
   const [currentView, setCurrentView] = useState<View>('dashboard')
@@ -21,6 +33,8 @@ export function App() {
   const [projectsRefreshKey, setProjectsRefreshKey] = useState(0)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [showDigest, setShowDigest] = useState(false)
+  const [showAbout, setShowAbout] = useState(false)
+  const [activeModelLabel, setActiveModelLabel] = useState<string>('Claude Sonnet 4')
   const [theme, setTheme] = useState<Theme>(() => {
     return (localStorage.getItem('app-theme') as Theme) || 'dark'
   })
@@ -41,6 +55,19 @@ export function App() {
     }
   }, [])
 
+  // Load active model from settings
+  useEffect(() => {
+    const loadModel = async () => {
+      try {
+        const data = await window.electronAPI.getSettings()
+        if (data?.modelId) {
+          setActiveModelLabel(MODEL_LABELS[data.modelId] || data.modelId)
+        }
+      } catch { /* ignore */ }
+    }
+    loadModel()
+  }, [currentView])
+
   // Global keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -56,14 +83,15 @@ export function App() {
         setCurrentView('capture')
         return
       }
-      // Ctrl+1/2/3/4 → navegar entre views
-      if ((e.ctrlKey || e.metaKey) && e.key >= '1' && e.key <= '4') {
+      // Ctrl+1/2/3/4/5 → navegar entre views
+      if ((e.ctrlKey || e.metaKey) && e.key >= '1' && e.key <= '5') {
         e.preventDefault()
         const viewMap: Record<string, View> = {
           '1': 'dashboard',
           '2': 'capture',
           '3': 'projects',
-          '4': 'review',
+          '4': 'meeting',
+          '5': 'ai-usage',
         }
         const view = viewMap[e.key]
         if (view) setCurrentView(view)
@@ -96,9 +124,9 @@ export function App() {
       case 'capture': return 'Captura Rápida'
       case 'projects': return 'Projetos'
       case 'entries': return selectedProjectName || 'Entradas'
-      case 'review': return 'Revisão'
       case 'meeting': return 'Reunião'
       case 'settings': return 'Configurações'
+      case 'ai-usage': return 'Uso da IA'
     }
   }
 
@@ -116,12 +144,12 @@ export function App() {
         ) : (
           <ProjectList onSelectProject={handleProjectSelect} onProjectsChanged={refreshProjects} />
         )
-      case 'review':
-        return <ReviewInbox />
       case 'meeting':
         return <MeetingMode onFinished={() => setCurrentView('dashboard')} />
       case 'settings':
         return <Settings />
+      case 'ai-usage':
+        return <AIUsageDashboard />
     }
   }
 
@@ -129,12 +157,12 @@ export function App() {
     <div className="workbench">
       {/* Title Bar */}
       <div className="titlebar">
-        <span className="titlebar-text">Work Organizer</span>
+        <span className="titlebar-text">SideBrain</span>
       </div>
 
       {/* Body: Activity Bar + Sidebar + Editor */}
       <div className="workbench-body">
-        <ActivityBar currentView={currentView} onViewChange={setCurrentView} theme={theme} onThemeChange={setTheme} />
+        <ActivityBar currentView={currentView} onViewChange={setCurrentView} theme={theme} onThemeChange={setTheme} onAboutClick={() => setShowAbout(true)} />
         <Sidebar currentView={currentView} onViewChange={setCurrentView} onProjectSelect={handleProjectSelect} refreshKey={projectsRefreshKey} />
 
         {/* Editor Area */}
@@ -168,14 +196,18 @@ export function App() {
         />
       )}
 
+      {/* About Modal */}
+      <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />
+
       {/* Status Bar */}
       <div className="status-bar">
+        <WorkspaceSwitcher />
         <div className="status-bar-item">
-          <span>Work Organizer v0.1.0</span>
+          <span>SideBrain v0.1.0</span>
         </div>
         <div className="status-bar-right">
           <div className="status-bar-item">
-            <span>AI: Claude Sonnet</span>
+            <span>AI: {activeModelLabel}</span>
           </div>
         </div>
       </div>

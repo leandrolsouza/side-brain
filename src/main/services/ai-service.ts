@@ -1,10 +1,12 @@
-import { AICategorizationResult, AppSettings, MeetingProcessResult, Project } from '../../shared/types'
+import { AICategorizationResult, AIOperationType, AppSettings, MeetingProcessResult, Project } from '../../shared/types'
+import { AIUsageRepository } from '../database/repositories/ai-usage-repository'
+import { SettingsRepository } from '../database/repositories/settings-repository'
 
 const CATEGORIZATION_PROMPT = `Você é um assistente que organiza notas de trabalho.
 Dada uma frase escrita rapidamente por alguém durante o dia de trabalho, você deve:
 
 1. Identificar a qual projeto pertence (da lista fornecida, ou sugerir um novo)
-2. Classificar o tipo: information, decision, request, idea, blocker, update
+2. Classificar o tipo: information, decision, demand, idea, blocker, update
 3. Classificar a ação necessária: none, action_needed, waiting_response
 4. Reescrever o texto de forma mais clara e objetiva (mantendo a essência)
 5. Se houver uma ação implícita (algo que precisa ser feito, respondido, ou acompanhado), sugerir uma TAREFA concisa para um kanban
@@ -38,6 +40,9 @@ Regras para sugerir tasks:
 - NÃO crie task para informações passivas ou decisões já tomadas`
 
 export class AIService {
+  private aiUsageRepo = new AIUsageRepository()
+  private settingsRepo = new SettingsRepository()
+
   private getBaseUrl(settings: AppSettings): string {
     return `https://bedrock-runtime.${settings.awsRegion}.amazonaws.com`
   }
@@ -60,7 +65,8 @@ Texto para categorizar:
     const responseText = await this.invokeConverse(
       CATEGORIZATION_PROMPT,
       userMessage,
-      settings
+      settings,
+      'categorization'
     )
 
     // Extract JSON from response (handle possible markdown code blocks)
@@ -95,7 +101,7 @@ Seja conciso e objetivo.
 Entradas:
 ${entriesText}${tasksText}`
 
-    return this.invokeConverse(systemPrompt, userMessage, settings)
+    return this.invokeConverse(systemPrompt, userMessage, settings, 'summary')
   }
 
   async processMeeting(
@@ -149,7 +155,7 @@ ${participantsText}
 Conteúdo capturado:
 ${content}`
 
-    const responseText = await this.invokeConverse(systemPrompt, userMessage, settings)
+    const responseText = await this.invokeConverse(systemPrompt, userMessage, settings, 'meeting_processing')
 
     const jsonMatch = responseText.match(/\{[\s\S]*\}/)
     if (!jsonMatch) {
@@ -182,7 +188,7 @@ Seja direto e objetivo.
 
 ${projectsSummaryText}`
 
-    return this.invokeConverse(systemPrompt, userMessage, settings)
+    return this.invokeConverse(systemPrompt, userMessage, settings, 'global_summary')
   }
 
   /**
@@ -193,7 +199,7 @@ ${projectsSummaryText}`
     userMessage: string,
     settings: AppSettings
   ): Promise<string> {
-    return this.invokeConverse(systemPrompt, userMessage, settings)
+    return this.invokeConverse(systemPrompt, userMessage, settings, 'digest')
   }
 
   /**
@@ -203,7 +209,8 @@ ${projectsSummaryText}`
   private async invokeConverse(
     systemPrompt: string,
     userMessage: string,
-    settings: AppSettings
+    settings: AppSettings,
+    operationType: AIOperationType = 'categorization'
   ): Promise<string> {
     const url = `${this.getBaseUrl(settings)}/model/${settings.modelId}/converse`
 
@@ -217,6 +224,8 @@ ${projectsSummaryText}`
         temperature: 0.3,
       },
     }
+
+    const startTime = Date.now()
 
     const response = await fetch(url, {
       method: 'POST',
@@ -233,6 +242,32 @@ ${projectsSummaryText}`
     }
 
     const data = await response.json()
+    const latencyMs = Date.now() - startTime
+
+    // Extract token usage from Converse API response
+    const inputTokens = data.usage?.inputTokens ?? 0
+    const outputTokens = data.usage?.outputTokens ?? 0
+
+    // Calculate estimated cost
+    const currentSettings = this.settingsRepo.get()
+    const priceInputPer1k = parseFloat(currentSettings.aiPriceInputPer1k) || 0.003
+    const priceOutputPer1k = parseFloat(currentSettings.aiPriceOutputPer1k) || 0.015
+    const estimatedCost = (inputTokens / 1000) * priceInputPer1k + (outputTokens / 1000) * priceOutputPer1k
+
+    // Record usage
+    try {
+      this.aiUsageRepo.record({
+        operationType,
+        model: settings.modelId,
+        inputTokens,
+        outputTokens,
+        estimatedCost,
+        latencyMs,
+      })
+    } catch (e) {
+      // Don't fail the AI call if usage recording fails
+      console.error('Failed to record AI usage:', e)
+    }
 
     // Converse API response format
     return data.output.message.content[0].text
