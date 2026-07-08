@@ -3,9 +3,12 @@ import path from 'path'
 import { registerIpcHandlers } from './ipc/handlers'
 import { closeDatabase } from './database/schema'
 import { NotificationService } from './services/notification-service'
+import { BackupService } from './services/backup-service'
+import { getConfigService } from './services/config-service'
 
 let mainWindow: BrowserWindow | null = null
 let notificationService: NotificationService | null = null
+let lockRenewalInterval: ReturnType<typeof setInterval> | null = null
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -46,6 +49,22 @@ function registerGlobalShortcut(): void {
 }
 
 app.whenReady().then(() => {
+  // Auto backup antes de abrir a database
+  const backupService = new BackupService()
+  backupService.createAutoBackup()
+
+  // Adquirir lock file da database
+  const configService = getConfigService()
+  const lockResult = configService.acquireLock()
+  if (!lockResult.acquired) {
+    console.warn(`[Lock] Database pode estar em uso por: ${lockResult.owner}`)
+  }
+
+  // Renovar lock a cada 2 minutos
+  lockRenewalInterval = setInterval(() => {
+    configService.renewLock()
+  }, 2 * 60 * 1000)
+
   registerIpcHandlers()
   createWindow()
   registerGlobalShortcut()
@@ -70,5 +89,7 @@ app.on('window-all-closed', () => {
 app.on('will-quit', () => {
   globalShortcut.unregisterAll()
   if (notificationService) notificationService.stop()
+  if (lockRenewalInterval) clearInterval(lockRenewalInterval)
+  getConfigService().releaseLock()
   closeDatabase()
 })

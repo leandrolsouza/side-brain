@@ -61,6 +61,7 @@ export function Sidebar({ currentView, onViewChange, onProjectSelect, refreshKey
       case 'projects':
       case 'entries': return 'Explorer'
       case 'review': return 'Revisão'
+      case 'meeting': return 'Reunião'
       case 'settings': return 'Configurações'
     }
   }

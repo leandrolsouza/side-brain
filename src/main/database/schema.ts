@@ -1,13 +1,26 @@
 import Database from 'better-sqlite3'
 import path from 'path'
 import { app } from 'electron'
+import { getConfigService } from '../services/config-service'
 
 let db: Database.Database | null = null
+
+export function getDatabasePath(): string {
+  return getConfigService().getDatabasePath()
+}
 
 export function getDatabase(): Database.Database {
   if (db) return db
 
-  const dbPath = path.join(app.getPath('userData'), 'work-organizer.db')
+  const dbPath = getDatabasePath()
+
+  // Garante que o diretório existe
+  const dir = path.dirname(dbPath)
+  const fs = require('fs')
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true })
+  }
+
   db = new Database(dbPath)
 
   // Enable WAL mode for better performance
@@ -76,6 +89,24 @@ function initializeSchema(database: Database.Database): void {
 
     CREATE INDEX IF NOT EXISTS idx_tasks_project_id ON tasks(project_id);
     CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+
+    CREATE TABLE IF NOT EXISTS meetings (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      participants TEXT NOT NULL DEFAULT '[]',
+      started_at TEXT NOT NULL DEFAULT (datetime('now')),
+      ended_at TEXT,
+      status TEXT NOT NULL DEFAULT 'active',
+      raw_notes TEXT NOT NULL DEFAULT '[]',
+      pasted_transcription TEXT,
+      generated_minutes TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_meetings_project_id ON meetings(project_id);
+    CREATE INDEX IF NOT EXISTS idx_meetings_status ON meetings(status);
   `)
 }
 

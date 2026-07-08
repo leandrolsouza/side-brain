@@ -98,6 +98,15 @@ export interface DailyDigestData {
   generatedAt: string
 }
 
+// === Backup ===
+
+export interface BackupInfo {
+  filename: string
+  filePath: string
+  createdAt: string
+  sizeBytes: number
+}
+
 // === Settings ===
 
 export interface AppSettings {
@@ -112,6 +121,37 @@ export const DEFAULT_SETTINGS: AppSettings = {
   bedrockApiKey: '',
   reviewEnabled: true,
   modelId: 'us.anthropic.claude-sonnet-4-20250514-v1:0',
+}
+
+// === Meeting Types ===
+
+export interface Meeting {
+  id: string
+  projectId: string
+  title: string
+  participants: string[]
+  startedAt: string
+  endedAt: string | null
+  status: MeetingStatus
+  rawNotes: string[]
+  pastedTranscription: string | null
+  generatedMinutes: string | null
+  createdAt: string
+}
+
+export type MeetingStatus = 'active' | 'ended' | 'processed'
+
+export interface MeetingProcessResult {
+  minutes: string
+  entries: {
+    text: string
+    type: EntryType
+    action: ActionStatus
+  }[]
+  tasks: {
+    title: string
+    description?: string
+  }[]
 }
 
 // === Capture Templates ===

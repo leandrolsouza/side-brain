@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import { LayoutDashboard, PenLine, FolderOpen, ClipboardCheck, Settings } from 'lucide-react'
-import type { View } from '../App'
+import { LayoutDashboard, PenLine, FolderOpen, ClipboardCheck, Video, Settings, Sun, Moon } from 'lucide-react'
+import type { View, Theme } from '../App'
 
 interface ActivityBarProps {
   currentView: View
   onViewChange: (view: View) => void
+  theme: Theme
+  onThemeChange: (theme: Theme) => void
 }
 
 const activityItems: { view: View; icon: React.ReactNode; tooltip: string }[] = [
@@ -12,9 +14,10 @@ const activityItems: { view: View; icon: React.ReactNode; tooltip: string }[] = 
   { view: 'capture', icon: <PenLine size={24} />, tooltip: 'Captura Rápida (Ctrl+2)' },
   { view: 'projects', icon: <FolderOpen size={24} />, tooltip: 'Projetos (Ctrl+3)' },
   { view: 'review', icon: <ClipboardCheck size={24} />, tooltip: 'Revisão (Ctrl+4)' },
+  { view: 'meeting', icon: <Video size={24} />, tooltip: 'Nova Reunião' },
 ]
 
-export function ActivityBar({ currentView, onViewChange }: ActivityBarProps) {
+export function ActivityBar({ currentView, onViewChange, theme, onThemeChange }: ActivityBarProps) {
   const [pendingCount, setPendingCount] = useState(0)
 
   useEffect(() => {
@@ -49,6 +52,13 @@ export function ActivityBar({ currentView, onViewChange }: ActivityBarProps) {
       ))}
 
       <div className="activity-bar-bottom">
+        <div
+          className="activity-bar-item"
+          onClick={() => onThemeChange(theme === 'dark' ? 'light' : 'dark')}
+          title={theme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
+        >
+          {theme === 'dark' ? <Sun size={22} /> : <Moon size={22} />}
+        </div>
         <div
           className={`activity-bar-item ${currentView === 'settings' ? 'active' : ''}`}
           onClick={() => onViewChange('settings')}

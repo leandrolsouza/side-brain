@@ -43,6 +43,32 @@ export interface ElectronAPI {
   // Export
   exportProject: (projectId: string, format: 'markdown' | 'pdf') => Promise<{ success: boolean; filePath?: string }>
 
+  // Meetings
+  createMeeting: (data: { projectId: string; title: string; participants?: string[] }) => Promise<any>
+  getMeetings: (projectId?: string) => Promise<any[]>
+  getMeetingById: (id: string) => Promise<any | null>
+  getActiveMeeting: () => Promise<any | null>
+  addMeetingNote: (id: string, note: string) => Promise<any>
+  setMeetingTranscription: (id: string, transcription: string) => Promise<any>
+  endMeeting: (id: string) => Promise<any>
+  processMeeting: (id: string) => Promise<any>
+  saveSelectedMeetingItems: (meetingId: string, selectedEntries: any[], selectedTasks: any[]) => Promise<void>
+  deleteMeeting: (id: string) => Promise<void>
+
+  // Backup
+  listBackups: () => Promise<any[]>
+  createManualBackup: () => Promise<{ success: boolean; filePath?: string }>
+  restoreBackup: (filePath: string) => Promise<{ success: boolean; error?: string }>
+  importBackup: () => Promise<{ success: boolean; error?: string }>
+  deleteBackup: (filePath: string) => Promise<boolean>
+  resetDatabase: () => Promise<{ success: boolean; archivedPath?: string; error?: string }>
+
+  // Database Path
+  getDatabasePath: () => Promise<{ currentPath: string; defaultPath: string; isCustom: boolean }>
+  selectDatabaseFolder: () => Promise<string | null>
+  setDatabasePath: (newPath: string, mode: 'move' | 'new') => Promise<{ success: boolean; error?: string }>
+  resetDatabasePath: (mode: 'move' | 'new') => Promise<{ success: boolean; error?: string }>
+
   // Events
   onFocusCaptureInput: (callback: () => void) => void
 }
@@ -113,6 +139,52 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Export
   exportProject: (projectId: string, format: 'markdown' | 'pdf') =>
     ipcRenderer.invoke('export:project', projectId, format),
+
+  // Meetings
+  createMeeting: (data: { projectId: string; title: string; participants?: string[] }) =>
+    ipcRenderer.invoke('meeting:create', data),
+  getMeetings: (projectId?: string) =>
+    ipcRenderer.invoke('meeting:getAll', projectId),
+  getMeetingById: (id: string) =>
+    ipcRenderer.invoke('meeting:getById', id),
+  getActiveMeeting: () =>
+    ipcRenderer.invoke('meeting:getActive'),
+  addMeetingNote: (id: string, note: string) =>
+    ipcRenderer.invoke('meeting:addNote', id, note),
+  setMeetingTranscription: (id: string, transcription: string) =>
+    ipcRenderer.invoke('meeting:setTranscription', id, transcription),
+  endMeeting: (id: string) =>
+    ipcRenderer.invoke('meeting:end', id),
+  processMeeting: (id: string) =>
+    ipcRenderer.invoke('meeting:process', id),
+  saveSelectedMeetingItems: (meetingId: string, selectedEntries: any[], selectedTasks: any[]) =>
+    ipcRenderer.invoke('meeting:saveSelected', meetingId, selectedEntries, selectedTasks),
+  deleteMeeting: (id: string) =>
+    ipcRenderer.invoke('meeting:delete', id),
+
+  // Backup
+  listBackups: () =>
+    ipcRenderer.invoke('backup:list'),
+  createManualBackup: () =>
+    ipcRenderer.invoke('backup:create'),
+  restoreBackup: (filePath: string) =>
+    ipcRenderer.invoke('backup:restore', filePath),
+  importBackup: () =>
+    ipcRenderer.invoke('backup:import'),
+  deleteBackup: (filePath: string) =>
+    ipcRenderer.invoke('backup:delete', filePath),
+  resetDatabase: () =>
+    ipcRenderer.invoke('database:reset'),
+
+  // Database Path
+  getDatabasePath: () =>
+    ipcRenderer.invoke('database:getPath'),
+  selectDatabaseFolder: () =>
+    ipcRenderer.invoke('database:selectFolder'),
+  setDatabasePath: (newPath: string, mode: 'move' | 'new') =>
+    ipcRenderer.invoke('database:setPath', newPath, mode),
+  resetDatabasePath: (mode: 'move' | 'new') =>
+    ipcRenderer.invoke('database:resetPath', mode),
 
   // Events
   onFocusCaptureInput: (callback: () => void) => {

@@ -6,11 +6,12 @@ import { CaptureInput } from './components/CaptureInput'
 import { ProjectList } from './components/ProjectList'
 import { ProjectView } from './components/ProjectView'
 import { ReviewInbox } from './components/ReviewInbox'
+import { MeetingMode } from './components/MeetingMode'
 import { Settings } from './components/Settings'
 import { GlobalSearch } from './components/GlobalSearch'
 import { DailyDigest } from './components/DailyDigest'
 
-export type View = 'dashboard' | 'capture' | 'projects' | 'entries' | 'review' | 'settings'
+export type View = 'dashboard' | 'capture' | 'projects' | 'entries' | 'review' | 'meeting' | 'settings'
 export type Theme = 'dark' | 'light'
 
 export function App() {
@@ -96,6 +97,7 @@ export function App() {
       case 'projects': return 'Projetos'
       case 'entries': return selectedProjectName || 'Entradas'
       case 'review': return 'Revisão'
+      case 'meeting': return 'Reunião'
       case 'settings': return 'Configurações'
     }
   }
@@ -116,8 +118,10 @@ export function App() {
         )
       case 'review':
         return <ReviewInbox />
+      case 'meeting':
+        return <MeetingMode onFinished={() => setCurrentView('dashboard')} />
       case 'settings':
-        return <Settings theme={theme} onThemeChange={setTheme} />
+        return <Settings />
     }
   }
 
@@ -130,7 +134,7 @@ export function App() {
 
       {/* Body: Activity Bar + Sidebar + Editor */}
       <div className="workbench-body">
-        <ActivityBar currentView={currentView} onViewChange={setCurrentView} />
+        <ActivityBar currentView={currentView} onViewChange={setCurrentView} theme={theme} onThemeChange={setTheme} />
         <Sidebar currentView={currentView} onViewChange={setCurrentView} onProjectSelect={handleProjectSelect} refreshKey={projectsRefreshKey} />
 
         {/* Editor Area */}

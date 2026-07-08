@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { ArrowLeft, Sparkles, X } from 'lucide-react'
+import { ArrowLeft, Sparkles, X, Trash2 } from 'lucide-react'
+import { ConfirmModal } from './ConfirmModal'
 
 interface Entry {
   id: string
@@ -45,6 +46,7 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
   const [entries, setEntries] = useState<Entry[]>([])
   const [summary, setSummary] = useState<string | null>(null)
   const [isLoadingSummary, setIsLoadingSummary] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
   useEffect(() => {
     loadEntries()
@@ -67,6 +69,17 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
 
   const handleActionChange = async (entryId: string, newAction: string) => {
     await window.electronAPI.updateEntry(entryId, { action: newAction })
+    await loadEntries()
+  }
+
+  const handleDelete = async (entryId: string) => {
+    setDeleteTarget(entryId)
+  }
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return
+    await window.electronAPI.deleteEntry(deleteTarget)
+    setDeleteTarget(null)
     await loadEntries()
   }
 
@@ -131,16 +144,26 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
                     {new Date(entry.createdAt).toLocaleString('pt-BR')}
                   </span>
                 </div>
-                <select
-                  className="vscode-select"
-                  value={entry.action}
-                  onChange={(e) => handleActionChange(entry.id, e.target.value)}
-                  style={{ fontSize: 11, padding: '2px 6px' }}
-                >
-                  {Object.entries(actionLabels).map(([value, label]) => (
-                    <option key={value} value={value}>{label}</option>
-                  ))}
-                </select>
+                <div className="flex-row">
+                  <select
+                    className="vscode-select"
+                    value={entry.action}
+                    onChange={(e) => handleActionChange(entry.id, e.target.value)}
+                    style={{ fontSize: 11, padding: '2px 6px' }}
+                  >
+                    {Object.entries(actionLabels).map(([value, label]) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
+                  </select>
+                  <button
+                    className="inline-action-btn"
+                    onClick={() => handleDelete(entry.id)}
+                    title="Excluir entrada"
+                    style={{ opacity: 0.6, color: 'var(--vscode-errorForeground)' }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
               <div className="vscode-card-body">
                 {entry.improvedText}
@@ -154,6 +177,17 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
           ))}
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={deleteTarget !== null}
+        title="Excluir entrada"
+        message="Tem certeza que deseja excluir esta entrada? Esta ação não pode ser desfeita."
+        confirmLabel="Excluir"
+        cancelLabel="Cancelar"
+        variant="danger"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   )
 }

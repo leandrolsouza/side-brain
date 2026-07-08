@@ -1,4 +1,4 @@
-import { AICategorizationResult, AppSettings, Project } from '../../shared/types'
+import { AICategorizationResult, AppSettings, MeetingProcessResult, Project } from '../../shared/types'
 
 const CATEGORIZATION_PROMPT = `Você é um assistente que organiza notas de trabalho.
 Dada uma frase escrita rapidamente por alguém durante o dia de trabalho, você deve:
@@ -96,6 +96,67 @@ Entradas:
 ${entriesText}${tasksText}`
 
     return this.invokeConverse(systemPrompt, userMessage, settings)
+  }
+
+  async processMeeting(
+    title: string,
+    participants: string[],
+    content: string,
+    settings: AppSettings
+  ): Promise<MeetingProcessResult> {
+    const systemPrompt = `Você é um assistente que gera atas de reunião estruturadas.
+Dadas as anotações e/ou transcrição de uma reunião, gere:
+1. Uma ata em markdown com: resumo, decisões, ações (com responsável se mencionado), e bloqueios
+2. Uma lista CURTA de entries — APENAS os pontos que valem ser registrados para consulta futura
+3. Uma lista de tasks para o kanban (ações concretas que alguém precisa executar)
+
+Responda APENAS com JSON válido no formato:
+{
+  "minutes": "# Ata da Reunião\\n\\n## Resumo\\n...\\n\\n## Decisões\\n- ...\\n\\n## Ações\\n- [ ] Responsável: ação — prazo\\n\\n## Bloqueios\\n- ...",
+  "entries": [
+    {"text": "Texto da entrada", "type": "decision|blocker|request|update", "action": "none|action_needed|waiting_response"}
+  ],
+  "tasks": [
+    {"title": "Verbo + ação concisa", "description": "Responsável e prazo se mencionado"}
+  ]
+}
+
+REGRAS PARA ENTRIES (seja rigoroso):
+- Crie entries APENAS para: decisões tomadas, bloqueios identificados, pedidos explícitos, e mudanças de status importantes
+- NÃO crie entries para: informações contextuais, fatos óbvios, apresentações de pessoas, explicações técnicas, hipóteses, ou coisas que já estão na ata
+- Se algo é apenas contexto (ex: "a rede tem múltiplas camadas"), NÃO vira entry — isso já está na ata
+- Máximo de 5-8 entries por reunião. Menos é melhor. Só o que IMPORTA daqui 1 mês.
+
+REGRAS PARA TASKS:
+- Só crie tasks para ações concretas que alguém precisa FAZER
+- Título começa com verbo no infinitivo
+- Inclua o responsável na description se mencionado
+- NÃO crie task para coisas genéricas como "discutir" ou "pensar sobre"
+
+REGRAS PARA A ATA:
+- O campo "minutes" deve ser markdown completo e bem formatado
+- Na seção Ações, inclua responsável e prazo quando mencionados
+- Seja conciso mas completo
+- Escreva tudo em português`
+
+    const participantsText = participants.length > 0
+      ? `Participantes: ${participants.join(', ')}`
+      : ''
+
+    const userMessage = `Reunião: "${title}"
+${participantsText}
+
+Conteúdo capturado:
+${content}`
+
+    const responseText = await this.invokeConverse(systemPrompt, userMessage, settings)
+
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) {
+      throw new Error('AI did not return valid JSON for meeting processing')
+    }
+
+    return JSON.parse(jsonMatch[0]) as MeetingProcessResult
   }
 
   async generateGlobalSummary(

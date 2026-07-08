@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { ArrowLeft, List, LayoutGrid, Sparkles, X, Download } from 'lucide-react'
+import { ArrowLeft, List, LayoutGrid, Sparkles, X, Download, Video } from 'lucide-react'
 import { EntryList } from './EntryList'
 import { KanbanBoard } from './KanbanBoard'
+import { MeetingMode } from './MeetingMode'
+import { MeetingHistory } from './MeetingHistory'
 
-type ProjectTab = 'entries' | 'kanban'
+type ProjectTab = 'entries' | 'kanban' | 'meetings'
 type ExportFormat = 'markdown' | 'pdf'
 
 interface ProjectViewProps {
@@ -116,6 +118,13 @@ export function ProjectView({ projectId, projectName, onBack }: ProjectViewProps
             <LayoutGrid size={14} />
             Kanban
           </button>
+          <button
+            className={`project-tab ${activeTab === 'meetings' ? 'active' : ''}`}
+            onClick={() => setActiveTab('meetings')}
+          >
+            <Video size={14} />
+            Reuniões
+          </button>
         </div>
       </div>
 
@@ -140,6 +149,12 @@ export function ProjectView({ projectId, projectName, onBack }: ProjectViewProps
         )}
         {activeTab === 'kanban' && (
           <KanbanBoard projectId={projectId} />
+        )}
+        {activeTab === 'meetings' && (
+          <div className="flex-col" style={{ gap: 16 }}>
+            <MeetingMode projectId={projectId} onFinished={() => setActiveTab('meetings')} />
+            <MeetingHistory projectId={projectId} />
+          </div>
         )}
       </div>
     </div>
