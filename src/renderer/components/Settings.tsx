@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { CheckCircle2, Download, Upload, Trash2, RotateCcw, HardDrive, AlertTriangle, FolderOpen, Database, Settings as SettingsIcon, Cpu } from 'lucide-react'
+import { ConfirmModal } from './ConfirmModal'
 
 interface SettingsProps {
 }
@@ -48,6 +49,16 @@ export function Settings({ }: SettingsProps) {
   const [backupMessage, setBackupMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [dbPathInfo, setDbPathInfo] = useState<{ currentPath: string; defaultPath: string; isCustom: boolean } | null>(null)
   const [dbPathLoading, setDbPathLoading] = useState(false)
+  const [confirmModal, setConfirmModal] = useState<{
+    title: string
+    message: string
+    confirmLabel: string
+    cancelLabel?: string
+    alternativeLabel?: string
+    variant: 'danger' | 'warning' | 'default'
+    onConfirm: () => void
+    onAlternative?: () => void
+  } | null>(null)
 
   useEffect(() => {
     loadSettings()
@@ -92,87 +103,119 @@ export function Settings({ }: SettingsProps) {
   }
 
   const handleImportBackup = async () => {
-    if (!confirm('Restaurar um backup substituirá todos os dados atuais. Deseja continuar?')) return
-    setBackupLoading(true)
-    try {
-      const result = await window.electronAPI.importBackup()
-      if (result.success) {
-        showBackupMessage('success', 'Backup restaurado! Recarregando...')
-      } else if (result.error && result.error !== 'Operação cancelada.') {
-        showBackupMessage('error', result.error)
-      }
-    } catch {
-      showBackupMessage('error', 'Erro ao importar backup.')
-    } finally {
-      setBackupLoading(false)
-    }
+    setConfirmModal({
+      title: 'Importar backup',
+      message: 'Restaurar um backup substituirá todos os dados atuais. Deseja continuar?',
+      confirmLabel: 'Importar',
+      variant: 'warning',
+      onConfirm: async () => {
+        setConfirmModal(null)
+        setBackupLoading(true)
+        try {
+          const result = await window.electronAPI.importBackup()
+          if (result.success) {
+            showBackupMessage('success', 'Backup restaurado! Recarregando...')
+          } else if (result.error && result.error !== 'Operação cancelada.') {
+            showBackupMessage('error', result.error)
+          }
+        } catch {
+          showBackupMessage('error', 'Erro ao importar backup.')
+        } finally {
+          setBackupLoading(false)
+        }
+      },
+    })
   }
 
   const handleRestoreBackup = async (filePath: string) => {
-    if (!confirm('Restaurar este backup substituirá todos os dados atuais. Deseja continuar?')) return
-    setBackupLoading(true)
-    try {
-      const result = await window.electronAPI.restoreBackup(filePath)
-      if (result.success) {
-        showBackupMessage('success', 'Backup restaurado! Recarregando...')
-      } else if (result.error) {
-        showBackupMessage('error', result.error)
-      }
-    } catch {
-      showBackupMessage('error', 'Erro ao restaurar backup.')
-    } finally {
-      setBackupLoading(false)
-    }
+    setConfirmModal({
+      title: 'Restaurar backup',
+      message: 'Restaurar este backup substituirá todos os dados atuais. Deseja continuar?',
+      confirmLabel: 'Restaurar',
+      variant: 'warning',
+      onConfirm: async () => {
+        setConfirmModal(null)
+        setBackupLoading(true)
+        try {
+          const result = await window.electronAPI.restoreBackup(filePath)
+          if (result.success) {
+            showBackupMessage('success', 'Backup restaurado! Recarregando...')
+          } else if (result.error) {
+            showBackupMessage('error', result.error)
+          }
+        } catch {
+          showBackupMessage('error', 'Erro ao restaurar backup.')
+        } finally {
+          setBackupLoading(false)
+        }
+      },
+    })
   }
 
   const handleDeleteBackup = async (filePath: string) => {
-    if (!confirm('Excluir este backup permanentemente?')) return
-    await window.electronAPI.deleteBackup(filePath)
-    loadBackups()
+    setConfirmModal({
+      title: 'Excluir backup',
+      message: 'Excluir este backup permanentemente?',
+      confirmLabel: 'Excluir',
+      variant: 'danger',
+      onConfirm: async () => {
+        setConfirmModal(null)
+        await window.electronAPI.deleteBackup(filePath)
+        loadBackups()
+      },
+    })
   }
 
   const handleResetDatabase = async () => {
-    const confirmed = confirm(
-      'ATENÇÃO: Isso apagará TODOS os dados (projetos, entradas, tarefas, reuniões) e criará uma database nova.\n\n' +
-      'A database atual será arquivada na pasta de backups.\n\n' +
-      'Deseja continuar?'
-    )
-    if (!confirmed) return
-
-    setBackupLoading(true)
-    try {
-      const result = await window.electronAPI.resetDatabase()
-      if (result.success) {
-        showBackupMessage('success', 'Database resetada! Recarregando...')
-      } else if (result.error) {
-        showBackupMessage('error', result.error)
-      }
-    } catch {
-      showBackupMessage('error', 'Erro ao resetar database.')
-    } finally {
-      setBackupLoading(false)
-    }
+    setConfirmModal({
+      title: 'Resetar Database',
+      message: 'ATENÇÃO: Isso apagará TODOS os dados (projetos, entradas, tarefas, reuniões) e criará uma database nova.\n\nA database atual será arquivada na pasta de backups.',
+      confirmLabel: 'Resetar',
+      variant: 'danger',
+      onConfirm: async () => {
+        setConfirmModal(null)
+        setBackupLoading(true)
+        try {
+          const result = await window.electronAPI.resetDatabase()
+          if (result.success) {
+            showBackupMessage('success', 'Database resetada! Recarregando...')
+          } else if (result.error) {
+            showBackupMessage('error', result.error)
+          }
+        } catch {
+          showBackupMessage('error', 'Erro ao resetar database.')
+        } finally {
+          setBackupLoading(false)
+        }
+      },
+    })
   }
 
   const handleChangeDatabasePath = async () => {
     const selectedPath = await window.electronAPI.selectDatabaseFolder()
     if (!selectedPath) return
 
-    const mode = confirm(
-      'Deseja MOVER a database atual para o novo local?\n\n' +
-      '• OK = Mover dados existentes\n' +
-      '• Cancelar = Começar nova database no local'
-    ) ? 'move' as const : 'new' as const
+    setConfirmModal({
+      title: 'Alterar local da database',
+      message: 'O que deseja fazer com a database atual?\n\n• Mover dados = Transfere a database para o novo local\n• Criar nova = Começa uma database vazia (dados antigos permanecem no local atual)',
+      confirmLabel: 'Mover dados',
+      alternativeLabel: 'Criar nova',
+      variant: 'warning',
+      onConfirm: async () => {
+        setConfirmModal(null)
+        await executeDatabasePathChange(selectedPath, 'move')
+      },
+      onAlternative: async () => {
+        setConfirmModal(null)
+        await executeDatabasePathChange(selectedPath, 'new')
+      },
+    })
+  }
 
-    if (mode === 'new') {
-      if (!confirm('Isso criará uma database vazia no novo local. Os dados antigos ficarão no local anterior. Continuar?')) {
-        return
-      }
-    }
-
+  const executeDatabasePathChange = async (path: string, mode: 'move' | 'new') => {
     setDbPathLoading(true)
     try {
-      const result = await window.electronAPI.setDatabasePath(selectedPath, mode)
+      const result = await window.electronAPI.setDatabasePath(path, mode)
       if (result.success) {
         showBackupMessage('success', 'Caminho alterado! Recarregando...')
       } else if (result.error) {
@@ -188,12 +231,24 @@ export function Settings({ }: SettingsProps) {
   const handleResetDatabasePath = async () => {
     if (!dbPathInfo?.isCustom) return
 
-    const mode = confirm(
-      'Deseja MOVER a database de volta para o local padrão?\n\n' +
-      '• OK = Mover dados de volta\n' +
-      '• Cancelar = Começar nova database no local padrão'
-    ) ? 'move' as const : 'new' as const
+    setConfirmModal({
+      title: 'Restaurar local padrão',
+      message: 'O que deseja fazer com a database atual?\n\n• Mover dados = Transfere de volta para o local padrão\n• Criar nova = Começa uma database vazia no local padrão',
+      confirmLabel: 'Mover dados',
+      alternativeLabel: 'Criar nova',
+      variant: 'warning',
+      onConfirm: async () => {
+        setConfirmModal(null)
+        await executeResetDatabasePath('move')
+      },
+      onAlternative: async () => {
+        setConfirmModal(null)
+        await executeResetDatabasePath('new')
+      },
+    })
+  }
 
+  const executeResetDatabasePath = async (mode: 'move' | 'new') => {
     setDbPathLoading(true)
     try {
       const result = await window.electronAPI.resetDatabasePath(mode)
@@ -554,6 +609,19 @@ export function Settings({ }: SettingsProps) {
         {activeTab === 'dados' && renderDadosTab()}
         {activeTab === 'avancado' && renderAvancadoTab()}
       </div>
+
+      <ConfirmModal
+        isOpen={confirmModal !== null}
+        title={confirmModal?.title ?? ''}
+        message={confirmModal?.message ?? ''}
+        confirmLabel={confirmModal?.confirmLabel ?? 'Confirmar'}
+        cancelLabel={confirmModal?.cancelLabel ?? 'Cancelar'}
+        alternativeLabel={confirmModal?.alternativeLabel}
+        variant={confirmModal?.variant ?? 'default'}
+        onConfirm={confirmModal?.onConfirm ?? (() => { })}
+        onCancel={() => setConfirmModal(null)}
+        onAlternative={confirmModal?.onAlternative}
+      />
     </div>
   )
 }

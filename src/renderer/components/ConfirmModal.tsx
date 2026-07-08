@@ -7,9 +7,11 @@ interface ConfirmModalProps {
   message: string
   confirmLabel?: string
   cancelLabel?: string
+  alternativeLabel?: string
   variant?: 'danger' | 'warning' | 'default'
   onConfirm: () => void
   onCancel: () => void
+  onAlternative?: () => void
 }
 
 export function ConfirmModal({
@@ -18,21 +20,22 @@ export function ConfirmModal({
   message,
   confirmLabel = 'Confirmar',
   cancelLabel = 'Cancelar',
+  alternativeLabel,
   variant = 'default',
   onConfirm,
   onCancel,
+  onAlternative,
 }: ConfirmModalProps) {
   useEffect(() => {
     if (!isOpen) return
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onCancel()
-      if (e.key === 'Enter') onConfirm()
     }
 
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onConfirm, onCancel])
+  }, [isOpen, onCancel])
 
   if (!isOpen) return null
 
@@ -47,12 +50,19 @@ export function ConfirmModal({
           </button>
         </div>
         <div className="confirm-modal-body">
-          <p>{message}</p>
+          {message.split('\n').map((line, i) => (
+            <p key={i}>{line}</p>
+          ))}
         </div>
         <div className="confirm-modal-footer">
           <button className="vscode-button secondary" onClick={onCancel}>
             {cancelLabel}
           </button>
+          {alternativeLabel && onAlternative && (
+            <button className="vscode-button secondary" onClick={onAlternative}>
+              {alternativeLabel}
+            </button>
+          )}
           <button className={`vscode-button ${variant}`} onClick={onConfirm}>
             {confirmLabel}
           </button>
