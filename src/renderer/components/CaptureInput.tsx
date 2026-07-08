@@ -1,9 +1,18 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, CheckCircle2, Mic, MicOff, Users, Gavel, AlertTriangle, MessageSquare, Lightbulb, RefreshCw } from 'lucide-react'
+import { Send, CheckCircle2, Mic, MicOff, Users, Gavel, AlertTriangle, MessageSquare, Lightbulb, RefreshCw, Sparkles, X } from 'lucide-react'
 import { CAPTURE_TEMPLATES, CaptureTemplate } from '@shared/types'
 
 interface CaptureInputProps {
   onProjectsChanged?: () => void
+}
+
+interface AutoSuggestedToast {
+  projectId: string
+  projectName: string
+  isRenaming: boolean
+  newName: string
+  isMerging: boolean
+  mergeTargetId: string
 }
 
 const ICON_MAP: Record<string, React.ComponentType<{ size?: number }>> = {
@@ -21,6 +30,8 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
   const [lastSubmitted, setLastSubmitted] = useState<string | null>(null)
   const [isListening, setIsListening] = useState(false)
   const [activeTemplate, setActiveTemplate] = useState<CaptureTemplate | null>(null)
+  const [autoSuggestedToast, setAutoSuggestedToast] = useState<AutoSuggestedToast | null>(null)
+  const [existingProjects, setExistingProjects] = useState<{ id: string; name: string }[]>([])
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
   const baseTextRef = useRef('')
@@ -101,11 +112,26 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
 
     setIsSubmitting(true)
     try {
-      await window.electronAPI.createEntry(trimmed)
+      const result = await window.electronAPI.createEntry(trimmed)
       setLastSubmitted(trimmed)
       setText('')
       setActiveTemplate(null)
       onProjectsChanged?.()
+
+      // Show auto-suggested project toast if applicable
+      if (result?.autoSuggestedProject) {
+        const projects = await window.electronAPI.getProjects()
+        setExistingProjects(projects.filter((p: any) => p.id !== result.autoSuggestedProject!.id))
+        setAutoSuggestedToast({
+          projectId: result.autoSuggestedProject.id,
+          projectName: result.autoSuggestedProject.name,
+          isRenaming: false,
+          newName: result.autoSuggestedProject.name,
+          isMerging: false,
+          mergeTargetId: '',
+        })
+      }
+
       setTimeout(() => setLastSubmitted(null), 3000)
     } catch (error) {
       console.error('Failed to create entry:', error)
@@ -114,8 +140,33 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
     }
   }
 
+  const handleRenameProject = async () => {
+    if (!autoSuggestedToast || !autoSuggestedToast.newName.trim()) return
+    await window.electronAPI.updateProject(autoSuggestedToast.projectId, { name: autoSuggestedToast.newName.trim() })
+    setAutoSuggestedToast(null)
+    onProjectsChanged?.()
+  }
+
+  const handleMergeProject = async () => {
+    if (!autoSuggestedToast || !autoSuggestedToast.mergeTargetId) return
+    // Move all entries from the auto-suggested project to the merge target
+    const entries = await window.electronAPI.getEntries(autoSuggestedToast.projectId)
+    for (const entry of entries) {
+      await window.electronAPI.updateEntry(entry.id, { projectId: autoSuggestedToast.mergeTargetId })
+    }
+    // Delete the auto-suggested project
+    await window.electronAPI.deleteProject(autoSuggestedToast.projectId)
+    setAutoSuggestedToast(null)
+    onProjectsChanged?.()
+  }
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSubmit()
+    }
+    // Ctrl+Enter also submits (explicit shortcut)
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault()
       handleSubmit()
     }
@@ -204,10 +255,81 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
             Registrado com sucesso
           </div>
         )}
+
+        {autoSuggestedToast && (
+          <div className="auto-suggest-toast">
+            <div className="auto-suggest-toast-header">
+              <Sparkles size={14} />
+              <span>Projeto <strong>'{autoSuggestedToast.projectName}'</strong> criado automaticamente.</span>
+              <button className="auto-suggest-toast-close" onClick={() => setAutoSuggestedToast(null)}>
+                <X size={12} />
+              </button>
+            </div>
+            <div className="auto-suggest-toast-actions">
+              {!autoSuggestedToast.isRenaming && !autoSuggestedToast.isMerging && (
+                <>
+                  <button
+                    className="vscode-button secondary"
+                    onClick={() => setAutoSuggestedToast({ ...autoSuggestedToast, isRenaming: true })}
+                  >
+                    Renomear
+                  </button>
+                  <button
+                    className="vscode-button secondary"
+                    onClick={() => setAutoSuggestedToast({ ...autoSuggestedToast, isMerging: true })}
+                  >
+                    Mesclar com existente
+                  </button>
+                </>
+              )}
+
+              {autoSuggestedToast.isRenaming && (
+                <div className="flex-row">
+                  <input
+                    type="text"
+                    className="vscode-input"
+                    value={autoSuggestedToast.newName}
+                    onChange={(e) => setAutoSuggestedToast({ ...autoSuggestedToast, newName: e.target.value })}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleRenameProject() }}
+                    autoFocus
+                    style={{ maxWidth: 200 }}
+                  />
+                  <button className="vscode-button" onClick={handleRenameProject}>
+                    Salvar
+                  </button>
+                  <button className="vscode-button secondary" onClick={() => setAutoSuggestedToast({ ...autoSuggestedToast, isRenaming: false })}>
+                    Cancelar
+                  </button>
+                </div>
+              )}
+
+              {autoSuggestedToast.isMerging && (
+                <div className="flex-row">
+                  <select
+                    className="vscode-select"
+                    value={autoSuggestedToast.mergeTargetId}
+                    onChange={(e) => setAutoSuggestedToast({ ...autoSuggestedToast, mergeTargetId: e.target.value })}
+                  >
+                    <option value="">Selecionar projeto...</option>
+                    {existingProjects.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                  <button className="vscode-button" onClick={handleMergeProject} disabled={!autoSuggestedToast.mergeTargetId}>
+                    Mesclar
+                  </button>
+                  <button className="vscode-button secondary" onClick={() => setAutoSuggestedToast({ ...autoSuggestedToast, isMerging: false })}>
+                    Cancelar
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="mt-16" style={{ color: 'var(--vscode-descriptionForeground)', fontSize: 12 }}>
-        Dica: Use <kbd>Ctrl+Shift+Space</kbd> para abrir a captura de qualquer lugar.
+        Dica: Use <kbd>Ctrl+Shift+Space</kbd> para abrir a captura de qualquer lugar. <kbd>Ctrl+N</kbd> navega para cá. <kbd>Ctrl+Enter</kbd> envia.
       </div>
     </div>
   )

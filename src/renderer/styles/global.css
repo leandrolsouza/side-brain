@@ -78,6 +78,90 @@
   --vscode-textLink-foreground: #3794ff;
 }
 
+/* === VS Code Light Theme === */
+[data-theme="light"] {
+  --vscode-editor-background: #ffffff;
+  --vscode-editor-foreground: #333333;
+  --vscode-sideBar-background: #f3f3f3;
+  --vscode-sideBar-foreground: #333333;
+  --vscode-sideBarTitle-foreground: #6f6f6f;
+  --vscode-sideBarSectionHeader-background: #e8e8e8;
+  --vscode-sideBarSectionHeader-foreground: #333333;
+  --vscode-activityBar-background: #2c2c2c;
+  --vscode-activityBar-foreground: #ffffff;
+  --vscode-activityBar-inactiveForeground: #868686;
+  --vscode-activityBar-border: #2c2c2c;
+  --vscode-activityBarBadge-background: #007acc;
+  --vscode-activityBarBadge-foreground: #ffffff;
+  --vscode-statusBar-background: #007acc;
+  --vscode-statusBar-foreground: #ffffff;
+  --vscode-statusBar-border: #007acc;
+  --vscode-titleBar-activeBackground: #dddddd;
+  --vscode-titleBar-activeForeground: #333333;
+  --vscode-titleBar-border: #cccccc;
+  --vscode-tab-activeBackground: #ffffff;
+  --vscode-tab-activeForeground: #333333;
+  --vscode-tab-inactiveBackground: #ececec;
+  --vscode-tab-inactiveForeground: #6e6e6e;
+  --vscode-tab-border: #e7e7e7;
+  --vscode-editorGroupHeader-tabsBackground: #f3f3f3;
+  --vscode-panel-background: #ffffff;
+  --vscode-panel-border: #e5e5e5;
+  --vscode-panelTitle-activeBorder: #333333;
+  --vscode-panelTitle-activeForeground: #333333;
+  --vscode-panelTitle-inactiveForeground: #6e6e6e;
+  --vscode-input-background: #ffffff;
+  --vscode-input-foreground: #333333;
+  --vscode-input-border: #cecece;
+  --vscode-input-placeholderForeground: #767676;
+  --vscode-focusBorder: #0078d4;
+  --vscode-button-background: #0078d4;
+  --vscode-button-foreground: #ffffff;
+  --vscode-button-hoverBackground: #106ebe;
+  --vscode-button-secondaryBackground: #e1e1e1;
+  --vscode-button-secondaryForeground: #333333;
+  --vscode-button-secondaryHoverBackground: #d4d4d4;
+  --vscode-list-hoverBackground: #e8e8e8;
+  --vscode-list-activeSelectionBackground: #c8ddf1;
+  --vscode-list-activeSelectionForeground: #333333;
+  --vscode-list-inactiveSelectionBackground: #e4e6f1;
+  --vscode-list-focusOutline: #0078d4;
+  --vscode-badge-background: #c4c4c4;
+  --vscode-badge-foreground: #333333;
+  --vscode-descriptionForeground: #717171;
+  --vscode-errorForeground: #d32f2f;
+  --vscode-notificationsInfoIcon-foreground: #1976d2;
+  --vscode-notificationsWarningIcon-foreground: #bf8803;
+  --vscode-notificationsErrorIcon-foreground: #d32f2f;
+  --vscode-testing-iconPassed: #388e3c;
+  --vscode-terminal-ansiGreen: #14843b;
+  --vscode-terminal-ansiYellow: #b5a000;
+  --vscode-scrollbarSlider-background: rgba(100, 100, 100, 0.3);
+  --vscode-scrollbarSlider-hoverBackground: rgba(100, 100, 100, 0.5);
+  --vscode-scrollbarSlider-activeBackground: rgba(0, 0, 0, 0.4);
+  --vscode-dropdown-background: #ffffff;
+  --vscode-dropdown-foreground: #333333;
+  --vscode-dropdown-border: #cecece;
+  --vscode-checkbox-background: #ffffff;
+  --vscode-checkbox-border: #cecece;
+  --vscode-checkbox-foreground: #333333;
+  --vscode-settings-headerForeground: #333333;
+  --vscode-settings-modifiedItemIndicator: #0c7d9d;
+  --vscode-textLink-foreground: #006ab1;
+}
+
+[data-theme="light"] .inline-action-btn:hover {
+  background: rgba(0, 0, 0, 0.07);
+}
+
+[data-theme="light"] .icon-button:hover {
+  background: rgba(0, 0, 0, 0.07);
+}
+
+[data-theme="light"] .tab-close:hover {
+  background: rgba(0, 0, 0, 0.07);
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
     Ubuntu, Cantarell, sans-serif;
@@ -2177,4 +2261,130 @@ kbd {
 .capture-template-chip:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* === Export Dropdown === */
+
+.export-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  z-index: 1000;
+  min-width: 150px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.export-dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  color: var(--vscode-editor-foreground);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.export-dropdown-item:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
+.export-dropdown-item:first-child {
+  border-radius: 4px 4px 0 0;
+}
+
+.export-dropdown-item:last-child {
+  border-radius: 0 0 4px 4px;
+}
+
+
+/* === Auto-Suggested Project Toast === */
+.auto-suggest-toast {
+  background: var(--vscode-sideBar-background);
+  border: 1px solid var(--vscode-notificationsWarningIcon-foreground);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  animation: fadeIn 0.2s ease;
+}
+
+.auto-suggest-toast-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--vscode-notificationsWarningIcon-foreground);
+}
+
+.auto-suggest-toast-header span {
+  flex: 1;
+}
+
+.auto-suggest-toast-close {
+  background: none;
+  border: none;
+  color: var(--vscode-descriptionForeground);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+}
+
+.auto-suggest-toast-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--vscode-editor-foreground);
+}
+
+.auto-suggest-toast-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+
+/* === Theme Toggle === */
+.theme-toggle {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.theme-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--vscode-panel-border);
+  background: var(--vscode-input-background);
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.theme-toggle-btn:hover {
+  border-color: var(--vscode-focusBorder);
+  color: var(--vscode-editor-foreground);
+}
+
+.theme-toggle-btn.active {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border-color: var(--vscode-button-background);
+}
+
+.theme-toggle-btn.active:hover {
+  background: var(--vscode-button-hoverBackground);
+  border-color: var(--vscode-button-hoverBackground);
 }

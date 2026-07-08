@@ -1,9 +1,10 @@
-import React, { useState } from 'react'
-import { ArrowLeft, List, LayoutGrid, Sparkles, X } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
+import { ArrowLeft, List, LayoutGrid, Sparkles, X, Download } from 'lucide-react'
 import { EntryList } from './EntryList'
 import { KanbanBoard } from './KanbanBoard'
 
 type ProjectTab = 'entries' | 'kanban'
+type ExportFormat = 'markdown' | 'pdf'
 
 interface ProjectViewProps {
   projectId: string
@@ -15,6 +16,21 @@ export function ProjectView({ projectId, projectName, onBack }: ProjectViewProps
   const [activeTab, setActiveTab] = useState<ProjectTab>('entries')
   const [summary, setSummary] = useState<string | null>(null)
   const [isLoadingSummary, setIsLoadingSummary] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+  const [showExportMenu, setShowExportMenu] = useState(false)
+  const exportMenuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setShowExportMenu(false)
+      }
+    }
+    if (showExportMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showExportMenu])
 
   const handleGenerateSummary = async () => {
     setIsLoadingSummary(true)
@@ -25,6 +41,18 @@ export function ProjectView({ projectId, projectName, onBack }: ProjectViewProps
       console.error('Failed to generate project summary:', error)
     } finally {
       setIsLoadingSummary(false)
+    }
+  }
+
+  const handleExport = async (format: ExportFormat) => {
+    setShowExportMenu(false)
+    setIsExporting(true)
+    try {
+      await window.electronAPI.exportProject(projectId, format)
+    } catch (error) {
+      console.error('Failed to export project:', error)
+    } finally {
+      setIsExporting(false)
     }
   }
 
@@ -51,6 +79,26 @@ export function ProjectView({ projectId, projectName, onBack }: ProjectViewProps
             <Sparkles size={14} />
             {isLoadingSummary ? 'Gerando...' : 'Me atualiza'}
           </button>
+          <div ref={exportMenuRef} style={{ position: 'relative', marginLeft: 8 }}>
+            <button
+              className="vscode-button"
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              disabled={isExporting}
+            >
+              <Download size={14} />
+              {isExporting ? 'Exportando...' : 'Exportar'}
+            </button>
+            {showExportMenu && (
+              <div className="export-dropdown">
+                <button className="export-dropdown-item" onClick={() => handleExport('markdown')}>
+                  Markdown (.md)
+                </button>
+                <button className="export-dropdown-item" onClick={() => handleExport('pdf')}>
+                  PDF (.pdf)
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="project-view-tabs">

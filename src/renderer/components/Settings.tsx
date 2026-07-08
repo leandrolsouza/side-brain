@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { CheckCircle2 } from 'lucide-react'
+import { CheckCircle2, Sun, Moon } from 'lucide-react'
+import type { Theme } from '../App'
+
+interface SettingsProps {
+  theme: Theme
+  onThemeChange: (theme: Theme) => void
+}
 
 interface AppSettings {
   awsRegion: string
@@ -30,7 +36,7 @@ const AWS_REGIONS = [
   'sa-east-1',
 ]
 
-export function Settings() {
+export function Settings({ theme, onThemeChange }: SettingsProps) {
   const [settings, setSettings] = useState<AppSettings>({
     awsRegion: 'us-east-1',
     bedrockApiKey: '',
@@ -138,6 +144,30 @@ export function Settings() {
           </label>
           <div className="settings-item-description" style={{ marginTop: 4, marginLeft: 24 }}>
             Aprovar categorização da IA antes de salvar definitivamente.
+          </div>
+        </div>
+
+        {/* Theme toggle */}
+        <div className="settings-item">
+          <div className="settings-item-label">Tema</div>
+          <div className="settings-item-description">
+            Alternar entre tema escuro e claro.
+          </div>
+          <div className="theme-toggle">
+            <button
+              className={`theme-toggle-btn ${theme === 'dark' ? 'active' : ''}`}
+              onClick={() => onThemeChange('dark')}
+            >
+              <Moon size={14} />
+              Escuro
+            </button>
+            <button
+              className={`theme-toggle-btn ${theme === 'light' ? 'active' : ''}`}
+              onClick={() => onThemeChange('light')}
+            >
+              <Sun size={14} />
+              Claro
+            </button>
           </div>
         </div>
       </div>

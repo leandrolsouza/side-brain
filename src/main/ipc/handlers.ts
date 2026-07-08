@@ -1,13 +1,16 @@
 import { ipcMain } from 'electron'
 import { EntryService } from '../services/entry-service'
 import { DigestService } from '../services/digest-service'
+import { ExportService } from '../services/export-service'
 import { ProjectRepository } from '../database/repositories/project-repository'
 import { TaskRepository } from '../database/repositories/task-repository'
 import { SettingsRepository } from '../database/repositories/settings-repository'
+import type { ExportFormat } from '../services/export-service'
 
 export function registerIpcHandlers(): void {
   const entryService = new EntryService()
   const digestService = new DigestService()
+  const exportService = new ExportService()
   const projectRepo = new ProjectRepository()
   const taskRepo = new TaskRepository()
   const settingsRepo = new SettingsRepository()
@@ -113,5 +116,10 @@ export function registerIpcHandlers(): void {
   // Daily Digest handler
   ipcMain.handle('digest:generate', async () => {
     return digestService.generateDailyDigest()
+  })
+
+  // Export handler
+  ipcMain.handle('export:project', async (_event, projectId: string, format: ExportFormat) => {
+    return exportService.exportProject(projectId, format)
   })
 }

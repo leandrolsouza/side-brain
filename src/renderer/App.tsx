@@ -11,6 +11,7 @@ import { GlobalSearch } from './components/GlobalSearch'
 import { DailyDigest } from './components/DailyDigest'
 
 export type View = 'dashboard' | 'capture' | 'projects' | 'entries' | 'review' | 'settings'
+export type Theme = 'dark' | 'light'
 
 export function App() {
   const [currentView, setCurrentView] = useState<View>('dashboard')
@@ -19,6 +20,15 @@ export function App() {
   const [projectsRefreshKey, setProjectsRefreshKey] = useState(0)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [showDigest, setShowDigest] = useState(false)
+  const [theme, setTheme] = useState<Theme>(() => {
+    return (localStorage.getItem('app-theme') as Theme) || 'dark'
+  })
+
+  // Apply theme to document
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    localStorage.setItem('app-theme', theme)
+  }, [theme])
 
   // Show Daily Digest on app start
   useEffect(() => {
@@ -30,12 +40,33 @@ export function App() {
     }
   }, [])
 
-  // Ctrl+K global shortcut
+  // Global keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+K → global search
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault()
         setIsSearchOpen(true)
+        return
+      }
+      // Ctrl+N → nova captura
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault()
+        setCurrentView('capture')
+        return
+      }
+      // Ctrl+1/2/3/4 → navegar entre views
+      if ((e.ctrlKey || e.metaKey) && e.key >= '1' && e.key <= '4') {
+        e.preventDefault()
+        const viewMap: Record<string, View> = {
+          '1': 'dashboard',
+          '2': 'capture',
+          '3': 'projects',
+          '4': 'review',
+        }
+        const view = viewMap[e.key]
+        if (view) setCurrentView(view)
+        return
       }
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -86,7 +117,7 @@ export function App() {
       case 'review':
         return <ReviewInbox />
       case 'settings':
-        return <Settings />
+        return <Settings theme={theme} onThemeChange={setTheme} />
     }
   }
 

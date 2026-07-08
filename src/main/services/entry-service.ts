@@ -12,7 +12,7 @@ export class EntryService {
   private settingsRepo = new SettingsRepository()
   private aiService = new AIService()
 
-  async createEntry(rawText: string): Promise<Entry> {
+  async createEntry(rawText: string): Promise<Entry & { autoSuggestedProject?: { id: string; name: string } }> {
     const settings = this.settingsRepo.get()
     const projects = this.projectRepo.getAll()
 
@@ -21,6 +21,7 @@ export class EntryService {
 
     // Resolve project
     let projectId: string
+    let autoSuggestedProject: { id: string; name: string } | undefined
 
     if (result.project.id) {
       // AI matched an existing project
@@ -37,6 +38,7 @@ export class EntryService {
           true // isAutoSuggested
         )
         projectId = newProject.id
+        autoSuggestedProject = { id: newProject.id, name: newProject.name }
       }
     } else {
       // Fallback: create "Sem Projeto"
@@ -76,7 +78,7 @@ export class EntryService {
       }
     }
 
-    return entry
+    return { ...entry, autoSuggestedProject }
   }
 
   getEntries(projectId?: string): Entry[] {

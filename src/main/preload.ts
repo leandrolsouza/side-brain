@@ -40,6 +40,9 @@ export interface ElectronAPI {
   // Global Search
   globalSearch: (query: string, filters?: { type?: string; projectId?: string; dateFrom?: string; dateTo?: string }) => Promise<{ entries: any[]; tasks: any[]; projects: any[] }>
 
+  // Export
+  exportProject: (projectId: string, format: 'markdown' | 'pdf') => Promise<{ success: boolean; filePath?: string }>
+
   // Events
   onFocusCaptureInput: (callback: () => void) => void
 }
@@ -106,6 +109,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Global Search
   globalSearch: (query: string, filters?: { type?: string; projectId?: string; dateFrom?: string; dateTo?: string }) =>
     ipcRenderer.invoke('search:global', query, filters),
+
+  // Export
+  exportProject: (projectId: string, format: 'markdown' | 'pdf') =>
+    ipcRenderer.invoke('export:project', projectId, format),
 
   // Events
   onFocusCaptureInput: (callback: () => void) => {
