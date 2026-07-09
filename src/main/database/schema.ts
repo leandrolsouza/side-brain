@@ -1,7 +1,9 @@
 import Database from 'better-sqlite3'
 import path from 'path'
 import { app } from 'electron'
+import { v4 as uuidv4 } from 'uuid'
 import { getConfigService } from '../services/config-service'
+import { DEFAULT_ENTRY_TYPES, DEFAULT_ACTION_STATUSES, DEFAULT_CAPTURE_TEMPLATES } from '../../shared/types'
 
 let db: Database.Database | null = null
 
@@ -65,6 +67,39 @@ function runMigrations(database: Database.Database): void {
   const hasAssignee = taskColsForAssignee.some((col) => col.name === 'assignee')
   if (!hasAssignee) {
     database.exec(`ALTER TABLE tasks ADD COLUMN assignee TEXT`)
+  }
+
+  // Seed custom_entry_types if empty
+  const entryTypeCount = database.prepare('SELECT COUNT(*) as count FROM custom_entry_types').get() as { count: number }
+  if (entryTypeCount.count === 0) {
+    const insertEntryType = database.prepare(
+      `INSERT INTO custom_entry_types (id, key, label, icon, color, is_default, sort_order, allows_action) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    for (const et of DEFAULT_ENTRY_TYPES) {
+      insertEntryType.run(uuidv4(), et.key, et.label, et.icon, et.color, et.isDefault ? 1 : 0, et.sortOrder, et.allowsAction ? 1 : 0)
+    }
+  }
+
+  // Seed custom_action_statuses if empty
+  const actionStatusCount = database.prepare('SELECT COUNT(*) as count FROM custom_action_statuses').get() as { count: number }
+  if (actionStatusCount.count === 0) {
+    const insertActionStatus = database.prepare(
+      `INSERT INTO custom_action_statuses (id, key, label, icon, color, is_default, is_final, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    for (const as_ of DEFAULT_ACTION_STATUSES) {
+      insertActionStatus.run(uuidv4(), as_.key, as_.label, as_.icon, as_.color, as_.isDefault ? 1 : 0, as_.isFinal ? 1 : 0, as_.sortOrder)
+    }
+  }
+
+  // Seed custom_capture_templates if empty
+  const templateCount = database.prepare('SELECT COUNT(*) as count FROM custom_capture_templates').get() as { count: number }
+  if (templateCount.count === 0) {
+    const insertTemplate = database.prepare(
+      `INSERT INTO custom_capture_templates (id, label, prefix, placeholder, icon, hint_type, is_default, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    for (const tpl of DEFAULT_CAPTURE_TEMPLATES) {
+      insertTemplate.run(uuidv4(), tpl.label, tpl.prefix, tpl.placeholder, tpl.icon, tpl.hintType, tpl.isDefault ? 1 : 0, tpl.sortOrder)
+    }
   }
 }
 
@@ -181,6 +216,39 @@ function initializeSchema(database: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(read);
     CREATE INDEX IF NOT EXISTS idx_notifications_dismissed ON notifications(dismissed);
     CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at);
+
+    CREATE TABLE IF NOT EXISTS custom_entry_types (
+      id TEXT PRIMARY KEY,
+      key TEXT NOT NULL UNIQUE,
+      label TEXT NOT NULL,
+      icon TEXT NOT NULL DEFAULT 'Circle',
+      color TEXT NOT NULL DEFAULT 'neutral',
+      is_default INTEGER NOT NULL DEFAULT 0,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      allows_action INTEGER NOT NULL DEFAULT 1
+    );
+
+    CREATE TABLE IF NOT EXISTS custom_action_statuses (
+      id TEXT PRIMARY KEY,
+      key TEXT NOT NULL UNIQUE,
+      label TEXT NOT NULL,
+      icon TEXT NOT NULL DEFAULT 'Circle',
+      color TEXT NOT NULL DEFAULT 'neutral',
+      is_default INTEGER NOT NULL DEFAULT 0,
+      is_final INTEGER NOT NULL DEFAULT 0,
+      sort_order INTEGER NOT NULL DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS custom_capture_templates (
+      id TEXT PRIMARY KEY,
+      label TEXT NOT NULL,
+      prefix TEXT NOT NULL DEFAULT '',
+      placeholder TEXT NOT NULL DEFAULT '',
+      icon TEXT NOT NULL DEFAULT 'PenLine',
+      hint_type TEXT NOT NULL DEFAULT 'information',
+      is_default INTEGER NOT NULL DEFAULT 0,
+      sort_order INTEGER NOT NULL DEFAULT 0
+    );
   `)
 }
 

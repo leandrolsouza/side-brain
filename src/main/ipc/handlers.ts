@@ -6,6 +6,7 @@ import { MeetingService } from '../services/meeting-service'
 import { BackupService } from '../services/backup-service'
 import { SmartChatService } from '../services/smart-chat-service'
 import { InsightsService } from '../services/insights-service'
+import { ReportsService } from '../services/reports-service'
 import { getConfigService } from '../services/config-service'
 import { getErrorService } from '../services/error-service'
 import { ProjectRepository } from '../database/repositories/project-repository'
@@ -13,8 +14,9 @@ import { TaskRepository } from '../database/repositories/task-repository'
 import { SettingsRepository } from '../database/repositories/settings-repository'
 import { AIUsageRepository } from '../database/repositories/ai-usage-repository'
 import { NotificationRepository } from '../database/repositories/notification-repository'
+import { CustomFieldsRepository } from '../database/repositories/custom-fields-repository'
 import type { ExportFormat } from '../services/export-service'
-import type { EntryConfirmRequest, ErrorCategory, ErrorSeverity } from '../../shared/types'
+import type { EntryConfirmRequest, ErrorCategory, ErrorSeverity, ReportPeriod, CustomEntryType, CustomActionStatus, CustomCaptureTemplate } from '../../shared/types'
 
 /**
  * Wrapper que captura erros de qualquer IPC handler e loga na Central de Erros.
@@ -82,6 +84,7 @@ export function registerIpcHandlers(): void {
   const backupService = new BackupService()
   const smartChatService = new SmartChatService()
   const insightsService = new InsightsService()
+  const reportsService = new ReportsService()
   const projectRepo = new ProjectRepository()
   const taskRepo = new TaskRepository()
   const settingsRepo = new SettingsRepository()
@@ -349,6 +352,11 @@ export function registerIpcHandlers(): void {
     return insightsService.generateInsights()
   })
 
+  // Reports handlers
+  safeHandle('reports:getData', async (_event, period: ReportPeriod) => {
+    return reportsService.getReportsData(period)
+  })
+
   // Notification handlers
   safeHandle('notification:getAll', async () => {
     return notificationRepo.getAll()
@@ -372,6 +380,72 @@ export function registerIpcHandlers(): void {
 
   safeHandle('notification:dismissAll', async () => {
     return notificationRepo.dismissAll()
+  })
+
+  // Custom Fields handlers (entry types, action statuses, capture templates)
+  const customFieldsRepo = new CustomFieldsRepository()
+
+  // Entry Types
+  safeHandle('custom-fields:getEntryTypes', async () => {
+    return customFieldsRepo.getEntryTypes()
+  })
+
+  safeHandle('custom-fields:createEntryType', async (_event, data: Omit<CustomEntryType, 'id'>) => {
+    return customFieldsRepo.createEntryType(data)
+  })
+
+  safeHandle('custom-fields:updateEntryType', async (_event, id: string, updates: Partial<Omit<CustomEntryType, 'id' | 'isDefault'>>) => {
+    return customFieldsRepo.updateEntryType(id, updates)
+  })
+
+  safeHandle('custom-fields:deleteEntryType', async (_event, id: string) => {
+    return customFieldsRepo.deleteEntryType(id)
+  })
+
+  safeHandle('custom-fields:reorderEntryTypes', async (_event, orderedIds: string[]) => {
+    return customFieldsRepo.reorderEntryTypes(orderedIds)
+  })
+
+  // Action Statuses
+  safeHandle('custom-fields:getActionStatuses', async () => {
+    return customFieldsRepo.getActionStatuses()
+  })
+
+  safeHandle('custom-fields:createActionStatus', async (_event, data: Omit<CustomActionStatus, 'id'>) => {
+    return customFieldsRepo.createActionStatus(data)
+  })
+
+  safeHandle('custom-fields:updateActionStatus', async (_event, id: string, updates: Partial<Omit<CustomActionStatus, 'id' | 'isDefault'>>) => {
+    return customFieldsRepo.updateActionStatus(id, updates)
+  })
+
+  safeHandle('custom-fields:deleteActionStatus', async (_event, id: string) => {
+    return customFieldsRepo.deleteActionStatus(id)
+  })
+
+  safeHandle('custom-fields:reorderActionStatuses', async (_event, orderedIds: string[]) => {
+    return customFieldsRepo.reorderActionStatuses(orderedIds)
+  })
+
+  // Capture Templates
+  safeHandle('custom-fields:getCaptureTemplates', async () => {
+    return customFieldsRepo.getCaptureTemplates()
+  })
+
+  safeHandle('custom-fields:createCaptureTemplate', async (_event, data: Omit<CustomCaptureTemplate, 'id'>) => {
+    return customFieldsRepo.createCaptureTemplate(data)
+  })
+
+  safeHandle('custom-fields:updateCaptureTemplate', async (_event, id: string, updates: Partial<Omit<CustomCaptureTemplate, 'id' | 'isDefault'>>) => {
+    return customFieldsRepo.updateCaptureTemplate(id, updates)
+  })
+
+  safeHandle('custom-fields:deleteCaptureTemplate', async (_event, id: string) => {
+    return customFieldsRepo.deleteCaptureTemplate(id)
+  })
+
+  safeHandle('custom-fields:reorderCaptureTemplates', async (_event, orderedIds: string[]) => {
+    return customFieldsRepo.reorderCaptureTemplates(orderedIds)
   })
 
   // Theme handler — sincroniza controles nativos (select dropdown) com o tema do app

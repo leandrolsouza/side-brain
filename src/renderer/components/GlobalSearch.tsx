@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Entry, Task, Project, EntryType } from '../../shared/types'
+import { Entry, Task, Project } from '../../shared/types'
 
 interface GlobalSearchProps {
   isOpen: boolean
@@ -22,14 +22,6 @@ interface SearchResults {
   projects: Project[]
 }
 
-const ENTRY_TYPE_LABELS: Record<EntryType, string> = {
-  information: 'Informação',
-  decision: 'Decisão',
-  request: 'Solicitação',
-  idea: 'Ideia',
-  blocker: 'Bloqueio',
-  update: 'Atualização',
-}
 
 export function GlobalSearch({ isOpen, onClose, onNavigateToProject }: GlobalSearchProps) {
   const [query, setQuery] = useState('')
@@ -40,15 +32,19 @@ export function GlobalSearch({ isOpen, onClose, onNavigateToProject }: GlobalSea
   const [isLoading, setIsLoading] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [availableProjects, setAvailableProjects] = useState<Project[]>([])
+  const [entryTypeLabels, setEntryTypeLabels] = useState<Record<string, string>>({})
 
   const inputRef = useRef<HTMLInputElement>(null)
   const resultsRef = useRef<HTMLDivElement>(null)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Load available projects for filter dropdown
+  // Load available projects and entry type labels for filter dropdown
   useEffect(() => {
     if (isOpen) {
       window.electronAPI.getProjects().then(setAvailableProjects)
+      window.electronAPI.getEntryTypes().then((types) => {
+        setEntryTypeLabels(Object.fromEntries(types.map(t => [t.key, t.label])))
+      })
     }
   }, [isOpen])
 
@@ -198,7 +194,7 @@ export function GlobalSearch({ isOpen, onClose, onNavigateToProject }: GlobalSea
       case 'entry': {
         const e = result.item as Entry
         const project = availableProjects.find((p) => p.id === e.projectId)
-        const typeName = ENTRY_TYPE_LABELS[e.type] || e.type
+        const typeName = entryTypeLabels[e.type] || e.type
         return `${typeName} · ${project?.name || ''} · ${formatDate(e.createdAt)}`
       }
       case 'task': {
@@ -257,7 +253,7 @@ export function GlobalSearch({ isOpen, onClose, onNavigateToProject }: GlobalSea
                 onChange={(e) => setFilters({ ...filters, type: e.target.value || undefined })}
               >
                 <option value="">Todos</option>
-                {Object.entries(ENTRY_TYPE_LABELS).map(([key, label]) => (
+                {Object.entries(entryTypeLabels).map(([key, label]) => (
                   <option key={key} value={key}>{label}</option>
                 ))}
               </select>

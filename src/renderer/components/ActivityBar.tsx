@@ -1,5 +1,5 @@
 import React from 'react'
-import { LayoutDashboard, PenLine, FolderOpen, Video, Settings, Sun, Moon, BarChart3, Info, MessageCircle } from 'lucide-react'
+import { LayoutDashboard, PenLine, FolderOpen, Video, Settings, Sun, Moon, BarChart3, Info, MessageCircle, SlidersHorizontal } from 'lucide-react'
 import type { View, Theme } from '../App'
 
 interface ActivityBarProps {
@@ -15,7 +15,7 @@ const activityItems: { view: View; icon: React.ReactNode; tooltip: string }[] = 
   { view: 'capture', icon: <PenLine size={24} />, tooltip: 'Captura Rápida (Ctrl+2)' },
   { view: 'projects', icon: <FolderOpen size={24} />, tooltip: 'Projetos (Ctrl+3)' },
   { view: 'meeting', icon: <Video size={24} />, tooltip: 'Nova Reunião (Ctrl+4)' },
-  { view: 'ai-usage', icon: <BarChart3 size={24} />, tooltip: 'Uso da IA (Ctrl+5)' },
+  { view: 'reports', icon: <BarChart3 size={24} />, tooltip: 'Métricas & Relatórios (Ctrl+5)' },
   { view: 'smart-chat', icon: <MessageCircle size={24} />, tooltip: 'Chat Inteligente (Ctrl+6)' },
 ]
 
@@ -50,6 +50,13 @@ export function ActivityBar({ currentView, onViewChange, theme, onThemeChange, o
           title="Sobre o SideBrain"
         >
           <Info size={22} />
+        </div>
+        <div
+          className={`activity-bar-item ${currentView === 'custom-fields' ? 'active' : ''}`}
+          onClick={() => onViewChange('custom-fields')}
+          title="Campos Personalizados"
+        >
+          <SlidersHorizontal size={22} />
         </div>
         <div
           className={`activity-bar-item ${currentView === 'settings' ? 'active' : ''}`}

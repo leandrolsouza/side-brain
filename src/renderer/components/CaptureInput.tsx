@@ -2,9 +2,12 @@ import React, { useState, useRef, useEffect, useCallback } from 'react'
 import {
   Send, CheckCircle2, Mic, MicOff, Users, Gavel, AlertTriangle,
   MessageSquare, Lightbulb, RefreshCw, Sparkles, X, Eye, Edit3,
-  FolderPlus, ChevronDown, PenLine
+  FolderPlus, ChevronDown, PenLine, Info, Clock, Minus, AlertCircle,
+  Circle, Tag, Zap, Archive, Star, Flag, Heart, Shield, Bell,
+  Bookmark, Coffee, FileText, Globe, Home, Key, Link, Lock,
+  Mail, Map, Phone, Search, Settings, Smile, Target, Truck, Wifi
 } from 'lucide-react'
-import { CAPTURE_TEMPLATES, CaptureTemplate, EntryPreviewResult, EntryType, ActionStatus } from '@shared/types'
+import { CaptureTemplate, EntryPreviewResult, CustomEntryType, CustomActionStatus } from '@shared/types'
 import { CustomSelect } from './CustomSelect'
 import { useToast } from './ToastContext'
 import type { SelectOption } from './CustomSelect'
@@ -22,28 +25,12 @@ interface ProjectOption {
 type CaptureState = 'idle' | 'processing' | 'previewing' | 'confirming'
 
 const ICON_MAP: Record<string, React.ComponentType<{ size?: number }>> = {
-  Users,
-  Gavel,
-  AlertTriangle,
-  MessageSquare,
-  Lightbulb,
-  RefreshCw,
-}
-
-const TYPE_LABELS: Record<EntryType, string> = {
-  information: 'Informação',
-  decision: 'Decisão',
-  demand: 'Demanda',
-  idea: 'Ideia',
-  blocker: 'Bloqueio',
-  update: 'Atualização',
-}
-
-const ACTION_LABELS: Record<ActionStatus, string> = {
-  none: 'Nenhuma',
-  action_needed: 'Ação necessária',
-  waiting_response: 'Aguardando resposta',
-  done: 'Concluído',
+  Users, Gavel, AlertTriangle, MessageSquare, Lightbulb, RefreshCw,
+  Info, Clock, CheckCircle2, Minus, AlertCircle, Circle, PenLine,
+  Tag, Zap, Archive, Star, Flag, Heart, Shield, Bell,
+  Bookmark, Coffee, FileText, Globe, Home, Key, Link, Lock,
+  Mail, Map, Phone, Search, Settings, Smile, Target, Truck, Wifi,
+  Send, Mic, MicOff, Sparkles, X, Eye, Edit3, FolderPlus, ChevronDown,
 }
 
 export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
@@ -59,11 +46,20 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
   const [captureState, setCaptureState] = useState<CaptureState>('idle')
   const [preview, setPreview] = useState<EntryPreviewResult | null>(null)
 
+  // Dynamic custom fields
+  const [captureTemplates, setCaptureTemplates] = useState<CaptureTemplate[]>([])
+  const [entryTypes, setEntryTypes] = useState<CustomEntryType[]>([])
+  const [actionStatuses, setActionStatuses] = useState<CustomActionStatus[]>([])
+
+  // Derived label maps
+  const TYPE_LABELS: Record<string, string> = Object.fromEntries(entryTypes.map(t => [t.key, t.label]))
+  const ACTION_LABELS: Record<string, string> = Object.fromEntries(actionStatuses.map(s => [s.key, s.label]))
+
   // Preview editable fields
   const [editedImprovedText, setEditedImprovedText] = useState('')
   const [editedProjectId, setEditedProjectId] = useState<string>('')
-  const [editedType, setEditedType] = useState<EntryType>('information')
-  const [editedAction, setEditedAction] = useState<ActionStatus>('none')
+  const [editedType, setEditedType] = useState<string>('information')
+  const [editedAction, setEditedAction] = useState<string>('none')
   const [newProjectName, setNewProjectName] = useState('')
   const [isCreatingProject, setIsCreatingProject] = useState(false)
   const [includeSuggestedTask, setIncludeSuggestedTask] = useState(true)
@@ -77,14 +73,26 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
 
   const speechSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window
 
-  // Load projects on mount
+  // Load projects and custom fields on mount
   useEffect(() => {
     loadProjects()
+    loadCustomFields()
   }, [])
 
   const loadProjects = async () => {
     const result = await window.electronAPI.getProjects()
     setProjects(result)
+  }
+
+  const loadCustomFields = async () => {
+    const [templates, types, statuses] = await Promise.all([
+      window.electronAPI.getCaptureTemplates(),
+      window.electronAPI.getEntryTypes(),
+      window.electronAPI.getActionStatuses(),
+    ])
+    setCaptureTemplates(templates)
+    setEntryTypes(types)
+    setActionStatuses(statuses)
   }
 
   const handleTemplateSelect = useCallback((template: CaptureTemplate) => {
@@ -276,7 +284,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
         <div className="capture-templates">
           <span className="capture-templates-label">Templates:</span>
           <div className="capture-templates-list">
-            {CAPTURE_TEMPLATES.map((template) => {
+            {captureTemplates.map((template) => {
               const Icon = ICON_MAP[template.icon]
               return (
                 <button
@@ -475,7 +483,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
               <CustomSelect
                 options={Object.entries(TYPE_LABELS).map(([value, label]) => ({ value, label }))}
                 value={editedType}
-                onChange={(val) => setEditedType(val as EntryType)}
+                onChange={(val) => setEditedType(val)}
                 className="capture-preview-select-sm"
               />
             </div>
@@ -484,7 +492,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
               <CustomSelect
                 options={Object.entries(ACTION_LABELS).map(([value, label]) => ({ value, label }))}
                 value={editedAction}
-                onChange={(val) => setEditedAction(val as ActionStatus)}
+                onChange={(val) => setEditedAction(val)}
                 className="capture-preview-select-sm"
               />
             </div>

@@ -18,40 +18,33 @@ interface EntryListProps {
   onBack: () => void
 }
 
-const typeLabels: Record<string, string> = {
-  information: 'Info',
-  decision: 'Decisão',
-  demand: 'Demanda',
-  idea: 'Ideia',
-  blocker: 'Bloqueio',
-  update: 'Atualização',
-}
-
-const typeBadgeVariant: Record<string, string> = {
-  information: 'info',
-  decision: 'warning',
-  request: 'neutral',
-  idea: 'success',
-  blocker: 'error',
-  update: 'info',
-}
-
-const actionLabels: Record<string, string> = {
-  none: 'Sem ação',
-  action_needed: 'Ação necessária',
-  waiting_response: 'Aguardando resposta',
-  done: 'Concluído',
-}
-
 export function EntryList({ projectId, onBack }: EntryListProps) {
   const [entries, setEntries] = useState<Entry[]>([])
   const [summary, setSummary] = useState<string | null>(null)
   const [isLoadingSummary, setIsLoadingSummary] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
+  // Dynamic labels from custom fields
+  const [typeLabels, setTypeLabels] = useState<Record<string, string>>({})
+  const [typeBadgeVariant, setTypeBadgeVariant] = useState<Record<string, string>>({})
+  const [actionLabels, setActionLabels] = useState<Record<string, string>>({})
+  const [typesAllowsAction, setTypesAllowsAction] = useState<Record<string, boolean>>({})
+
   useEffect(() => {
     loadEntries()
+    loadCustomFields()
   }, [projectId])
+
+  const loadCustomFields = async () => {
+    const [types, statuses] = await Promise.all([
+      window.electronAPI.getEntryTypes(),
+      window.electronAPI.getActionStatuses(),
+    ])
+    setTypeLabels(Object.fromEntries(types.map(t => [t.key, t.label])))
+    setTypeBadgeVariant(Object.fromEntries(types.map(t => [t.key, t.color])))
+    setActionLabels(Object.fromEntries(statuses.map(s => [s.key, s.label])))
+    setTypesAllowsAction(Object.fromEntries(types.map(t => [t.key, t.allowsAction])))
+  }
 
   const loadEntries = async () => {
     const data = await window.electronAPI.getEntries(projectId)
@@ -145,7 +138,7 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
                   </span>
                 </div>
                 <div className="flex-row">
-                  {entry.type !== 'information' && entry.type !== 'update' && (
+                  {typesAllowsAction[entry.type] !== false && (
                     <select
                       className="vscode-select"
                       value={entry.action}

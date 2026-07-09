@@ -1,14 +1,28 @@
-import { AICategorizationResult, AIOperationType, AIProvider, AppSettings, MeetingProcessResult, Project } from '../../shared/types'
+import { AICategorizationResult, AIOperationType, AIProvider, AppSettings, MeetingProcessResult, Project, CustomEntryType, CustomActionStatus } from '../../shared/types'
 import { AIUsageRepository } from '../database/repositories/ai-usage-repository'
 import { SettingsRepository } from '../database/repositories/settings-repository'
+import { CustomFieldsRepository } from '../database/repositories/custom-fields-repository'
 import { getErrorService } from './error-service'
 
-const CATEGORIZATION_PROMPT = `Você é um assistente que organiza notas de trabalho.
+function buildCategorizationPrompt(entryTypes: CustomEntryType[], actionStatuses: CustomActionStatus[]): string {
+  const typeKeys = entryTypes.map(t => t.key).join(', ')
+  const actionKeys = actionStatuses.filter(s => s.key !== 'done').map(s => s.key).join(', ')
+  const noActionTypes = entryTypes.filter(t => !t.allowsAction).map(t => t.key)
+  const actionTypes = entryTypes.filter(t => t.allowsAction).map(t => t.key)
+
+  const noActionRules = noActionTypes.length > 0
+    ? noActionTypes.map(t => `- Se type for "${t}", action DEVE ser "none"`).join('\n')
+    : ''
+  const actionRules = actionTypes.length > 0
+    ? `- Apenas ${actionTypes.map(t => `"${t}"`).join(', ')} podem ter action diferente de "none"`
+    : ''
+
+  return `Você é um assistente que organiza notas de trabalho.
 Dada uma frase escrita rapidamente por alguém durante o dia de trabalho, você deve:
 
 1. Identificar a qual projeto pertence (da lista fornecida, ou sugerir um novo)
-2. Classificar o tipo: information, decision, demand, idea, blocker, update
-3. Classificar a ação necessária: none, action_needed, waiting_response
+2. Classificar o tipo: ${typeKeys}
+3. Classificar a ação necessária: ${actionKeys}
 4. Reescrever o texto de forma mais clara e objetiva (mantendo a essência)
 5. Se houver uma ação implícita (algo que precisa ser feito, respondido, ou acompanhado), sugerir uma TAREFA concisa para um kanban
 
@@ -35,19 +49,20 @@ Para o campo "suggestedTask", use null se não houver ação necessária. Se hou
 }
 
 Regras para action:
-- Se type for "information", action DEVE ser "none" (informações são passivas, não geram ação)
-- Se type for "update", action DEVE ser "none" (atualizações são registros do que já aconteceu)
-- Apenas "decision", "demand", "idea" e "blocker" podem ter action diferente de "none"
+${noActionRules}
+${actionRules}
 
 Regras para sugerir tasks:
 - Só sugira task se action for "action_needed" ou "waiting_response"
 - O título deve ser curto e começar com verbo no infinitivo
 - Se o texto mencionar prazo, inclua no description
 - NÃO crie task para informações passivas ou decisões já tomadas`
+}
 
 export class AIService {
   private aiUsageRepo = new AIUsageRepository()
   private settingsRepo = new SettingsRepository()
+  private customFieldsRepo = new CustomFieldsRepository()
 
   private getBaseUrl(settings: AppSettings): string {
     return `https://bedrock-runtime.${settings.awsRegion}.amazonaws.com`
@@ -62,6 +77,11 @@ export class AIService {
       .map((p) => `- ${p.id}: ${p.name}${p.description ? ` (${p.description})` : ''}`)
       .join('\n')
 
+    // Build dynamic prompt from custom fields
+    const entryTypes = this.customFieldsRepo.getEntryTypes()
+    const actionStatuses = this.customFieldsRepo.getActionStatuses()
+    const categorizationPrompt = buildCategorizationPrompt(entryTypes, actionStatuses)
+
     const userMessage = `Projetos existentes:
 ${projectList || '(nenhum projeto cadastrado ainda)'}
 
@@ -69,7 +89,7 @@ Texto para categorizar:
 "${rawText}"`
 
     const responseText = await this.invokeConverse(
-      CATEGORIZATION_PROMPT,
+      categorizationPrompt,
       userMessage,
       settings,
       'categorization'

@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { EntryConfirmRequest, EntryPreviewResult, AIUsageSummary, AIUsageDailyPoint, AIUsageRecord, Workspace, SmartChatMessage, ProactiveInsight, AppNotification, ErrorLog, ErrorCategory, ErrorSeverity } from '../shared/types'
+import type { EntryConfirmRequest, EntryPreviewResult, AIUsageSummary, AIUsageDailyPoint, AIUsageRecord, Workspace, SmartChatMessage, ProactiveInsight, AppNotification, ErrorLog, ErrorCategory, ErrorSeverity, ReportPeriod, ReportsData, CustomEntryType, CustomActionStatus, CustomCaptureTemplate } from '../shared/types'
 
 export interface ElectronAPI {
   // Workspaces
@@ -91,6 +91,9 @@ export interface ElectronAPI {
   // Proactive Insights
   generateInsights: () => Promise<ProactiveInsight[]>
 
+  // Reports
+  getReportsData: (period: ReportPeriod) => Promise<ReportsData>
+
   // Notifications
   getNotifications: () => Promise<AppNotification[]>
   getUnreadNotificationCount: () => Promise<number>
@@ -108,6 +111,23 @@ export interface ElectronAPI {
   deleteError: (id: string) => Promise<void>
   clearAllErrors: () => Promise<void>
   onErrorCountChanged: (callback: (count: number) => void) => void
+
+  // Custom Fields (entry types, action statuses, capture templates)
+  getEntryTypes: () => Promise<CustomEntryType[]>
+  createEntryType: (data: Omit<CustomEntryType, 'id'>) => Promise<CustomEntryType>
+  updateEntryType: (id: string, updates: Partial<Omit<CustomEntryType, 'id' | 'isDefault'>>) => Promise<CustomEntryType | null>
+  deleteEntryType: (id: string) => Promise<boolean>
+  reorderEntryTypes: (orderedIds: string[]) => Promise<void>
+  getActionStatuses: () => Promise<CustomActionStatus[]>
+  createActionStatus: (data: Omit<CustomActionStatus, 'id'>) => Promise<CustomActionStatus>
+  updateActionStatus: (id: string, updates: Partial<Omit<CustomActionStatus, 'id' | 'isDefault'>>) => Promise<CustomActionStatus | null>
+  deleteActionStatus: (id: string) => Promise<boolean>
+  reorderActionStatuses: (orderedIds: string[]) => Promise<void>
+  getCaptureTemplates: () => Promise<CustomCaptureTemplate[]>
+  createCaptureTemplate: (data: Omit<CustomCaptureTemplate, 'id'>) => Promise<CustomCaptureTemplate>
+  updateCaptureTemplate: (id: string, updates: Partial<Omit<CustomCaptureTemplate, 'id' | 'isDefault'>>) => Promise<CustomCaptureTemplate | null>
+  deleteCaptureTemplate: (id: string) => Promise<boolean>
+  reorderCaptureTemplates: (orderedIds: string[]) => Promise<void>
 
   // Events
   onFocusCaptureInput: (callback: () => void) => void
@@ -265,6 +285,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   generateInsights: () =>
     ipcRenderer.invoke('insights:generate'),
 
+  // Reports
+  getReportsData: (period: ReportPeriod) =>
+    ipcRenderer.invoke('reports:getData', period),
+
   // Notifications
   getNotifications: () =>
     ipcRenderer.invoke('notification:getAll'),
@@ -298,6 +322,38 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onErrorCountChanged: (callback: (count: number) => void) => {
     ipcRenderer.on('error-log:countChanged', (_event, count) => callback(count))
   },
+
+  // Custom Fields
+  getEntryTypes: () =>
+    ipcRenderer.invoke('custom-fields:getEntryTypes'),
+  createEntryType: (data: Omit<CustomEntryType, 'id'>) =>
+    ipcRenderer.invoke('custom-fields:createEntryType', data),
+  updateEntryType: (id: string, updates: Partial<Omit<CustomEntryType, 'id' | 'isDefault'>>) =>
+    ipcRenderer.invoke('custom-fields:updateEntryType', id, updates),
+  deleteEntryType: (id: string) =>
+    ipcRenderer.invoke('custom-fields:deleteEntryType', id),
+  reorderEntryTypes: (orderedIds: string[]) =>
+    ipcRenderer.invoke('custom-fields:reorderEntryTypes', orderedIds),
+  getActionStatuses: () =>
+    ipcRenderer.invoke('custom-fields:getActionStatuses'),
+  createActionStatus: (data: Omit<CustomActionStatus, 'id'>) =>
+    ipcRenderer.invoke('custom-fields:createActionStatus', data),
+  updateActionStatus: (id: string, updates: Partial<Omit<CustomActionStatus, 'id' | 'isDefault'>>) =>
+    ipcRenderer.invoke('custom-fields:updateActionStatus', id, updates),
+  deleteActionStatus: (id: string) =>
+    ipcRenderer.invoke('custom-fields:deleteActionStatus', id),
+  reorderActionStatuses: (orderedIds: string[]) =>
+    ipcRenderer.invoke('custom-fields:reorderActionStatuses', orderedIds),
+  getCaptureTemplates: () =>
+    ipcRenderer.invoke('custom-fields:getCaptureTemplates'),
+  createCaptureTemplate: (data: Omit<CustomCaptureTemplate, 'id'>) =>
+    ipcRenderer.invoke('custom-fields:createCaptureTemplate', data),
+  updateCaptureTemplate: (id: string, updates: Partial<Omit<CustomCaptureTemplate, 'id' | 'isDefault'>>) =>
+    ipcRenderer.invoke('custom-fields:updateCaptureTemplate', id, updates),
+  deleteCaptureTemplate: (id: string) =>
+    ipcRenderer.invoke('custom-fields:deleteCaptureTemplate', id),
+  reorderCaptureTemplates: (orderedIds: string[]) =>
+    ipcRenderer.invoke('custom-fields:reorderCaptureTemplates', orderedIds),
 
   // Events
   onFocusCaptureInput: (callback: () => void) => {

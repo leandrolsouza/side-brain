@@ -11,15 +11,16 @@ import { MeetingMode } from './components/MeetingMode'
 import { Settings } from './components/Settings'
 import { GlobalSearch } from './components/GlobalSearch'
 import { DailyDigest } from './components/DailyDigest'
-import { AIUsageDashboard } from './components/AIUsageDashboard'
+import { Reports } from './components/Reports'
 import { AboutModal } from './components/AboutModal'
 import { WorkspaceSwitcher } from './components/WorkspaceSwitcher'
 import { SmartChat } from './components/SmartChat'
 import { NotificationCenter } from './components/NotificationCenter'
 import { ErrorCenter } from './components/ErrorCenter'
 import { StatusBarErrorIndicator } from './components/StatusBarErrorIndicator'
+import { CustomFieldsSettings } from './components/CustomFieldsSettings'
 
-export type View = 'dashboard' | 'capture' | 'projects' | 'entries' | 'meeting' | 'settings' | 'ai-usage' | 'smart-chat' | 'error-center'
+export type View = 'dashboard' | 'capture' | 'projects' | 'entries' | 'meeting' | 'settings' | 'reports' | 'smart-chat' | 'error-center' | 'custom-fields'
 export type Theme = 'dark' | 'light'
 
 const MODEL_LABELS: Record<string, string> = {
@@ -140,7 +141,7 @@ export function App() {
           '2': 'capture',
           '3': 'projects',
           '4': 'meeting',
-          '5': 'ai-usage',
+          '5': 'reports',
           '6': 'smart-chat',
           '7': 'error-center',
         }
@@ -183,9 +184,10 @@ export function App() {
       case 'entries': return selectedProjectName || 'Entradas'
       case 'meeting': return 'Reunião'
       case 'settings': return 'Configurações'
-      case 'ai-usage': return 'Uso da IA'
+      case 'reports': return 'Métricas & Relatórios'
       case 'smart-chat': return 'Chat Inteligente'
       case 'error-center': return 'Central de Erros'
+      case 'custom-fields': return 'Campos Personalizados'
     }
   }
 
@@ -220,12 +222,14 @@ export function App() {
         }} />
       case 'settings':
         return <Settings />
-      case 'ai-usage':
-        return <AIUsageDashboard />
+      case 'reports':
+        return <Reports />
       case 'smart-chat':
         return <SmartChat />
       case 'error-center':
         return <ErrorCenter />
+      case 'custom-fields':
+        return <CustomFieldsSettings />
     }
   }
 
