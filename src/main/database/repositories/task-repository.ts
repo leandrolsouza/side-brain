@@ -7,7 +7,7 @@ export class TaskRepository {
     const db = getDatabase()
 
     let query = `
-      SELECT id, project_id as projectId, title, description, status, due_date as dueDate,
+      SELECT id, project_id as projectId, title, description, status, assignee, due_date as dueDate,
              source_entry_id as sourceEntryId, created_at as createdAt, updated_at as updatedAt
       FROM tasks
     `
@@ -25,7 +25,7 @@ export class TaskRepository {
   getByProject(projectId: string): Task[] {
     const db = getDatabase()
     return db.prepare(`
-      SELECT id, project_id as projectId, title, description, status, due_date as dueDate,
+      SELECT id, project_id as projectId, title, description, status, assignee, due_date as dueDate,
              source_entry_id as sourceEntryId, created_at as createdAt, updated_at as updatedAt
       FROM tasks WHERE project_id = ?
       ORDER BY created_at ASC
@@ -35,7 +35,7 @@ export class TaskRepository {
   getById(id: string): Task | null {
     const db = getDatabase()
     const row = db.prepare(`
-      SELECT id, project_id as projectId, title, description, status, due_date as dueDate,
+      SELECT id, project_id as projectId, title, description, status, assignee, due_date as dueDate,
              source_entry_id as sourceEntryId, created_at as createdAt, updated_at as updatedAt
       FROM tasks WHERE id = ?
     `).get(id) as Task | undefined
@@ -47,7 +47,7 @@ export class TaskRepository {
     const db = getDatabase()
     // Simple similarity: check if a task with very similar title exists and is not done
     const row = db.prepare(`
-      SELECT id, project_id as projectId, title, description, status, due_date as dueDate,
+      SELECT id, project_id as projectId, title, description, status, assignee, due_date as dueDate,
              source_entry_id as sourceEntryId, created_at as createdAt, updated_at as updatedAt
       FROM tasks
       WHERE project_id = ? AND status != 'done' AND LOWER(title) = LOWER(?)
@@ -61,6 +61,7 @@ export class TaskRepository {
     title: string
     description?: string
     status?: TaskStatus
+    assignee?: string | null
     dueDate?: string | null
     sourceEntryId?: string
   }): Task {
@@ -68,12 +69,13 @@ export class TaskRepository {
     const id = uuid()
     const now = new Date().toISOString()
     const status = data.status || 'todo'
+    const assignee = data.assignee || null
     const dueDate = data.dueDate || null
 
     db.prepare(`
-      INSERT INTO tasks (id, project_id, title, description, status, due_date, source_entry_id, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, data.projectId, data.title, data.description || null, status, dueDate, data.sourceEntryId || null, now, now)
+      INSERT INTO tasks (id, project_id, title, description, status, assignee, due_date, source_entry_id, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, data.projectId, data.title, data.description || null, status, assignee, dueDate, data.sourceEntryId || null, now, now)
 
     return {
       id,
@@ -81,6 +83,7 @@ export class TaskRepository {
       title: data.title,
       description: data.description,
       status,
+      assignee,
       dueDate,
       sourceEntryId: data.sourceEntryId,
       createdAt: now,
@@ -88,7 +91,7 @@ export class TaskRepository {
     }
   }
 
-  update(id: string, updates: Partial<Pick<Task, 'title' | 'description' | 'status' | 'dueDate'>>): Task | null {
+  update(id: string, updates: Partial<Pick<Task, 'title' | 'description' | 'status' | 'assignee' | 'dueDate'>>): Task | null {
     const db = getDatabase()
     const existing = this.getById(id)
     if (!existing) return null
@@ -96,14 +99,15 @@ export class TaskRepository {
     const title = updates.title ?? existing.title
     const description = updates.description ?? existing.description
     const status = updates.status ?? existing.status
+    const assignee = updates.assignee !== undefined ? updates.assignee : existing.assignee
     const dueDate = updates.dueDate !== undefined ? updates.dueDate : existing.dueDate
     const updatedAt = new Date().toISOString()
 
     db.prepare(`
-      UPDATE tasks SET title = ?, description = ?, status = ?, due_date = ?, updated_at = ? WHERE id = ?
-    `).run(title, description || null, status, dueDate || null, updatedAt, id)
+      UPDATE tasks SET title = ?, description = ?, status = ?, assignee = ?, due_date = ?, updated_at = ? WHERE id = ?
+    `).run(title, description || null, status, assignee || null, dueDate || null, updatedAt, id)
 
-    return { ...existing, title, description, status, dueDate, updatedAt }
+    return { ...existing, title, description, status, assignee, dueDate, updatedAt }
   }
 
   search(query: string, filters?: { projectId?: string; dateFrom?: string; dateTo?: string }): Task[] {
@@ -125,7 +129,7 @@ export class TaskRepository {
     }
 
     const sql = `
-      SELECT id, project_id as projectId, title, description, status, due_date as dueDate,
+      SELECT id, project_id as projectId, title, description, status, assignee, due_date as dueDate,
              source_entry_id as sourceEntryId, created_at as createdAt, updated_at as updatedAt
       FROM tasks
       WHERE ${conditions.join(' AND ')}
@@ -149,7 +153,7 @@ export class TaskRepository {
     const endOfWeekStr = endOfWeek.toISOString().split('T')[0]
 
     return db.prepare(`
-      SELECT id, project_id as projectId, title, description, status, due_date as dueDate,
+      SELECT id, project_id as projectId, title, description, status, assignee, due_date as dueDate,
              source_entry_id as sourceEntryId, created_at as createdAt, updated_at as updatedAt
       FROM tasks
       WHERE due_date IS NOT NULL
@@ -165,7 +169,7 @@ export class TaskRepository {
     const today = new Date().toISOString().split('T')[0]
 
     return db.prepare(`
-      SELECT id, project_id as projectId, title, description, status, due_date as dueDate,
+      SELECT id, project_id as projectId, title, description, status, assignee, due_date as dueDate,
              source_entry_id as sourceEntryId, created_at as createdAt, updated_at as updatedAt
       FROM tasks
       WHERE due_date IS NOT NULL

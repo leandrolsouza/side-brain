@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react'
+import { ToastProvider } from './components/ToastContext'
+import { ToastContainer } from './components/ToastContainer'
 import { ActivityBar } from './components/ActivityBar'
 import { Sidebar } from './components/Sidebar'
 import { Dashboard } from './components/Dashboard'
@@ -14,8 +16,10 @@ import { AboutModal } from './components/AboutModal'
 import { WorkspaceSwitcher } from './components/WorkspaceSwitcher'
 import { SmartChat } from './components/SmartChat'
 import { NotificationCenter } from './components/NotificationCenter'
+import { ErrorCenter } from './components/ErrorCenter'
+import { StatusBarErrorIndicator } from './components/StatusBarErrorIndicator'
 
-export type View = 'dashboard' | 'capture' | 'projects' | 'entries' | 'meeting' | 'settings' | 'ai-usage' | 'smart-chat'
+export type View = 'dashboard' | 'capture' | 'projects' | 'entries' | 'meeting' | 'settings' | 'ai-usage' | 'smart-chat' | 'error-center'
 export type Theme = 'dark' | 'light'
 
 const MODEL_LABELS: Record<string, string> = {
@@ -44,6 +48,7 @@ export function App() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
   const [selectedProjectName, setSelectedProjectName] = useState<string>('')
   const [meetingProjectId, setMeetingProjectId] = useState<string | undefined>(undefined)
+  const [projectInitialTab, setProjectInitialTab] = useState<'entries' | 'kanban' | 'meetings' | undefined>(undefined)
   const [projectsRefreshKey, setProjectsRefreshKey] = useState(0)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [showDigest, setShowDigest] = useState(false)
@@ -137,6 +142,7 @@ export function App() {
           '4': 'meeting',
           '5': 'ai-usage',
           '6': 'smart-chat',
+          '7': 'error-center',
         }
         const view = viewMap[e.key]
         if (view) setCurrentView(view)
@@ -154,6 +160,7 @@ export function App() {
   const handleProjectSelect = (projectId: string, projectName: string) => {
     setSelectedProjectId(projectId)
     setSelectedProjectName(projectName)
+    setProjectInitialTab(undefined)
     setCurrentView('entries')
   }
 
@@ -178,6 +185,7 @@ export function App() {
       case 'settings': return 'Configurações'
       case 'ai-usage': return 'Uso da IA'
       case 'smart-chat': return 'Chat Inteligente'
+      case 'error-center': return 'Central de Erros'
     }
   }
 
@@ -191,85 +199,106 @@ export function App() {
         return <ProjectList onSelectProject={handleProjectSelect} onProjectsChanged={refreshProjects} />
       case 'entries':
         return selectedProjectId ? (
-          <ProjectView projectId={selectedProjectId} projectName={selectedProjectName} onBack={handleBackToProjects} onNavigateToMeeting={handleNavigateToMeeting} />
+          <ProjectView projectId={selectedProjectId} projectName={selectedProjectName} initialTab={projectInitialTab} onBack={handleBackToProjects} onNavigateToMeeting={handleNavigateToMeeting} />
         ) : (
           <ProjectList onSelectProject={handleProjectSelect} onProjectsChanged={refreshProjects} />
         )
       case 'meeting':
-        return <MeetingMode projectId={meetingProjectId} onFinished={() => setCurrentView('dashboard')} />
+        return <MeetingMode projectId={meetingProjectId} onFinished={(projId) => {
+          if (projId) {
+            setSelectedProjectId(projId)
+            setSelectedProjectName('')
+            setProjectInitialTab('kanban')
+            window.electronAPI.getProjects().then((projects) => {
+              const found = projects.find((p: any) => p.id === projId)
+              if (found) setSelectedProjectName(found.name)
+            })
+            setCurrentView('entries')
+          } else {
+            setCurrentView('dashboard')
+          }
+        }} />
       case 'settings':
         return <Settings />
       case 'ai-usage':
         return <AIUsageDashboard />
       case 'smart-chat':
         return <SmartChat />
+      case 'error-center':
+        return <ErrorCenter />
     }
   }
 
   return (
-    <div className="workbench">
-      {/* Title Bar */}
-      <div className="titlebar">
-        <span className="titlebar-text">SideBrain</span>
-      </div>
+    <ToastProvider>
+      <div className="workbench">
+        {/* Title Bar */}
+        <div className="titlebar">
+          <span className="titlebar-text">SideBrain</span>
+        </div>
 
-      {/* Body: Activity Bar + Sidebar + Editor */}
-      <div className="workbench-body">
-        <ActivityBar currentView={currentView} onViewChange={setCurrentView} theme={theme} onThemeChange={setTheme} onAboutClick={() => setShowAbout(true)} />
-        <Sidebar currentView={currentView} onViewChange={setCurrentView} onProjectSelect={handleProjectSelect} refreshKey={projectsRefreshKey} />
+        {/* Body: Activity Bar + Sidebar + Editor */}
+        <div className="workbench-body">
+          <ActivityBar currentView={currentView} onViewChange={setCurrentView} theme={theme} onThemeChange={setTheme} onAboutClick={() => setShowAbout(true)} />
+          <Sidebar currentView={currentView} onViewChange={setCurrentView} onProjectSelect={handleProjectSelect} refreshKey={projectsRefreshKey} />
 
-        {/* Editor Area */}
-        <div className="editor-area">
-          {/* Tabs */}
-          <div className="tabs-bar">
-            <div className="tab active">
-              <span>{getTabTitle()}</span>
+          {/* Editor Area */}
+          <div className="editor-area">
+            {/* Tabs */}
+            <div className="tabs-bar">
+              <div className="tab active">
+                <span>{getTabTitle()}</span>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="editor-content">
+              {renderContent()}
             </div>
           </div>
-
-          {/* Content */}
-          <div className="editor-content">
-            {renderContent()}
-          </div>
         </div>
-      </div>
 
-      {/* Global Search Modal */}
-      <GlobalSearch
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-        onNavigateToProject={handleProjectSelect}
-      />
-
-      {/* Daily Digest Modal */}
-      {showDigest && (
-        <DailyDigest
-          onClose={() => setShowDigest(false)}
+        {/* Global Search Modal */}
+        <GlobalSearch
+          isOpen={isSearchOpen}
+          onClose={() => setIsSearchOpen(false)}
           onNavigateToProject={handleProjectSelect}
         />
-      )}
 
-      {/* About Modal */}
-      <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />
+        {/* Daily Digest Modal */}
+        {showDigest && (
+          <DailyDigest
+            onClose={() => setShowDigest(false)}
+            onNavigateToProject={handleProjectSelect}
+          />
+        )}
 
-      {/* Status Bar */}
-      <div className="status-bar">
-        <WorkspaceSwitcher />
-        <div className="status-bar-item">
-          <span>SideBrain v0.1.0</span>
-        </div>
-        <div className="status-bar-right">
-          <NotificationCenter />
-          <div className="status-bar-item ai-status-indicator" title={aiStatus === 'processing' ? 'IA processando...' : aiStatus === 'error' ? 'Erro na IA' : 'IA conectada'}>
-            <span className={`ai-status-dot ${aiStatus}`} />
-            <span>{aiStatus === 'processing' ? 'IA processando...' : 'AI: ' + activeModelLabel}</span>
-            {aiStatus === 'processing' && <span className="ai-status-progress" />}
+        {/* About Modal */}
+        <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />
+
+        {/* Status Bar */}
+        <div className="status-bar">
+          <WorkspaceSwitcher />
+          <div className="status-bar-item">
+            <span>SideBrain v0.1.0</span>
           </div>
-          <div className="status-bar-item clickable" onClick={() => setCurrentView('settings')} title="Clique para alterar o provedor de IA">
-            <span>⚙</span>
+          <div className="status-bar-right">
+            <StatusBarErrorIndicator onClick={() => setCurrentView('error-center')} />
+            <NotificationCenter />
+            <div className="status-bar-item ai-status-indicator" title={aiStatus === 'processing' ? 'IA processando...' : aiStatus === 'error' ? 'Erro na IA' : 'IA conectada'}>
+              <span className={`ai-status-dot ${aiStatus}`} />
+              <span>{aiStatus === 'processing' ? 'IA processando...' : 'AI: ' + activeModelLabel}</span>
+              {aiStatus === 'processing' && <span className="ai-status-progress" />}
+            </div>
+            <div className="status-bar-item clickable" onClick={() => setCurrentView('settings')} title="Clique para alterar o provedor de IA">
+              <span>⚙</span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* App Toast (feedback messages) */}
+      <ToastContainer />
+    </ToastProvider>
   )
 }

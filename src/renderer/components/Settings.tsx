@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { CheckCircle2, Download, Upload, Trash2, RotateCcw, HardDrive, AlertTriangle, FolderOpen, Database, Settings as SettingsIcon, Cpu, Cloud, Monitor, Type } from 'lucide-react'
 import { ConfirmModal } from './ConfirmModal'
+import { useToast } from './ToastContext'
 
 interface SettingsProps {
 }
@@ -17,6 +18,7 @@ interface AppSettings {
   localApiKey: string
   fontFamily: string
   fontSize: string
+  userName: string
 }
 
 const AVAILABLE_MODELS = [
@@ -53,6 +55,7 @@ const FONT_FAMILIES = [
 type SettingsTab = 'geral' | 'aparencia' | 'dados' | 'avancado'
 
 export function Settings({ }: SettingsProps) {
+  const { addToast } = useToast()
   const [activeTab, setActiveTab] = useState<SettingsTab>('geral')
   const [settings, setSettings] = useState<AppSettings>({
     aiProvider: 'bedrock',
@@ -64,12 +67,11 @@ export function Settings({ }: SettingsProps) {
     localApiKey: '',
     fontFamily: 'system-ui',
     fontSize: '14',
+    userName: '',
   })
   const [isSaving, setIsSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
   const [backups, setBackups] = useState<{ filename: string; filePath: string; createdAt: string; sizeBytes: number }[]>([])
   const [backupLoading, setBackupLoading] = useState(false)
-  const [backupMessage, setBackupMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [dbPathInfo, setDbPathInfo] = useState<{ currentPath: string; defaultPath: string; isCustom: boolean } | null>(null)
   const [dbPathLoading, setDbPathLoading] = useState(false)
   const [confirmModal, setConfirmModal] = useState<{
@@ -107,8 +109,7 @@ export function Settings({ }: SettingsProps) {
   }
 
   const showBackupMessage = (type: 'success' | 'error', text: string) => {
-    setBackupMessage({ type, text })
-    setTimeout(() => setBackupMessage(null), 3000)
+    addToast(text, type === 'success' ? 'success' : 'error')
   }
 
   const handleExportBackup = async () => {
@@ -307,8 +308,7 @@ export function Settings({ }: SettingsProps) {
     setIsSaving(true)
     try {
       await window.electronAPI.updateSettings(settings)
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
+      addToast('Configurações salvas com sucesso', 'success')
     } finally {
       setIsSaving(false)
     }
@@ -323,6 +323,24 @@ export function Settings({ }: SettingsProps) {
 
   const renderGeralTab = () => (
     <div className="settings-tab-content">
+      {/* User Identity */}
+      <div className="settings-group">
+        <div className="settings-item">
+          <div className="settings-item-label">Meu nome</div>
+          <div className="settings-item-description">
+            Seu primeiro nome. Usado pela IA para identificar suas tasks em reuniões e separar "minhas tasks" das de outros participantes.
+          </div>
+          <input
+            type="text"
+            className="vscode-input"
+            value={settings.userName}
+            onChange={(e) => setSettings({ ...settings, userName: e.target.value })}
+            placeholder="Ex: Leandro"
+            style={{ maxWidth: 260, marginTop: 6 }}
+          />
+        </div>
+      </div>
+
       {/* Provider Selection */}
       <div className="settings-group">
         <div className="settings-item">
@@ -476,12 +494,6 @@ export function Settings({ }: SettingsProps) {
         >
           {isSaving ? 'Salvando...' : 'Salvar Configurações'}
         </button>
-        {saved && (
-          <div className="toast">
-            <CheckCircle2 size={14} />
-            Salvo com sucesso
-          </div>
-        )}
       </div>
     </div>
   )
@@ -584,25 +596,12 @@ export function Settings({ }: SettingsProps) {
         >
           {isSaving ? 'Salvando...' : 'Salvar Configurações'}
         </button>
-        {saved && (
-          <div className="toast">
-            <CheckCircle2 size={14} />
-            Salvo com sucesso
-          </div>
-        )}
       </div>
     </div>
   )
 
   const renderDadosTab = () => (
     <div className="settings-tab-content">
-      {backupMessage && (
-        <div className={`toast ${backupMessage.type === 'error' ? 'toast-error' : ''}`} style={{ marginBottom: 12 }}>
-          <CheckCircle2 size={14} />
-          {backupMessage.text}
-        </div>
-      )}
-
       {/* Backup & Restore */}
       <div className="settings-group">
         <div className="settings-section-title">
@@ -754,13 +753,6 @@ export function Settings({ }: SettingsProps) {
 
   const renderAvancadoTab = () => (
     <div className="settings-tab-content">
-      {backupMessage && (
-        <div className={`toast ${backupMessage.type === 'error' ? 'toast-error' : ''}`} style={{ marginBottom: 12 }}>
-          <CheckCircle2 size={14} />
-          {backupMessage.text}
-        </div>
-      )}
-
       {/* Danger Zone */}
       <div className="settings-group">
         <div className="settings-section-title danger">

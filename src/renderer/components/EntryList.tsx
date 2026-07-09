@@ -145,16 +145,18 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
                   </span>
                 </div>
                 <div className="flex-row">
-                  <select
-                    className="vscode-select"
-                    value={entry.action}
-                    onChange={(e) => handleActionChange(entry.id, e.target.value)}
-                    style={{ fontSize: 11, padding: '2px 6px' }}
-                  >
-                    {Object.entries(actionLabels).map(([value, label]) => (
-                      <option key={value} value={value}>{label}</option>
-                    ))}
-                  </select>
+                  {entry.type !== 'information' && entry.type !== 'update' && (
+                    <select
+                      className="vscode-select"
+                      value={entry.action}
+                      onChange={(e) => handleActionChange(entry.id, e.target.value)}
+                      style={{ fontSize: 11, padding: '2px 6px' }}
+                    >
+                      {Object.entries(actionLabels).map(([value, label]) => (
+                        <option key={value} value={value}>{label}</option>
+                      ))}
+                    </select>
+                  )}
                   <button
                     className="inline-action-btn"
                     onClick={() => handleDelete(entry.id)}

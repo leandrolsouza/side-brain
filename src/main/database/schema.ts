@@ -59,6 +59,13 @@ function runMigrations(database: Database.Database): void {
   // Ensure all projects without an explicit active value are set to active
   database.exec(`UPDATE projects SET active = 1 WHERE active IS NULL OR active NOT IN (0, 1)`)
   database.exec(`CREATE INDEX IF NOT EXISTS idx_projects_active ON projects(active)`)
+
+  // Add assignee column to tasks if it doesn't exist
+  const taskColsForAssignee = database.prepare("PRAGMA table_info(tasks)").all() as { name: string }[]
+  const hasAssignee = taskColsForAssignee.some((col) => col.name === 'assignee')
+  if (!hasAssignee) {
+    database.exec(`ALTER TABLE tasks ADD COLUMN assignee TEXT`)
+  }
 }
 
 function initializeSchema(database: Database.Database): void {
@@ -141,6 +148,24 @@ function initializeSchema(database: Database.Database): void {
 
     CREATE INDEX IF NOT EXISTS idx_ai_usage_operation_type ON ai_usage(operation_type);
     CREATE INDEX IF NOT EXISTS idx_ai_usage_created_at ON ai_usage(created_at);
+
+    CREATE TABLE IF NOT EXISTS error_logs (
+      id TEXT PRIMARY KEY,
+      timestamp TEXT NOT NULL DEFAULT (datetime('now')),
+      category TEXT NOT NULL,
+      severity TEXT NOT NULL DEFAULT 'error',
+      message TEXT NOT NULL,
+      stack TEXT,
+      context TEXT,
+      resolved INTEGER NOT NULL DEFAULT 0,
+      occurrences INTEGER NOT NULL DEFAULT 1,
+      last_occurrence TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_error_logs_category ON error_logs(category);
+    CREATE INDEX IF NOT EXISTS idx_error_logs_severity ON error_logs(severity);
+    CREATE INDEX IF NOT EXISTS idx_error_logs_resolved ON error_logs(resolved);
+    CREATE INDEX IF NOT EXISTS idx_error_logs_timestamp ON error_logs(timestamp);
 
     CREATE TABLE IF NOT EXISTS notifications (
       id TEXT PRIMARY KEY,

@@ -11,12 +11,13 @@ type ExportFormat = 'markdown' | 'pdf'
 interface ProjectViewProps {
   projectId: string
   projectName: string
+  initialTab?: ProjectTab
   onBack: () => void
   onNavigateToMeeting: (projectId?: string) => void
 }
 
-export function ProjectView({ projectId, projectName, onBack, onNavigateToMeeting }: ProjectViewProps) {
-  const [activeTab, setActiveTab] = useState<ProjectTab>('entries')
+export function ProjectView({ projectId, projectName, initialTab, onBack, onNavigateToMeeting }: ProjectViewProps) {
+  const [activeTab, setActiveTab] = useState<ProjectTab>(initialTab || 'entries')
   const [summary, setSummary] = useState<string | null>(null)
   const [isLoadingSummary, setIsLoadingSummary] = useState(false)
   const [isExporting, setIsExporting] = useState(false)

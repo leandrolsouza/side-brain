@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Plus, GripVertical, Trash2, ChevronRight, Calendar } from 'lucide-react'
+import { Plus, GripVertical, Trash2, ChevronRight, Calendar, User } from 'lucide-react'
 
 interface Task {
   id: string
@@ -7,6 +7,7 @@ interface Task {
   title: string
   description?: string
   status: TaskStatus
+  assignee?: string | null
   dueDate?: string | null
   sourceEntryId?: string
   createdAt: string
@@ -253,6 +254,14 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
                       >
                         <Calendar size={10} />
                         {getDueDateInfo(task.dueDate)?.label || 'Sem prazo'}
+                      </span>
+                    )}
+
+                    {/* Assignee */}
+                    {task.assignee && (
+                      <span className="kanban-card-assignee">
+                        <User size={10} />
+                        {task.assignee}
                       </span>
                     )}
                   </div>

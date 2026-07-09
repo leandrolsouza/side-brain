@@ -3,6 +3,7 @@ import fs from 'fs'
 import path from 'path'
 import { BackupInfo } from '../../shared/types'
 import { closeDatabase, getDatabase, getDatabasePath } from '../database/schema'
+import { getErrorService } from './error-service'
 
 const BACKUPS_DIR = 'backups'
 const MAX_AUTO_BACKUPS = 7
@@ -42,7 +43,14 @@ export class BackupService {
     try {
       fs.copyFileSync(dbPath, backupPath)
       this.rotateBackups()
-    } catch (error) {
+    } catch (error: any) {
+      getErrorService().logError({
+        category: 'database',
+        severity: 'warning',
+        message: 'Erro ao criar backup automático',
+        stack: error?.stack,
+        context: { operation: 'autoBackup', dbPath, backupPath },
+      })
       console.error('[BackupService] Erro ao criar backup automático:', error)
     }
   }
@@ -59,7 +67,14 @@ export class BackupService {
       for (const backup of toDelete) {
         try {
           fs.unlinkSync(backup.filePath)
-        } catch (error) {
+        } catch (error: any) {
+          getErrorService().logError({
+            category: 'system',
+            severity: 'warning',
+            message: 'Erro ao deletar backup antigo',
+            stack: error?.stack,
+            context: { operation: 'rotateBackups', filePath: backup.filePath },
+          })
           console.error('[BackupService] Erro ao deletar backup antigo:', error)
         }
       }
@@ -130,7 +145,14 @@ export class BackupService {
       db.pragma('wal_checkpoint(TRUNCATE)')
       fs.copyFileSync(dbPath, result.filePath)
       return { success: true, filePath: result.filePath }
-    } catch (error) {
+    } catch (error: any) {
+      getErrorService().logError({
+        category: 'database',
+        severity: 'error',
+        message: 'Erro ao exportar backup manual',
+        stack: error?.stack,
+        context: { operation: 'manualBackup', targetPath: result.filePath },
+      })
       console.error('[BackupService] Erro ao exportar backup:', error)
       return { success: false }
     }
@@ -210,7 +232,14 @@ export class BackupService {
       }
 
       return { success: true }
-    } catch (error) {
+    } catch (error: any) {
+      getErrorService().logError({
+        category: 'database',
+        severity: 'error',
+        message: 'Erro ao restaurar backup',
+        stack: error?.stack,
+        context: { operation: 'restore', sourceFilePath },
+      })
       console.error('[BackupService] Erro ao restaurar backup:', error)
       return { success: false, error: 'Erro ao restaurar backup. Verifique o arquivo.' }
     }
@@ -273,7 +302,14 @@ export class BackupService {
       }
 
       return { success: true, archivedPath }
-    } catch (error) {
+    } catch (error: any) {
+      getErrorService().logError({
+        category: 'database',
+        severity: 'critical',
+        message: 'Erro ao resetar database',
+        stack: error?.stack,
+        context: { operation: 'resetDatabase', dbPath },
+      })
       console.error('[BackupService] Erro ao resetar database:', error)
       return { success: false, error: 'Erro ao resetar database.' }
     }

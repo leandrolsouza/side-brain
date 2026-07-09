@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { CAPTURE_TEMPLATES, CaptureTemplate, EntryPreviewResult, EntryType, ActionStatus } from '@shared/types'
 import { CustomSelect } from './CustomSelect'
+import { useToast } from './ToastContext'
 import type { SelectOption } from './CustomSelect'
 
 interface CaptureInputProps {
@@ -46,6 +47,8 @@ const ACTION_LABELS: Record<ActionStatus, string> = {
 }
 
 export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
+  const { addToast } = useToast()
+
   // Input state
   const [text, setText] = useState('')
   const [selectedProjectId, setSelectedProjectId] = useState<string>('')
@@ -66,7 +69,6 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
   const [includeSuggestedTask, setIncludeSuggestedTask] = useState(true)
 
   // UI state
-  const [lastSubmitted, setLastSubmitted] = useState<string | null>(null)
   const [projects, setProjects] = useState<ProjectOption[]>([])
 
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -212,12 +214,11 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
         suggestedTask: includeSuggestedTask ? preview.suggestedTask : null,
       })
 
-      setLastSubmitted(preview.rawText)
       resetForm()
       onProjectsChanged?.()
       await loadProjects()
 
-      setTimeout(() => setLastSubmitted(null), 3000)
+      addToast('Registrado com sucesso!', 'success')
     } catch (error) {
       console.error('Failed to confirm entry:', error)
     } finally {
@@ -542,13 +543,6 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
         </div>
       )}
 
-      {/* Success toast */}
-      {lastSubmitted && (
-        <div className="capture-success-toast">
-          <CheckCircle2 size={16} />
-          <span>Registrado com sucesso!</span>
-        </div>
-      )}
     </div>
   )
 }

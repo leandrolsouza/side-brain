@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { EntryConfirmRequest, EntryPreviewResult, AIUsageSummary, AIUsageDailyPoint, AIUsageRecord, Workspace, SmartChatMessage, ProactiveInsight, AppNotification } from '../shared/types'
+import type { EntryConfirmRequest, EntryPreviewResult, AIUsageSummary, AIUsageDailyPoint, AIUsageRecord, Workspace, SmartChatMessage, ProactiveInsight, AppNotification, ErrorLog, ErrorCategory, ErrorSeverity } from '../shared/types'
 
 export interface ElectronAPI {
   // Workspaces
@@ -99,6 +99,15 @@ export interface ElectronAPI {
   dismissNotification: (id: string) => Promise<void>
   dismissAllNotifications: () => Promise<void>
   onNewNotification: (callback: (notification: AppNotification) => void) => void
+
+  // Error Logs
+  getErrorLogs: (filters?: { category?: ErrorCategory; severity?: ErrorSeverity; resolved?: boolean }) => Promise<ErrorLog[]>
+  getUnresolvedErrorCount: () => Promise<number>
+  resolveError: (id: string) => Promise<void>
+  resolveAllErrors: () => Promise<void>
+  deleteError: (id: string) => Promise<void>
+  clearAllErrors: () => Promise<void>
+  onErrorCountChanged: (callback: (count: number) => void) => void
 
   // Events
   onFocusCaptureInput: (callback: () => void) => void
@@ -271,6 +280,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('notification:dismissAll'),
   onNewNotification: (callback: (notification: AppNotification) => void) => {
     ipcRenderer.on('notification:new', (_event, notification) => callback(notification))
+  },
+
+  // Error Logs
+  getErrorLogs: (filters?: { category?: ErrorCategory; severity?: ErrorSeverity; resolved?: boolean }) =>
+    ipcRenderer.invoke('error-log:getAll', filters),
+  getUnresolvedErrorCount: () =>
+    ipcRenderer.invoke('error-log:getUnresolvedCount'),
+  resolveError: (id: string) =>
+    ipcRenderer.invoke('error-log:resolve', id),
+  resolveAllErrors: () =>
+    ipcRenderer.invoke('error-log:resolveAll'),
+  deleteError: (id: string) =>
+    ipcRenderer.invoke('error-log:delete', id),
+  clearAllErrors: () =>
+    ipcRenderer.invoke('error-log:clearAll'),
+  onErrorCountChanged: (callback: (count: number) => void) => {
+    ipcRenderer.on('error-log:countChanged', (_event, count) => callback(count))
   },
 
   // Events

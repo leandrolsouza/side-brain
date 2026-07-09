@@ -5,6 +5,7 @@ import { closeDatabase } from './database/schema'
 import { NotificationService } from './services/notification-service'
 import { BackupService } from './services/backup-service'
 import { getConfigService } from './services/config-service'
+import { getErrorService } from './services/error-service'
 
 let mainWindow: BrowserWindow | null = null
 let notificationService: NotificationService | null = null
@@ -77,6 +78,12 @@ app.whenReady().then(() => {
   registerIpcHandlers()
   createWindow()
   registerGlobalShortcut()
+
+  // Setup global error handlers for observability
+  const errorService = getErrorService()
+  errorService.setupGlobalHandlers()
+  // Clean old resolved errors on startup
+  errorService.cleanOldLogs()
 
   // Start notification service for deadline reminders
   notificationService = new NotificationService()

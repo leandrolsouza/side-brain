@@ -1,6 +1,7 @@
 import { AICategorizationResult, AIOperationType, AIProvider, AppSettings, MeetingProcessResult, Project } from '../../shared/types'
 import { AIUsageRepository } from '../database/repositories/ai-usage-repository'
 import { SettingsRepository } from '../database/repositories/settings-repository'
+import { getErrorService } from './error-service'
 
 const CATEGORIZATION_PROMPT = `Você é um assistente que organiza notas de trabalho.
 Dada uma frase escrita rapidamente por alguém durante o dia de trabalho, você deve:
@@ -32,6 +33,11 @@ Para o campo "suggestedTask", use null se não houver ação necessária. Se hou
     "description": "Detalhes adicionais ou prazo se mencionado"
   }
 }
+
+Regras para action:
+- Se type for "information", action DEVE ser "none" (informações são passivas, não geram ação)
+- Se type for "update", action DEVE ser "none" (atualizações são registros do que já aconteceu)
+- Apenas "decision", "demand", "idea" e "blocker" podem ter action diferente de "none"
 
 Regras para sugerir tasks:
 - Só sugira task se action for "action_needed" ou "waiting_response"
@@ -109,7 +115,8 @@ ${entriesText}${tasksText}`
     participants: string[],
     content: string,
     settings: AppSettings,
-    existingTasks?: { id: string; title: string; status: string }[]
+    existingTasks?: { id: string; title: string; status: string }[],
+    userName?: string
   ): Promise<MeetingProcessResult> {
     const hasExistingTasks = existingTasks && existingTasks.length > 0
 
@@ -124,6 +131,14 @@ REGRAS PARA DETECÇÃO DE DUPLICATAS:
 - Se não há similaridade, omita o campo "similarTo"`
       : ''
 
+    const assigneeInstructions = `
+REGRAS PARA RESPONSÁVEL (assignee):
+- Para CADA task, identifique quem é o responsável principal pela execução
+- O campo "assignee" deve conter o PRIMEIRO NOME da pessoa responsável (ex: "Leandro", "Victor", "Carol")
+- Se a task é para múltiplas pessoas, use o primeiro nome de quem lidera ou foi mencionado primeiro
+- Se não conseguir identificar um responsável claro, use null
+- Baseie-se nas ações mencionadas na reunião, quem se comprometeu a fazer, ou a quem foi delegado`
+
     const systemPrompt = `Você é um assistente que gera atas de reunião estruturadas.
 Dadas as anotações e/ou transcrição de uma reunião, gere:
 1. Uma ata em markdown com: resumo, decisões, ações (com responsável se mencionado), e bloqueios
@@ -137,7 +152,7 @@ Responda APENAS com JSON válido no formato:
     {"text": "Texto da entrada", "type": "decision|blocker|request|update", "action": "none|action_needed|waiting_response"}
   ],
   "tasks": [
-    {"title": "Verbo + ação concisa", "description": "Responsável e prazo se mencionado"}
+    {"title": "Verbo + ação concisa", "description": "Responsável e prazo se mencionado", "assignee": "NomeDaPessoa ou null"}
   ]
 }
 
@@ -152,6 +167,7 @@ REGRAS PARA TASKS:
 - Título começa com verbo no infinitivo
 - Inclua o responsável na description se mencionado
 - NÃO crie task para coisas genéricas como "discutir" ou "pensar sobre"
+${assigneeInstructions}
 ${similarityInstructions}
 
 REGRAS PARA A ATA:
@@ -164,13 +180,17 @@ REGRAS PARA A ATA:
       ? `Participantes: ${participants.join(', ')}`
       : ''
 
+    const userNameText = userName
+      ? `\nO USUÁRIO que está registrando esta reunião é: "${userName}" (use este nome para identificar as tasks dele)`
+      : ''
+
     const existingTasksText = hasExistingTasks
       ? `\n\nTASKS EXISTENTES NO PROJETO (para verificar duplicatas):
 ${existingTasks.map((t) => `- [${t.id}] "${t.title}" (status: ${t.status})`).join('\n')}`
       : ''
 
     const userMessage = `Reunião: "${title}"
-${participantsText}
+${participantsText}${userNameText}
 
 Conteúdo capturado:
 ${content}${existingTasksText}`
@@ -179,10 +199,80 @@ ${content}${existingTasksText}`
 
     const jsonMatch = responseText.match(/\{[\s\S]*\}/)
     if (!jsonMatch) {
-      throw new Error('AI did not return valid JSON for meeting processing')
+      const error = new Error('AI did not return valid JSON for meeting processing') as any
+      error.aiResponse = responseText.slice(0, 2000)
+      throw error
     }
 
-    return JSON.parse(jsonMatch[0]) as MeetingProcessResult
+    const parsed = this.parseJsonSafe(jsonMatch[0])
+    if (parsed) {
+      return parsed as MeetingProcessResult
+    }
+
+    // JSON malformed — ask AI to fix it
+    const fixedResult = await this.attemptJsonFix(jsonMatch[0], settings)
+    if (fixedResult) {
+      return fixedResult as MeetingProcessResult
+    }
+
+    const error = new Error('AI returned invalid JSON for meeting processing. Tente reprocessar.') as any
+    error.aiResponse = jsonMatch[0].slice(0, 3000)
+    throw error
+  }
+
+  /**
+   * Sends malformed JSON back to the AI asking it to fix it.
+   */
+  private async attemptJsonFix(malformedJson: string, settings: AppSettings): Promise<any | null> {
+    const fixPrompt = `O JSON abaixo está com erro de sintaxe e não consegue ser parseado. Corrija APENAS os erros de sintaxe (vírgulas faltando, aspas não escapadas, etc) e retorne o JSON corrigido. NÃO altere o conteúdo, apenas conserte a formatação.
+
+Retorne APENAS o JSON válido, sem explicações.`
+
+    try {
+      const fixedText = await this.invokeConverse(fixPrompt, malformedJson.slice(0, 8000), settings, 'meeting_processing')
+      const fixedMatch = fixedText.match(/\{[\s\S]*\}/)
+      if (!fixedMatch) return null
+      return this.parseJsonSafe(fixedMatch[0])
+    } catch {
+      return null
+    }
+  }
+
+  /**
+   * Attempts to parse JSON with progressive repair strategies.
+   */
+  private parseJsonSafe(raw: string): any | null {
+    // Attempt 1: direct parse
+    try {
+      return JSON.parse(raw)
+    } catch { /* continue */ }
+
+    // Attempt 2: remove trailing commas
+    let sanitized = raw.replace(/,\s*([\]}])/g, '$1')
+    try {
+      return JSON.parse(sanitized)
+    } catch { /* continue */ }
+
+    // Attempt 3: fix unescaped newlines inside string values
+    // Replace literal newlines that are inside JSON strings with \\n
+    sanitized = sanitized.replace(/"([^"\\]*(\\.[^"\\]*)*)"/g, (match) => {
+      return match.replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t')
+    })
+    try {
+      return JSON.parse(sanitized)
+    } catch { /* continue */ }
+
+    // Attempt 4: more aggressive — try to find valid JSON by trimming from the end
+    // Sometimes the AI adds extra text after the JSON closes
+    for (let i = sanitized.length; i > 100; i--) {
+      if (sanitized[i - 1] === '}') {
+        try {
+          return JSON.parse(sanitized.substring(0, i))
+        } catch { /* continue */ }
+      }
+    }
+
+    return null
   }
 
   async generateGlobalSummary(
@@ -243,10 +333,24 @@ ${projectsSummaryText}`
     settings: AppSettings,
     operationType: AIOperationType = 'categorization'
   ): Promise<string> {
-    if (settings.aiProvider === 'local') {
-      return this.invokeLocal(systemPrompt, userMessage, settings, operationType)
+    try {
+      if (settings.aiProvider === 'local') {
+        return await this.invokeLocal(systemPrompt, userMessage, settings, operationType)
+      }
+      return await this.invokeBedrock(systemPrompt, userMessage, settings, operationType)
+    } catch (error: any) {
+      // Log network-level errors (fetch failures, DNS, timeout) that aren't already logged
+      if (error?.message && !error.message.includes('API error')) {
+        getErrorService().logError({
+          category: 'ai',
+          severity: 'error',
+          message: error.message,
+          stack: error.stack,
+          context: { provider: settings.aiProvider, operationType, type: 'network_or_parse' },
+        })
+      }
+      throw error
     }
-    return this.invokeBedrock(systemPrompt, userMessage, settings, operationType)
   }
 
   /**
@@ -291,7 +395,15 @@ ${projectsSummaryText}`
 
     if (!response.ok) {
       const errorText = await response.text()
-      throw new Error(`Local LLM API error (${response.status}): ${errorText}`)
+      const error = new Error(`Local LLM API error (${response.status}): ${errorText}`)
+      getErrorService().logError({
+        category: 'ai',
+        severity: response.status >= 500 ? 'critical' : 'error',
+        message: `Local LLM API error (${response.status})`,
+        stack: error.stack,
+        context: { provider: 'local', endpoint: url, statusCode: response.status, operationType, responseBody: errorText.slice(0, 500) },
+      })
+      throw error
     }
 
     const data = await response.json()
@@ -319,7 +431,15 @@ ${projectsSummaryText}`
 
     const choice = data.choices?.[0]
     if (!choice?.message?.content) {
-      throw new Error('Local LLM did not return a valid response')
+      const error = new Error('Local LLM did not return a valid response')
+      getErrorService().logError({
+        category: 'ai',
+        severity: 'error',
+        message: 'Local LLM retornou resposta inválida',
+        stack: error.stack,
+        context: { provider: 'local', operationType, model: settings.localModelId || 'local' },
+      })
+      throw error
     }
 
     return choice.message.content
@@ -361,7 +481,15 @@ ${projectsSummaryText}`
 
     if (!response.ok) {
       const errorText = await response.text()
-      throw new Error(`Bedrock API error (${response.status}): ${errorText}`)
+      const error = new Error(`Bedrock API error (${response.status}): ${errorText}`)
+      getErrorService().logError({
+        category: 'ai',
+        severity: response.status === 429 ? 'warning' : response.status >= 500 ? 'critical' : 'error',
+        message: `Bedrock API error (${response.status})`,
+        stack: error.stack,
+        context: { provider: 'bedrock', model: settings.modelId, region: settings.awsRegion, statusCode: response.status, operationType, responseBody: errorText.slice(0, 500) },
+      })
+      throw error
     }
 
     const data = await response.json()

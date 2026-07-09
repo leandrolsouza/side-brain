@@ -117,6 +117,7 @@ export interface Task {
   title: string
   description?: string
   status: TaskStatus
+  assignee?: string | null
   dueDate?: string | null
   sourceEntryId?: string
   createdAt: string
@@ -178,6 +179,8 @@ export interface AppSettings {
   // Appearance settings
   fontFamily: string
   fontSize: string
+  // User identity
+  userName: string
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -192,6 +195,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   localApiKey: '',
   fontFamily: 'system-ui',
   fontSize: '14',
+  userName: '',
 }
 
 // === Meeting Types ===
@@ -223,6 +227,7 @@ export interface MeetingProcessResult {
   tasks: {
     title: string
     description?: string
+    assignee?: string
     similarTo?: {
       taskId: string
       taskTitle: string
@@ -366,6 +371,24 @@ export interface ProactiveInsight {
   relatedProjectName?: string
 }
 
+
+// === Error Log Types ===
+
+export type ErrorCategory = 'ai' | 'database' | 'ipc' | 'renderer' | 'system'
+export type ErrorSeverity = 'warning' | 'error' | 'critical'
+
+export interface ErrorLog {
+  id: string
+  timestamp: string
+  category: ErrorCategory
+  severity: ErrorSeverity
+  message: string
+  stack?: string
+  context?: string
+  resolved: boolean
+  occurrences: number
+  lastOccurrence: string
+}
 
 // === Notification Types ===
 

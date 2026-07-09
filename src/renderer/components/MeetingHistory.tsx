@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { FileText, Clock, Users, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
+import { FileText, Clock, Users, Trash2, ChevronDown, ChevronRight, RefreshCw, Sparkles, AlertTriangle } from 'lucide-react'
+import { MarkdownViewer } from './MarkdownViewer'
 
 interface Meeting {
   id: string
@@ -22,6 +23,8 @@ interface MeetingHistoryProps {
 export function MeetingHistory({ projectId }: MeetingHistoryProps) {
   const [meetings, setMeetings] = useState<Meeting[]>([])
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [processingId, setProcessingId] = useState<string | null>(null)
+  const [reprocessError, setReprocessError] = useState<string | null>(null)
 
   useEffect(() => {
     loadMeetings()
@@ -36,6 +39,29 @@ export function MeetingHistory({ projectId }: MeetingHistoryProps) {
     e.stopPropagation()
     await window.electronAPI.deleteMeeting(id)
     await loadMeetings()
+  }
+
+  const handleReprocess = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation()
+    setProcessingId(id)
+    setReprocessError(null)
+    try {
+      const result = await window.electronAPI.processMeeting(id)
+      if (result) {
+        await loadMeetings()
+      } else {
+        setReprocessError('A IA não retornou resultado. Tente novamente.')
+      }
+    } catch (error: any) {
+      console.error('Failed to reprocess meeting:', error)
+      setReprocessError(
+        error?.message?.includes('invalid JSON')
+          ? 'A IA retornou formato inválido. Tente novamente.'
+          : error?.message || 'Erro ao reprocessar reunião.'
+      )
+    } finally {
+      setProcessingId(null)
+    }
   }
 
   const toggleExpand = (id: string) => {
@@ -85,6 +111,12 @@ export function MeetingHistory({ projectId }: MeetingHistoryProps) {
 
   return (
     <div className="meeting-history">
+      {reprocessError && (
+        <div className="meeting-process-error" style={{ marginBottom: 12 }}>
+          <AlertTriangle size={14} />
+          <span>{reprocessError}</span>
+        </div>
+      )}
       {meetings.map((meeting) => {
         const isExpanded = expandedId === meeting.id
         const status = getStatusLabel(meeting.status)
@@ -127,13 +159,30 @@ export function MeetingHistory({ projectId }: MeetingHistoryProps) {
                 </div>
               </div>
 
-              <button
-                className="icon-button"
-                onClick={(e) => handleDelete(e, meeting.id)}
-                title="Excluir reunião"
-              >
-                <Trash2 size={14} />
-              </button>
+              <div className="meeting-history-actions">
+                {(meeting.status === 'active' || meeting.status === 'ended') && (
+                  <button
+                    className="vscode-button secondary"
+                    onClick={(e) => handleReprocess(e, meeting.id)}
+                    disabled={processingId === meeting.id}
+                    title="Reprocessar reunião"
+                    style={{ fontSize: 11, padding: '3px 10px' }}
+                  >
+                    {processingId === meeting.id ? (
+                      <><Sparkles size={12} className="spinning" /> Processando...</>
+                    ) : (
+                      <><RefreshCw size={12} /> Reprocessar</>
+                    )}
+                  </button>
+                )}
+                <button
+                  className="icon-button"
+                  onClick={(e) => handleDelete(e, meeting.id)}
+                  title="Excluir reunião"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
             </div>
 
             {isExpanded && (
@@ -146,7 +195,7 @@ export function MeetingHistory({ projectId }: MeetingHistoryProps) {
                       <span>Ata</span>
                     </div>
                     <div className="meeting-minutes-content">
-                      {meeting.generatedMinutes}
+                      <MarkdownViewer content={meeting.generatedMinutes} />
                     </div>
                   </div>
                 )}

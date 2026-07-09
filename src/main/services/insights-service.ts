@@ -73,12 +73,12 @@ export class InsightsService {
     for (const project of projects) {
       const projectEntries = allEntries.filter((e) => e.projectId === project.id)
       if (projectEntries.length === 0) continue
-      
+
       const lastEntry = projectEntries[0] // already sorted DESC
       const daysSinceActivity = (now.getTime() - new Date(lastEntry.createdAt).getTime()) / (1000 * 60 * 60 * 24)
-      
+
       const projectTasks = allTasks.filter((t) => t.projectId === project.id && t.status !== 'done')
-      
+
       if (daysSinceActivity > 7 && projectTasks.length > 0) {
         insights.push({
           id: uuid(),
@@ -200,7 +200,7 @@ Gere sugestões inteligentes baseadas nos padrões que você observa.`
     try {
       const jsonMatch = responseText.match(/\[[\s\S]*\]/)
       if (!jsonMatch) return []
-      
+
       const parsed = JSON.parse(jsonMatch[0]) as { title: string; description: string; priority: 'high' | 'medium' | 'low' }[]
       return parsed.map((item) => ({
         id: uuid(),

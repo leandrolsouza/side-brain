@@ -4,6 +4,8 @@ import { EntryRepository } from '../database/repositories/entry-repository'
 import { ProjectRepository } from '../database/repositories/project-repository'
 import { TaskRepository } from '../database/repositories/task-repository'
 import { SettingsRepository } from '../database/repositories/settings-repository'
+import { NotificationRepository } from '../database/repositories/notification-repository'
+import { getErrorService } from './error-service'
 import { AIService } from './ai-service'
 
 const MEETING_PREP_PROMPT = `Você é um assistente que prepara pautas inteligentes para reuniões de trabalho.
@@ -42,6 +44,7 @@ export class MeetingService {
   private projectRepo = new ProjectRepository()
   private taskRepo = new TaskRepository()
   private settingsRepo = new SettingsRepository()
+  private notificationRepo = new NotificationRepository()
   private aiService = new AIService()
 
   create(data: { projectId: string; title: string; participants?: string[]; meetingDate?: string }): Meeting {
@@ -198,18 +201,46 @@ export class MeetingService {
       .filter((t) => t.status !== 'done')
       .map((t) => ({ id: t.id, title: t.title, status: t.status }))
 
-    const result = await this.aiService.processMeeting(
-      meeting.title,
-      meeting.participants,
-      content,
-      settings,
-      existingTasks.length > 0 ? existingTasks : undefined
-    )
+    try {
+      const result = await this.aiService.processMeeting(
+        meeting.title,
+        meeting.participants,
+        content,
+        settings,
+        existingTasks.length > 0 ? existingTasks : undefined,
+        settings.userName || undefined
+      )
 
-    // Save the generated minutes on the meeting record
-    this.meetingRepo.setProcessed(id, result.minutes)
+      // Save the generated minutes on the meeting record
+      this.meetingRepo.setProcessed(id, result.minutes)
 
-    return result
+      return result
+    } catch (error: any) {
+      // Register error in notification center
+      try {
+        this.notificationRepo.create({
+          type: 'ai_error',
+          title: 'Erro ao processar reunião',
+          body: error?.message || 'A IA retornou uma resposta com formato inválido. Tente reprocessar.',
+          metadata: { meetingId: id, meetingTitle: meeting.title },
+        })
+      } catch { /* ignore notification creation failures */ }
+
+      // Register in error center with AI response for debugging
+      getErrorService().logError({
+        category: 'ai',
+        severity: 'error',
+        message: error?.message || 'Erro ao processar reunião com IA',
+        stack: error?.stack,
+        context: {
+          meetingId: id,
+          meetingTitle: meeting.title,
+          aiResponse: error?.aiResponse || undefined,
+        },
+      })
+
+      throw error
+    }
   }
 
   /**
@@ -220,7 +251,7 @@ export class MeetingService {
   saveSelected(
     meetingId: string,
     selectedEntries: { text: string; type: EntryType; action: ActionStatus }[],
-    selectedTasks: { title: string; description?: string }[]
+    selectedTasks: { title: string; description?: string; assignee?: string }[]
   ): { entryIds: string[]; taskIds: string[] } {
     const meeting = this.meetingRepo.getById(meetingId)
     if (!meeting) return { entryIds: [], taskIds: [] }
@@ -249,6 +280,7 @@ export class MeetingService {
           projectId: meeting.projectId,
           title: task.title,
           description: task.description,
+          assignee: task.assignee || null,
           status: 'todo',
         })
         taskIds.push(created.id)
