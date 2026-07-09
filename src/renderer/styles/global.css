@@ -1140,32 +1140,52 @@ kbd {
   }
 }
 
-.dashboard-section {
+.dashboard-card {
   animation: listItemEnter 0.3s ease forwards;
 }
 
-.dashboard-grid> :nth-child(1) {
+.dashboard-col-left .dashboard-card:nth-child(1),
+.dashboard-col-right .dashboard-card:nth-child(1) {
   animation-delay: 0s;
 }
 
-.dashboard-grid> :nth-child(2) {
+.dashboard-col-left .dashboard-card:nth-child(2),
+.dashboard-col-right .dashboard-card:nth-child(2) {
   animation-delay: 0.05s;
 }
 
-.dashboard-grid> :nth-child(3) {
+.dashboard-col-left .dashboard-card:nth-child(3),
+.dashboard-col-right .dashboard-card:nth-child(3) {
   animation-delay: 0.1s;
 }
 
-.dashboard-grid> :nth-child(4) {
+.dashboard-col-left .dashboard-card:nth-child(4) {
   animation-delay: 0.15s;
 }
 
-.dashboard-grid> :nth-child(5) {
-  animation-delay: 0.2s;
+.dashboard-kpi-row .dashboard-kpi-card:nth-child(1) {
+  animation-delay: 0s;
 }
 
-.dashboard-grid> :nth-child(6) {
-  animation-delay: 0.25s;
+.dashboard-kpi-row .dashboard-kpi-card:nth-child(2) {
+  animation-delay: 0.04s;
+}
+
+.dashboard-kpi-row .dashboard-kpi-card:nth-child(3) {
+  animation-delay: 0.08s;
+}
+
+.dashboard-kpi-row .dashboard-kpi-card:nth-child(4) {
+  animation-delay: 0.12s;
+}
+
+.dashboard-kpi-row .dashboard-kpi-card:nth-child(5) {
+  animation-delay: 0.16s;
+}
+
+.dashboard-kpi-card {
+  animation: listItemEnter 0.3s ease forwards;
+  opacity: 0;
 }
 
 .mt-8 {
@@ -1477,7 +1497,7 @@ kbd {
 .dashboard {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
   height: 100%;
   overflow-y: auto;
   padding-right: 12px;
@@ -1491,15 +1511,250 @@ kbd {
   color: var(--vscode-descriptionForeground);
 }
 
-.dashboard-header {
+/* Greeting bar */
+.dashboard-greeting-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.dashboard-stats {
+.dashboard-greeting {
   display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dashboard-greeting-text {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+  margin: 0;
+}
+
+.dashboard-greeting-summary {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.dashboard-header-actions {
+  display: flex;
+  align-items: center;
   gap: 8px;
+}
+
+/* KPI Cards Row */
+.dashboard-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+
+.dashboard-kpi-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--vscode-sideBar-background, #252526);
+  border: 1px solid var(--vscode-panel-border, #2d2d2d);
+  border-radius: 10px;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+}
+
+.dashboard-kpi-card:hover {
+  border-color: var(--vscode-focusBorder, #007fd4);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.kpi-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.kpi-icon-pending {
+  background: rgba(117, 190, 255, 0.12);
+  color: #75beff;
+}
+
+.kpi-icon-progress {
+  background: rgba(204, 167, 0, 0.12);
+  color: #cca700;
+}
+
+.kpi-icon-done {
+  background: rgba(73, 180, 73, 0.12);
+  color: #49b449;
+}
+
+.kpi-icon-entries {
+  background: rgba(197, 134, 192, 0.12);
+  color: #c586c0;
+}
+
+.kpi-icon-projects {
+  background: rgba(79, 193, 255, 0.12);
+  color: #4fc1ff;
+}
+
+.kpi-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.kpi-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--vscode-foreground);
+  line-height: 1.1;
+}
+
+.kpi-label {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Main 2-column grid */
+.dashboard-main-grid {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+}
+
+.dashboard-col-left,
+.dashboard-col-right {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Dashboard Card (replaces dashboard-section) */
+.dashboard-card {
+  background: var(--vscode-sideBar-background, #252526);
+  border: 1px solid var(--vscode-panel-border, #2d2d2d);
+  border-radius: 10px;
+  padding: 16px 18px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  animation: listItemEnter 0.3s ease forwards;
+}
+
+.dashboard-card:hover {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+}
+
+.dashboard-card-focus {
+  border-color: transparent;
+  position: relative;
+  background: var(--vscode-sideBar-background, #252526);
+  background-clip: padding-box;
+}
+
+.dashboard-card-focus::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 11px;
+  padding: 1px;
+  background: linear-gradient(135deg, #007fd4, #75beff, #c586c0);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.dashboard-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--vscode-descriptionForeground);
+  margin: 0 0 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dashboard-card-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.dashboard-card-title-row .dashboard-card-title {
+  margin-bottom: 0;
+}
+
+/* Project Progress */
+.project-progress-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.project-progress-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.project-progress-item:hover {
+  background: var(--vscode-list-hoverBackground, rgba(255, 255, 255, 0.05));
+}
+
+.project-progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.project-progress-name {
+  font-size: 12px;
+  color: var(--vscode-foreground);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.project-progress-stats {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  flex-shrink: 0;
+}
+
+.project-progress-bar-track {
+  height: 6px;
+  background: var(--vscode-editor-background, #1e1e1e);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.project-progress-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #007fd4, #75beff);
+  transition: width 0.4s ease;
+}
+
+.project-progress-percent {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  font-weight: 600;
 }
 
 .stat-chip {
@@ -1512,48 +1767,6 @@ kbd {
   border-radius: 12px;
   font-size: 11px;
   font-weight: 500;
-}
-
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  flex: 1;
-  min-height: 0;
-}
-
-.dashboard-grid .dashboard-due-week,
-.dashboard-grid .dashboard-tasks,
-.dashboard-grid .dashboard-insights {
-  grid-column: 1 / -1;
-}
-
-.dashboard-section {
-  background: var(--vscode-sideBar-background, #252526);
-  border: 1px solid var(--vscode-panel-border, #2d2d2d);
-  border-radius: 8px;
-  padding: 14px 16px;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.dashboard-section:hover {
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-}
-
-.dashboard-section-title {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  color: var(--vscode-descriptionForeground);
-  margin-bottom: 10px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-/* Due this week section */
-.dashboard-due-week {
-  grid-column: 1 / -1;
 }
 
 .dashboard-due-list {
@@ -1782,27 +1995,7 @@ kbd {
 }
 
 /* Focus of the day */
-.dashboard-focus {
-  position: relative;
-  border-color: transparent;
-  background: var(--vscode-sideBar-background, #252526);
-  background-clip: padding-box;
-}
-
-.dashboard-focus::before {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: 9px;
-  padding: 1px;
-  background: linear-gradient(135deg, #007fd4, #75beff, #c586c0);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-}
-
-.dashboard-focus .focus-list {
+.focus-list {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -1883,7 +2076,7 @@ kbd {
 }
 
 /* Pending review section */
-.dashboard-review .review-summary {
+.review-summary {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -4719,6 +4912,22 @@ kbd {
   }
 }
 
+@media (max-width: 900px) {
+  .dashboard-kpi-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .dashboard-main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .dashboard-kpi-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 /* Activity Timeline Chart */
 .reports-timeline-chart {
   display: flex;
@@ -5970,16 +6179,6 @@ kbd {
 }
 
 /* === Proactive Insights (Dashboard) === */
-.dashboard-section-header-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.dashboard-section-header-row .dashboard-section-title {
-  margin-bottom: 0;
-}
 
 .insights-actions {
   display: flex;
