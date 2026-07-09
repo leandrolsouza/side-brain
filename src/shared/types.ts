@@ -228,6 +228,8 @@ export type AIOperationType =
   | 'global_summary'
   | 'digest'
   | 'meeting_processing'
+  | 'smart_chat'
+  | 'insights'
 
 export interface AIUsageRecord {
   id: string
@@ -323,3 +325,32 @@ export const CAPTURE_TEMPLATES: CaptureTemplate[] = [
     hintType: 'update',
   },
 ]
+
+// === Smart Chat Types ===
+
+export interface SmartChatMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  sources?: SmartChatSource[]
+  createdAt: string
+}
+
+export interface SmartChatSource {
+  type: 'entry' | 'task' | 'project'
+  id: string
+  label: string
+  projectName?: string
+}
+
+// === Proactive Insights Types ===
+
+export interface ProactiveInsight {
+  id: string
+  type: 'stale_tasks' | 'recurring_blockers' | 'no_deadline' | 'idle_project' | 'overloaded' | 'suggestion'
+  title: string
+  description: string
+  priority: 'high' | 'medium' | 'low'
+  relatedProjectId?: string
+  relatedProjectName?: string
+}

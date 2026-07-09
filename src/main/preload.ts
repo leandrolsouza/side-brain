@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { EntryConfirmRequest, EntryPreviewResult, AIUsageSummary, AIUsageDailyPoint, AIUsageRecord, Workspace } from '../shared/types'
+import type { EntryConfirmRequest, EntryPreviewResult, AIUsageSummary, AIUsageDailyPoint, AIUsageRecord, Workspace, SmartChatMessage, ProactiveInsight } from '../shared/types'
 
 export interface ElectronAPI {
   // Workspaces
@@ -63,6 +63,7 @@ export interface ElectronAPI {
   processMeeting: (id: string) => Promise<any>
   saveSelectedMeetingItems: (meetingId: string, selectedEntries: any[], selectedTasks: any[]) => Promise<void>
   deleteMeeting: (id: string) => Promise<void>
+  prepareMeeting: (projectId: string, title: string, participants: string[]) => Promise<string>
 
   // Backup
   listBackups: () => Promise<any[]>
@@ -83,8 +84,17 @@ export interface ElectronAPI {
   getAIUsageDailyUsage: (dateFrom?: string, dateTo?: string) => Promise<AIUsageDailyPoint[]>
   getAIUsageHistory: (limit?: number, offset?: number) => Promise<AIUsageRecord[]>
 
+  // Smart Chat
+  smartChatSend: (message: string) => Promise<SmartChatMessage>
+
+  // Proactive Insights
+  generateInsights: () => Promise<ProactiveInsight[]>
+
   // Events
   onFocusCaptureInput: (callback: () => void) => void
+
+  // Theme
+  setNativeTheme: (theme: 'dark' | 'light') => Promise<void>
 }
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -191,6 +201,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('meeting:saveSelected', meetingId, selectedEntries, selectedTasks),
   deleteMeeting: (id: string) =>
     ipcRenderer.invoke('meeting:delete', id),
+  prepareMeeting: (projectId: string, title: string, participants: string[]) =>
+    ipcRenderer.invoke('meeting:prepare', projectId, title, participants),
 
   // Backup
   listBackups: () =>
@@ -224,8 +236,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getAIUsageHistory: (limit?: number, offset?: number) =>
     ipcRenderer.invoke('ai-usage:getHistory', limit, offset),
 
+  // Smart Chat
+  smartChatSend: (message: string) =>
+    ipcRenderer.invoke('smart-chat:send', message),
+
+  // Proactive Insights
+  generateInsights: () =>
+    ipcRenderer.invoke('insights:generate'),
+
   // Events
   onFocusCaptureInput: (callback: () => void) => {
     ipcRenderer.on('focus-capture-input', () => callback())
   },
+
+  // Theme
+  setNativeTheme: (theme: 'dark' | 'light') =>
+    ipcRenderer.invoke('theme:set', theme),
 } satisfies ElectronAPI)

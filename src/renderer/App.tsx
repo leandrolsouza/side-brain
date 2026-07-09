@@ -12,8 +12,9 @@ import { DailyDigest } from './components/DailyDigest'
 import { AIUsageDashboard } from './components/AIUsageDashboard'
 import { AboutModal } from './components/AboutModal'
 import { WorkspaceSwitcher } from './components/WorkspaceSwitcher'
+import { SmartChat } from './components/SmartChat'
 
-export type View = 'dashboard' | 'capture' | 'projects' | 'entries' | 'meeting' | 'settings' | 'ai-usage'
+export type View = 'dashboard' | 'capture' | 'projects' | 'entries' | 'meeting' | 'settings' | 'ai-usage' | 'smart-chat'
 export type Theme = 'dark' | 'light'
 
 const MODEL_LABELS: Record<string, string> = {
@@ -35,6 +36,7 @@ export function App() {
   const [showDigest, setShowDigest] = useState(false)
   const [showAbout, setShowAbout] = useState(false)
   const [activeModelLabel, setActiveModelLabel] = useState<string>('Claude Sonnet 4')
+  const [aiStatus, setAiStatus] = useState<'idle' | 'processing' | 'error'>('idle')
   const [theme, setTheme] = useState<Theme>(() => {
     return (localStorage.getItem('app-theme') as Theme) || 'dark'
   })
@@ -43,7 +45,27 @@ export function App() {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
     localStorage.setItem('app-theme', theme)
+    // Sincronizar tema nativo (controles do OS: select dropdown, etc)
+    window.electronAPI.setNativeTheme(theme)
   }, [theme])
+
+  // Track AI processing status via custom events
+  useEffect(() => {
+    const handleAiStart = () => setAiStatus('processing')
+    const handleAiEnd = () => setAiStatus('idle')
+    const handleAiError = () => {
+      setAiStatus('error')
+      setTimeout(() => setAiStatus('idle'), 3000)
+    }
+    window.addEventListener('ai:start', handleAiStart)
+    window.addEventListener('ai:end', handleAiEnd)
+    window.addEventListener('ai:error', handleAiError)
+    return () => {
+      window.removeEventListener('ai:start', handleAiStart)
+      window.removeEventListener('ai:end', handleAiEnd)
+      window.removeEventListener('ai:error', handleAiError)
+    }
+  }, [])
 
   // Show Daily Digest on app start
   useEffect(() => {
@@ -95,6 +117,7 @@ export function App() {
           '3': 'projects',
           '4': 'meeting',
           '5': 'ai-usage',
+          '6': 'smart-chat',
         }
         const view = viewMap[e.key]
         if (view) setCurrentView(view)
@@ -130,6 +153,7 @@ export function App() {
       case 'meeting': return 'Reunião'
       case 'settings': return 'Configurações'
       case 'ai-usage': return 'Uso da IA'
+      case 'smart-chat': return 'Chat Inteligente'
     }
   }
 
@@ -153,6 +177,8 @@ export function App() {
         return <Settings />
       case 'ai-usage':
         return <AIUsageDashboard />
+      case 'smart-chat':
+        return <SmartChat />
     }
   }
 
@@ -209,8 +235,13 @@ export function App() {
           <span>SideBrain v0.1.0</span>
         </div>
         <div className="status-bar-right">
+          <div className="status-bar-item ai-status-indicator" title={aiStatus === 'processing' ? 'IA processando...' : aiStatus === 'error' ? 'Erro na IA' : 'IA conectada'}>
+            <span className={`ai-status-dot ${aiStatus}`} />
+            <span>{aiStatus === 'processing' ? 'IA processando...' : 'AI: ' + activeModelLabel}</span>
+            {aiStatus === 'processing' && <span className="ai-status-progress" />}
+          </div>
           <div className="status-bar-item clickable" onClick={() => setCurrentView('settings')} title="Clique para alterar o provedor de IA">
-            <span>AI: {activeModelLabel}</span>
+            <span>⚙</span>
           </div>
         </div>
       </div>

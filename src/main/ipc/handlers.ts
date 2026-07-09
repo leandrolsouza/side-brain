@@ -1,9 +1,11 @@
-import { ipcMain } from 'electron'
+import { ipcMain, nativeTheme } from 'electron'
 import { EntryService } from '../services/entry-service'
 import { DigestService } from '../services/digest-service'
 import { ExportService } from '../services/export-service'
 import { MeetingService } from '../services/meeting-service'
 import { BackupService } from '../services/backup-service'
+import { SmartChatService } from '../services/smart-chat-service'
+import { InsightsService } from '../services/insights-service'
 import { getConfigService } from '../services/config-service'
 import { ProjectRepository } from '../database/repositories/project-repository'
 import { TaskRepository } from '../database/repositories/task-repository'
@@ -18,6 +20,8 @@ export function registerIpcHandlers(): void {
   const exportService = new ExportService()
   const meetingService = new MeetingService()
   const backupService = new BackupService()
+  const smartChatService = new SmartChatService()
+  const insightsService = new InsightsService()
   const projectRepo = new ProjectRepository()
   const taskRepo = new TaskRepository()
   const settingsRepo = new SettingsRepository()
@@ -176,6 +180,10 @@ export function registerIpcHandlers(): void {
     return meetingService.delete(id)
   })
 
+  ipcMain.handle('meeting:prepare', async (_event, projectId: string, title: string, participants: string[]) => {
+    return meetingService.prepareMeeting(projectId, title, participants)
+  })
+
   // Backup handlers
   ipcMain.handle('backup:list', async () => {
     return backupService.listBackups()
@@ -264,5 +272,20 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('ai-usage:getHistory', async (_event, limit?: number, offset?: number) => {
     return aiUsageRepo.getHistory(limit, offset)
+  })
+
+  // Smart Chat handlers
+  ipcMain.handle('smart-chat:send', async (_event, message: string) => {
+    return smartChatService.chat(message)
+  })
+
+  // Proactive Insights handlers
+  ipcMain.handle('insights:generate', async () => {
+    return insightsService.generateInsights()
+  })
+
+  // Theme handler — sincroniza controles nativos (select dropdown) com o tema do app
+  ipcMain.handle('theme:set', async (_event, theme: 'dark' | 'light') => {
+    nativeTheme.themeSource = theme
   })
 }

@@ -1,13 +1,45 @@
 import { Meeting, MeetingProcessResult, EntryType, ActionStatus } from '../../shared/types'
 import { MeetingRepository } from '../database/repositories/meeting-repository'
 import { EntryRepository } from '../database/repositories/entry-repository'
+import { ProjectRepository } from '../database/repositories/project-repository'
 import { TaskRepository } from '../database/repositories/task-repository'
 import { SettingsRepository } from '../database/repositories/settings-repository'
 import { AIService } from './ai-service'
 
+const MEETING_PREP_PROMPT = `Você é um assistente que prepara pautas inteligentes para reuniões de trabalho.
+Dado o contexto do projeto (atividades recentes, tarefas pendentes, decisões e bloqueios), gere uma pauta sugerida para a reunião.
+
+A pauta deve:
+- Ser em markdown
+- Começar com os itens mais urgentes (bloqueios, tarefas atrasadas)
+- Incluir pontos de acompanhamento (tarefas em andamento, aguardando resposta)
+- Mencionar decisões recentes que podem precisar de follow-up
+- Sugerir tópicos com base nos padrões observados
+- Ser concisa e acionável (não mais que 10 tópicos)
+- Incluir um campo "Decisões a tomar" se houver pontos pendentes
+
+Formato esperado:
+# Pauta Sugerida — [título da reunião]
+
+## Urgente
+- ...
+
+## Acompanhamento
+- ...
+
+## Decisões a tomar
+- ...
+
+## Outros pontos
+- ...
+
+Se não houver dados suficientes para uma seção, omita-a.
+Responda APENAS com o markdown da pauta.`
+
 export class MeetingService {
   private meetingRepo = new MeetingRepository()
   private entryRepo = new EntryRepository()
+  private projectRepo = new ProjectRepository()
   private taskRepo = new TaskRepository()
   private settingsRepo = new SettingsRepository()
   private aiService = new AIService()
@@ -42,6 +74,97 @@ export class MeetingService {
 
   delete(id: string): void {
     return this.meetingRepo.delete(id)
+  }
+
+  /**
+   * AI-powered meeting preparation.
+   * Gathers recent activities, pending tasks, decisions and blockers for the project,
+   * then generates a suggested agenda.
+   */
+  async prepareMeeting(projectId: string, meetingTitle: string, participants: string[]): Promise<string> {
+    const settings = this.settingsRepo.get()
+    const project = this.projectRepo.getById(projectId)
+    if (!project) throw new Error('Project not found')
+
+    // Gather project context
+    const entries = this.entryRepo.getAll(projectId)
+    const tasks = this.taskRepo.getByProject(projectId)
+
+    // Recent entries (last 20)
+    const recentEntries = entries.slice(0, 20)
+
+    // Categorize entries
+    const decisions = recentEntries.filter((e) => e.type === 'decision')
+    const blockers = recentEntries.filter((e) => e.type === 'blocker')
+    const demands = recentEntries.filter((e) => e.type === 'demand')
+    const updates = recentEntries.filter((e) => e.type === 'update' || e.type === 'information')
+
+    // Task groups
+    const overdue = tasks.filter((t) => {
+      if (t.status === 'done' || !t.dueDate) return false
+      return t.dueDate < new Date().toISOString().split('T')[0]
+    })
+    const inProgress = tasks.filter((t) => t.status === 'in_progress')
+    const waiting = tasks.filter((t) => t.status === 'waiting')
+    const todo = tasks.filter((t) => t.status === 'todo')
+
+    // Build context message
+    const contextParts: string[] = []
+    contextParts.push(`Reunião: "${meetingTitle}"`)
+    contextParts.push(`Projeto: ${project.name}`)
+    if (participants.length > 0) {
+      contextParts.push(`Participantes: ${participants.join(', ')}`)
+    }
+
+    if (overdue.length > 0) {
+      contextParts.push(`\nTarefas atrasadas (${overdue.length}):`)
+      overdue.forEach((t) => contextParts.push(`- ${t.title} (prazo: ${t.dueDate})`))
+    }
+
+    if (blockers.length > 0) {
+      contextParts.push(`\nBloqueios recentes (${blockers.length}):`)
+      blockers.slice(0, 5).forEach((e) => contextParts.push(`- [${e.createdAt.split('T')[0]}] ${e.improvedText}`))
+    }
+
+    if (inProgress.length > 0) {
+      contextParts.push(`\nTarefas em andamento (${inProgress.length}):`)
+      inProgress.forEach((t) => contextParts.push(`- ${t.title}`))
+    }
+
+    if (waiting.length > 0) {
+      contextParts.push(`\nAguardando resposta (${waiting.length}):`)
+      waiting.forEach((t) => contextParts.push(`- ${t.title}`))
+    }
+
+    if (decisions.length > 0) {
+      contextParts.push(`\nDecisões recentes (${decisions.length}):`)
+      decisions.slice(0, 5).forEach((e) => contextParts.push(`- [${e.createdAt.split('T')[0]}] ${e.improvedText}`))
+    }
+
+    if (demands.length > 0) {
+      contextParts.push(`\nDemandas recentes (${demands.length}):`)
+      demands.slice(0, 5).forEach((e) => contextParts.push(`- [${e.createdAt.split('T')[0]}] ${e.improvedText}`))
+    }
+
+    if (todo.length > 0) {
+      contextParts.push(`\nBacklog (${todo.length} tarefas a fazer):`)
+      todo.slice(0, 5).forEach((t) => contextParts.push(`- ${t.title}`))
+      if (todo.length > 5) contextParts.push(`  ... e mais ${todo.length - 5}`)
+    }
+
+    if (updates.length > 0) {
+      contextParts.push(`\nAtualizações recentes:`)
+      updates.slice(0, 5).forEach((e) => contextParts.push(`- [${e.createdAt.split('T')[0]}] ${e.improvedText}`))
+    }
+
+    const userMessage = contextParts.join('\n')
+
+    return this.aiService.invokeConverseForChat(
+      MEETING_PREP_PROMPT,
+      userMessage,
+      settings,
+      'meeting_processing'
+    )
   }
 
   /**

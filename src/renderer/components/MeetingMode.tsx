@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Play, Square, Plus, Clock, Users, ClipboardPaste, Sparkles, FileText, Copy, Download, Check, RefreshCw } from 'lucide-react'
+import { Play, Square, Plus, Clock, Users, ClipboardPaste, Sparkles, FileText, Copy, Download, Check, RefreshCw, Loader2, ListChecks } from 'lucide-react'
+import { MarkdownViewer } from './MarkdownViewer'
 
 interface Meeting {
   id: string
@@ -49,6 +50,10 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
   const [selectedProjectId, setSelectedProjectId] = useState(projectId || '')
   const [participantsInput, setParticipantsInput] = useState('')
 
+  // Meeting prep (suggested agenda)
+  const [suggestedAgenda, setSuggestedAgenda] = useState<string | null>(null)
+  const [isPreparingAgenda, setIsPreparingAgenda] = useState(false)
+
   // Active meeting
   const [noteInput, setNoteInput] = useState('')
   const [elapsed, setElapsed] = useState(0)
@@ -96,6 +101,29 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
     if (active) {
       setMeeting(active)
       setStep('active')
+    }
+  }
+
+  const handlePrepareAgenda = async () => {
+    if (!selectedProjectId || !title.trim()) return
+    setIsPreparingAgenda(true)
+    try {
+      const participants = participantsInput
+        .split(',')
+        .map((p) => p.trim())
+        .filter(Boolean)
+      const agenda = await window.electronAPI.prepareMeeting(selectedProjectId, title.trim(), participants)
+      setSuggestedAgenda(agenda)
+    } catch (error) {
+      console.error('Failed to prepare agenda:', error)
+    } finally {
+      setIsPreparingAgenda(false)
+    }
+  }
+
+  const handleCopyAgenda = async () => {
+    if (suggestedAgenda) {
+      await navigator.clipboard.writeText(suggestedAgenda)
     }
   }
 
@@ -319,6 +347,42 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
           </div>
 
           <div className="meeting-capture-options">
+            {/* AI Agenda Preparation */}
+            <div className="meeting-prep-section">
+              <button
+                className="vscode-button secondary meeting-prep-button"
+                onClick={handlePrepareAgenda}
+                disabled={isPreparingAgenda || !title.trim() || !selectedProjectId}
+              >
+                {isPreparingAgenda ? (
+                  <>
+                    <Loader2 size={14} className="spinning" />
+                    Preparando pauta...
+                  </>
+                ) : (
+                  <>
+                    <ListChecks size={14} />
+                    Gerar pauta sugerida com IA
+                  </>
+                )}
+              </button>
+
+              {suggestedAgenda && (
+                <div className="meeting-agenda-card">
+                  <div className="meeting-agenda-header">
+                    <Sparkles size={14} />
+                    <span>Pauta Sugerida</span>
+                    <button className="icon-button" onClick={handleCopyAgenda} title="Copiar pauta">
+                      <Copy size={14} />
+                    </button>
+                  </div>
+                  <div className="meeting-agenda-body">
+                    <MarkdownViewer content={suggestedAgenda} />
+                  </div>
+                </div>
+              )}
+            </div>
+
             <p className="meeting-hint">Como deseja capturar?</p>
             <div className="meeting-option-cards">
               <div className="meeting-option-card" onClick={handleStart}>

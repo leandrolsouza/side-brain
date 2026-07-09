@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Circle, Clock, FolderOpen, CheckCircle2, AlertCircle, Timer, ArrowRight, Sparkles, X, Calendar } from 'lucide-react'
+import { Circle, Clock, CheckCircle2, AlertCircle, Timer, Sparkles, X, Calendar, Target, Inbox, History, Lightbulb, Loader2 } from 'lucide-react'
 import { MarkdownViewer } from './MarkdownViewer'
 
 interface Task {
@@ -20,6 +20,7 @@ interface Entry {
   projectId: string
   type: string
   action: string
+  reviewStatus: string
   createdAt: string
 }
 
@@ -28,12 +29,6 @@ interface Project {
   name: string
   description?: string
   isAutoSuggested: boolean
-}
-
-interface ProjectSummary {
-  project: Project
-  taskCounts: { todo: number; in_progress: number; waiting: number; done: number }
-  lastActivity: string | null
 }
 
 interface DashboardProps {
@@ -49,9 +44,12 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [globalSummary, setGlobalSummary] = useState<string | null>(null)
   const [isLoadingSummary, setIsLoadingSummary] = useState(false)
+  const [insights, setInsights] = useState<{ id: string; type: string; title: string; description: string; priority: string; relatedProjectId?: string; relatedProjectName?: string }[]>([])
+  const [isLoadingInsights, setIsLoadingInsights] = useState(false)
 
   useEffect(() => {
     loadData()
+    loadInsights()
   }, [])
 
   const loadData = async () => {
@@ -74,6 +72,21 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
     }
   }
 
+  const loadInsights = async () => {
+    setIsLoadingInsights(true)
+    window.dispatchEvent(new Event('ai:start'))
+    try {
+      const data = await window.electronAPI.generateInsights()
+      setInsights(data)
+      window.dispatchEvent(new Event('ai:end'))
+    } catch (error) {
+      console.error('Failed to generate insights:', error)
+      window.dispatchEvent(new Event('ai:error'))
+    } finally {
+      setIsLoadingInsights(false)
+    }
+  }
+
   const getProjectName = (projectId: string): string => {
     return projects.find((p) => p.id === projectId)?.name || 'Sem projeto'
   }
@@ -83,71 +96,37 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
   const waiting = tasks.filter((t) => t.status === 'waiting')
   const inProgress = tasks.filter((t) => t.status === 'in_progress')
 
-  // Recent entries (last 10)
-  const recentEntries = entries.slice(0, 10)
+  // Pending review entries
+  const pendingReviewCount = entries.filter((e) => e.reviewStatus === 'pending').length
 
-  // Project summaries
-  const projectSummaries: ProjectSummary[] = projects.map((project) => {
-    const projectTasks = tasks.filter((t) => t.projectId === project.id)
-    const projectEntries = entries.filter((e) => e.projectId === project.id)
+  // Focus of the day: overdue + due today + in progress (max 5)
+  const today = new Date().toISOString().split('T')[0]
+  const focusTasks: Task[] = [
+    ...overdueTasks,
+    ...dueThisWeek.filter((t) => t.dueDate === today),
+    ...inProgress,
+  ].slice(0, 5)
 
-    const taskCounts = {
-      todo: projectTasks.filter((t) => t.status === 'todo').length,
-      in_progress: projectTasks.filter((t) => t.status === 'in_progress').length,
-      waiting: projectTasks.filter((t) => t.status === 'waiting').length,
-      done: projectTasks.filter((t) => t.status === 'done').length,
-    }
+  // Yesterday's activity
+  const yesterday = new Date()
+  yesterday.setDate(yesterday.getDate() - 1)
+  const yesterdayStr = yesterday.toDateString()
 
-    const lastEntry = projectEntries[0]
-    const lastActivity = lastEntry?.createdAt || null
-
-    return { project, taskCounts, lastActivity }
-  }).sort((a, b) => {
-    // Sort by most recent activity
-    if (!a.lastActivity) return 1
-    if (!b.lastActivity) return -1
-    return new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime()
-  })
-
-  const formatRelativeTime = (dateStr: string): string => {
-    const date = new Date(dateStr)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffMin = Math.floor(diffMs / 60000)
-    const diffHours = Math.floor(diffMin / 60)
-    const diffDays = Math.floor(diffHours / 24)
-
-    if (diffMin < 1) return 'agora'
-    if (diffMin < 60) return `há ${diffMin}min`
-    if (diffHours < 24) return `há ${diffHours}h`
-    if (diffDays === 1) return 'ontem'
-    if (diffDays < 7) return `há ${diffDays} dias`
-    return date.toLocaleDateString('pt-BR')
-  }
-
-  const formatDateTime = (dateStr: string): string => {
-    const date = new Date(dateStr)
-    const today = new Date()
-    const yesterday = new Date(today)
-    yesterday.setDate(yesterday.getDate() - 1)
-
-    const isToday = date.toDateString() === today.toDateString()
-    const isYesterday = date.toDateString() === yesterday.toDateString()
-
-    const time = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-
-    if (isToday) return `Hoje, ${time}`
-    if (isYesterday) return `Ontem, ${time}`
-    return `${date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}, ${time}`
-  }
+  const yesterdayEntries = entries.filter((e) => new Date(e.createdAt).toDateString() === yesterdayStr)
+  const yesterdayTasksCompleted = tasks.filter(
+    (t) => t.status === 'done' && new Date(t.updatedAt).toDateString() === yesterdayStr
+  )
 
   const handleGlobalSummary = async () => {
     setIsLoadingSummary(true)
+    window.dispatchEvent(new Event('ai:start'))
     try {
       const result = await window.electronAPI.generateGlobalSummary()
       setGlobalSummary(result)
+      window.dispatchEvent(new Event('ai:end'))
     } catch (error) {
       console.error('Failed to generate global summary:', error)
+      window.dispatchEvent(new Event('ai:error'))
     } finally {
       setIsLoadingSummary(false)
     }
@@ -173,10 +152,12 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
             <AlertCircle size={12} />
             <span>{totalPending} pendentes</span>
           </div>
-          <div className="stat-chip">
-            <FolderOpen size={12} />
-            <span>{projects.length} projetos</span>
-          </div>
+          {pendingReviewCount > 0 && (
+            <div className="stat-chip stat-chip-warning">
+              <Inbox size={12} />
+              <span>{pendingReviewCount} para revisar</span>
+            </div>
+          )}
           <button
             className="vscode-button"
             onClick={handleGlobalSummary}
@@ -322,76 +303,161 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
           )}
         </div>
 
-        {/* Section 2: Recent activity */}
-        <div className="dashboard-section dashboard-activity">
-          <h3 className="dashboard-section-title">Atividade Recente</h3>
+        {/* Section 2: Yesterday's recap */}
+        <div className="dashboard-section dashboard-yesterday">
+          <h3 className="dashboard-section-title">
+            <History size={14} />
+            Ontem
+          </h3>
 
-          {recentEntries.length === 0 ? (
+          {yesterdayEntries.length === 0 && yesterdayTasksCompleted.length === 0 ? (
             <div className="dashboard-empty">
               <Clock size={24} />
-              <span>Nenhuma atividade ainda</span>
+              <span>Nenhuma atividade ontem</span>
             </div>
           ) : (
-            <div className="activity-list">
-              {recentEntries.map((entry) => (
-                <div
-                  key={entry.id}
-                  className="activity-item"
-                  onClick={() => onNavigateToProject(entry.projectId, getProjectName(entry.projectId))}
-                >
-                  <span className="activity-time">{formatDateTime(entry.createdAt)}</span>
-                  <span className="activity-project">[{getProjectName(entry.projectId)}]</span>
-                  <span className="activity-text">{entry.improvedText}</span>
+            <div className="yesterday-content">
+              {yesterdayTasksCompleted.length > 0 && (
+                <div className="yesterday-group">
+                  <div className="yesterday-group-header">
+                    <CheckCircle2 size={12} className="yesterday-icon-done" />
+                    <span>{yesterdayTasksCompleted.length} {yesterdayTasksCompleted.length === 1 ? 'tarefa concluída' : 'tarefas concluídas'}</span>
+                  </div>
+                  {yesterdayTasksCompleted.slice(0, 3).map((task) => (
+                    <div
+                      key={task.id}
+                      className="yesterday-item"
+                      onClick={() => onNavigateToProject(task.projectId, getProjectName(task.projectId))}
+                    >
+                      <span className="yesterday-item-text">{task.title}</span>
+                      <span className="yesterday-item-project">{getProjectName(task.projectId)}</span>
+                    </div>
+                  ))}
+                  {yesterdayTasksCompleted.length > 3 && (
+                    <span className="yesterday-more">+{yesterdayTasksCompleted.length - 3} mais</span>
+                  )}
                 </div>
-              ))}
+              )}
+
+              {yesterdayEntries.length > 0 && (
+                <div className="yesterday-group">
+                  <div className="yesterday-group-header">
+                    <Circle size={12} className="yesterday-icon-entries" />
+                    <span>{yesterdayEntries.length} {yesterdayEntries.length === 1 ? 'registro' : 'registros'}</span>
+                  </div>
+                  {yesterdayEntries.slice(0, 4).map((entry) => (
+                    <div
+                      key={entry.id}
+                      className="yesterday-item"
+                      onClick={() => onNavigateToProject(entry.projectId, getProjectName(entry.projectId))}
+                    >
+                      <span className="yesterday-item-text">{entry.improvedText}</span>
+                      <span className="yesterday-item-project">{getProjectName(entry.projectId)}</span>
+                    </div>
+                  ))}
+                  {yesterdayEntries.length > 4 && (
+                    <span className="yesterday-more">+{yesterdayEntries.length - 4} mais</span>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        {/* Section 3: Project summary cards */}
-        <div className="dashboard-section dashboard-projects-summary">
-          <h3 className="dashboard-section-title">Projetos</h3>
+        {/* Section 3: Focus of the day */}
+        <div className="dashboard-section dashboard-focus">
+          <h3 className="dashboard-section-title">
+            <Target size={14} />
+            Foco do Dia
+          </h3>
 
-          {projectSummaries.length === 0 ? (
+          {focusTasks.length === 0 ? (
             <div className="dashboard-empty">
-              <FolderOpen size={24} />
-              <span>Nenhum projeto criado</span>
+              <CheckCircle2 size={24} />
+              <span>Nada urgente para hoje</span>
             </div>
           ) : (
-            <div className="project-summary-grid">
-              {projectSummaries.map(({ project, taskCounts, lastActivity }) => (
+            <div className="focus-list">
+              {focusTasks.map((task) => {
+                const isOverdue = overdueTasks.some((t) => t.id === task.id)
+                const isDueToday = task.dueDate === today
+                return (
+                  <div
+                    key={task.id}
+                    className={`focus-item ${isOverdue ? 'focus-overdue' : isDueToday ? 'focus-today' : 'focus-progress'}`}
+                    onClick={() => onNavigateToProject(task.projectId, getProjectName(task.projectId))}
+                  >
+                    <div className="focus-item-status">
+                      {isOverdue && <AlertCircle size={12} className="focus-icon-overdue" />}
+                      {isDueToday && !isOverdue && <Calendar size={12} className="focus-icon-today" />}
+                      {!isOverdue && !isDueToday && <Circle size={12} className="focus-icon-progress" />}
+                    </div>
+                    <div className="focus-item-content">
+                      <span className="focus-item-title">{task.title}</span>
+                      <span className="focus-item-project">{getProjectName(task.projectId)}</span>
+                    </div>
+                    {isOverdue && <span className="focus-badge overdue">Vencida</span>}
+                    {isDueToday && !isOverdue && <span className="focus-badge today">Hoje</span>}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Section 4: Pending review */}
+        {pendingReviewCount > 0 && (
+          <div className="dashboard-section dashboard-review">
+            <h3 className="dashboard-section-title">
+              <Inbox size={14} />
+              Itens para Revisar
+            </h3>
+            <div className="review-summary">
+              <div className="review-summary-count">
+                <span className="review-count-number">{pendingReviewCount}</span>
+                <span className="review-count-label">
+                  {pendingReviewCount === 1 ? 'entrada aguardando' : 'entradas aguardando'} revisão
+                </span>
+              </div>
+              <p className="review-summary-hint">
+                A IA categorizou novas entradas. Revise para confirmar ou corrigir.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Section 5: Proactive Insights */}
+        <div className="dashboard-section dashboard-insights">
+          <h3 className="dashboard-section-title">
+            <Lightbulb size={14} />
+            Sugestões da IA
+          </h3>
+
+          {isLoadingInsights ? (
+            <div className="dashboard-insights-loading">
+              <Loader2 size={16} className="spinning" />
+              <span>Analisando padrões...</span>
+            </div>
+          ) : insights.length === 0 ? (
+            <div className="dashboard-empty">
+              <Lightbulb size={24} />
+              <span>Nenhuma sugestão no momento</span>
+            </div>
+          ) : (
+            <div className="insights-list">
+              {insights.map((insight) => (
                 <div
-                  key={project.id}
-                  className="project-summary-card"
-                  onClick={() => onNavigateToProject(project.id, project.name)}
+                  key={insight.id}
+                  className={`insight-card insight-${insight.priority}`}
+                  onClick={() => insight.relatedProjectId && onNavigateToProject(insight.relatedProjectId, insight.relatedProjectName || '')}
                 >
-                  <div className="project-summary-name">
-                    <FolderOpen size={14} />
-                    <span>{project.name}</span>
-                    <ArrowRight size={12} className="project-summary-arrow" />
+                  <div className="insight-card-header">
+                    <span className={`insight-priority-dot priority-${insight.priority}`} />
+                    <span className="insight-title">{insight.title}</span>
                   </div>
-                  <div className="project-summary-counts">
-                    {taskCounts.todo > 0 && (
-                      <span className="count-chip todo">{taskCounts.todo}</span>
-                    )}
-                    {taskCounts.in_progress > 0 && (
-                      <span className="count-chip progress">{taskCounts.in_progress}</span>
-                    )}
-                    {taskCounts.waiting > 0 && (
-                      <span className="count-chip waiting">{taskCounts.waiting}</span>
-                    )}
-                    {taskCounts.done > 0 && (
-                      <span className="count-chip done">{taskCounts.done}</span>
-                    )}
-                    {taskCounts.todo + taskCounts.in_progress + taskCounts.waiting + taskCounts.done === 0 && (
-                      <span className="count-chip empty">sem tasks</span>
-                    )}
-                  </div>
-                  {lastActivity && (
-                    <span className="project-summary-time">
-                      <Clock size={10} />
-                      {formatRelativeTime(lastActivity)}
-                    </span>
+                  <p className="insight-description">{insight.description}</p>
+                  {insight.relatedProjectName && (
+                    <span className="insight-project">{insight.relatedProjectName}</span>
                   )}
                 </div>
               ))}

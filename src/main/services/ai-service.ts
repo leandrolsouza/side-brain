@@ -203,6 +203,18 @@ ${projectsSummaryText}`
   }
 
   /**
+   * Public wrapper for smart chat and insights operations.
+   */
+  async invokeConverseForChat(
+    systemPrompt: string,
+    userMessage: string,
+    settings: AppSettings,
+    operationType: AIOperationType = 'smart_chat'
+  ): Promise<string> {
+    return this.invokeConverse(systemPrompt, userMessage, settings, operationType)
+  }
+
+  /**
    * Routes to the appropriate provider based on settings.
    */
   private async invokeConverse(

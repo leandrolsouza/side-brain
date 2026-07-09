@@ -2,9 +2,11 @@ import React, { useState, useRef, useEffect, useCallback } from 'react'
 import {
   Send, CheckCircle2, Mic, MicOff, Users, Gavel, AlertTriangle,
   MessageSquare, Lightbulb, RefreshCw, Sparkles, X, Eye, Edit3,
-  FolderPlus, ChevronDown
+  FolderPlus, ChevronDown, PenLine
 } from 'lucide-react'
 import { CAPTURE_TEMPLATES, CaptureTemplate, EntryPreviewResult, EntryType, ActionStatus } from '@shared/types'
+import { CustomSelect } from './CustomSelect'
+import type { SelectOption } from './CustomSelect'
 
 interface CaptureInputProps {
   onProjectsChanged?: () => void
@@ -152,6 +154,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
     if (!trimmed || captureState === 'processing') return
 
     setCaptureState('processing')
+    window.dispatchEvent(new Event('ai:start'))
     try {
       const result = await window.electronAPI.previewEntry(
         trimmed,
@@ -181,9 +184,11 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
       }
 
       setCaptureState('previewing')
+      window.dispatchEvent(new Event('ai:end'))
     } catch (error) {
       console.error('Failed to preview entry:', error)
       setCaptureState('idle')
+      window.dispatchEvent(new Event('ai:error'))
     }
   }
 
@@ -252,15 +257,20 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
   const isPreviewing = captureState === 'previewing'
 
   return (
-    <div className="flex-col">
-      <div className="panel-header">
-        <span className="panel-title">Captura Rápida</span>
+    <div className="capture-page">
+      {/* Hero section */}
+      <div className="capture-hero">
+        <div className="capture-hero-icon">
+          <PenLine size={24} />
+        </div>
+        <h2 className="capture-hero-title">Captura Rápida</h2>
+        <p className="capture-hero-subtitle">
+          Digite o que aconteceu. A IA organiza, categoriza e sugere ações.
+        </p>
       </div>
-      <p className="panel-description">
-        Digite o que aconteceu e pressione Enter. A IA vai organizar automaticamente.
-      </p>
 
-      <div className="flex-col" style={{ maxWidth: 640 }}>
+      {/* Main capture card */}
+      <div className="capture-main-card">
         {/* Templates */}
         <div className="capture-templates">
           <span className="capture-templates-label">Templates:</span>
@@ -283,275 +293,262 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
           </div>
         </div>
 
-        {/* Project selector (always visible) */}
-        <div className="capture-project-select">
-          <label className="capture-project-label">
-            <ChevronDown size={12} />
-            Projeto (opcional):
-          </label>
-          <select
-            className="vscode-select"
-            value={selectedProjectId}
-            onChange={(e) => setSelectedProjectId(e.target.value)}
-            disabled={!isIdle}
-          >
-            <option value="">IA identifica automaticamente</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
-        </div>
-
         {/* Textarea input */}
-        <textarea
-          ref={inputRef}
-          className="vscode-textarea"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={activeTemplate
-            ? `${activeTemplate.prefix}${activeTemplate.placeholder}`
-            : 'Ex: João falou que o prazo do projeto X mudou pra semana que vem...'}
-          disabled={!isIdle}
-          rows={4}
-          autoFocus
-        />
-
-        {/* Action buttons */}
-        <div className="flex-row">
-          <button
-            className="vscode-button"
-            onClick={handlePreview}
-            disabled={!text.trim() || !isIdle}
-          >
-            {isProcessing ? (
-              <>
-                <Sparkles size={14} className="spin" />
-                Analisando...
-              </>
-            ) : (
-              <>
-                <Eye size={14} />
-                Enviar
-              </>
-            )}
-          </button>
-
-          {speechSupported && (
-            <button
-              className={`vscode-button ${isListening ? 'vscode-button-active' : 'vscode-button-secondary'}`}
-              onClick={toggleVoiceInput}
-              disabled={!isIdle}
-              title={isListening ? 'Parar gravação' : 'Entrada por voz'}
-              style={isListening ? {
-                background: 'var(--vscode-inputValidation-errorBackground, #5a1d1d)',
-                borderColor: 'var(--vscode-inputValidation-errorBorder, #be1100)',
-                animation: 'pulse 1.5s infinite'
-              } : undefined}
-            >
-              {isListening ? <MicOff size={14} /> : <Mic size={14} />}
-              {isListening ? 'Parar' : 'Voz'}
-            </button>
+        <div className="capture-input-wrapper">
+          <textarea
+            ref={inputRef}
+            className="vscode-textarea capture-textarea"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={activeTemplate
+              ? `${activeTemplate.prefix}${activeTemplate.placeholder}`
+              : 'Ex: João falou que o prazo do projeto X mudou pra semana que vem...'}
+            disabled={!isIdle}
+            rows={5}
+            autoFocus
+          />
+          {isListening && (
+            <div className="capture-listening-indicator">
+              <span className="capture-listening-dot" />
+              <span>Ouvindo...</span>
+            </div>
           )}
-
-          <span style={{ color: 'var(--vscode-descriptionForeground)', fontSize: 12 }}>
-            <kbd>Enter</kbd> para enviar, <kbd>Shift+Enter</kbd> nova linha
-          </span>
         </div>
 
-        {/* Preview Card */}
-        {isPreviewing && preview && (
-          <div className="capture-preview-card">
-            <div className="capture-preview-header">
-              <Sparkles size={14} />
-              <span>Prévia da IA</span>
-              <button className="capture-preview-close" onClick={handleCancel} title="Cancelar">
-                <X size={14} />
+        {/* Bottom bar: project + actions */}
+        <div className="capture-bottom-bar">
+          <div className="capture-project-select">
+            <CustomSelect
+              options={[
+                { value: '', label: '🤖 IA identifica o projeto' },
+                ...projects.map((p) => ({ value: p.id, label: p.name }))
+              ]}
+              value={selectedProjectId}
+              onChange={(val) => setSelectedProjectId(val)}
+              disabled={!isIdle}
+            />
+          </div>
+
+          <div className="capture-actions">
+            {speechSupported && (
+              <button
+                className={`capture-action-btn ${isListening ? 'recording' : ''}`}
+                onClick={toggleVoiceInput}
+                disabled={!isIdle}
+                title={isListening ? 'Parar gravação' : 'Entrada por voz'}
+              >
+                {isListening ? <MicOff size={16} /> : <Mic size={16} />}
               </button>
-            </div>
+            )}
 
-            {/* Improved text comparison */}
-            <div className="capture-preview-section">
-              <label className="capture-preview-label">
-                <Edit3 size={12} />
-                Texto melhorado:
-              </label>
-              <textarea
-                className="vscode-textarea capture-preview-textarea"
-                value={editedImprovedText}
-                onChange={(e) => setEditedImprovedText(e.target.value)}
-                rows={3}
-              />
-              {editedImprovedText !== preview.rawText && (
-                <div className="capture-preview-original">
-                  <span className="capture-preview-original-label">Original:</span>
-                  <span className="capture-preview-original-text">{preview.rawText}</span>
-                </div>
+            <button
+              className="capture-send-btn"
+              onClick={handlePreview}
+              disabled={!text.trim() || !isIdle}
+            >
+              {isProcessing ? (
+                <>
+                  <Sparkles size={14} className="spin" />
+                  <span>Analisando...</span>
+                </>
+              ) : (
+                <>
+                  <Send size={14} />
+                  <span>Enviar</span>
+                </>
               )}
-            </div>
+            </button>
+          </div>
+        </div>
+      </div>
 
-            {/* Project selection in preview */}
-            <div className="capture-preview-section">
-              <label className="capture-preview-label">Projeto:</label>
-              <div className="capture-preview-project">
-                {!isCreatingProject ? (
-                  <select
-                    className="vscode-select"
-                    value={editedProjectId}
-                    onChange={(e) => {
-                      if (e.target.value === '__new__') {
-                        setIsCreatingProject(true)
-                        setEditedProjectId('')
-                        setNewProjectName(preview.project.suggestedName || '')
-                      } else {
-                        setEditedProjectId(e.target.value)
+      {/* Keyboard hints */}
+      <div className="capture-hints">
+        <span><kbd>Enter</kbd> enviar</span>
+        <span><kbd>Shift+Enter</kbd> nova linha</span>
+        <span><kbd>Ctrl+N</kbd> foco aqui</span>
+      </div>
+
+      {/* Preview Card */}
+      {isPreviewing && preview && (
+        <div className="capture-preview-card">
+          <div className="capture-preview-header">
+            <Sparkles size={14} />
+            <span>Prévia da IA</span>
+            <button className="capture-preview-close" onClick={handleCancel} title="Cancelar">
+              <X size={14} />
+            </button>
+          </div>
+
+          {/* Improved text comparison */}
+          <div className="capture-preview-section">
+            <label className="capture-preview-label">
+              <Edit3 size={12} />
+              Texto melhorado:
+            </label>
+            <textarea
+              className="vscode-textarea capture-preview-textarea"
+              value={editedImprovedText}
+              onChange={(e) => setEditedImprovedText(e.target.value)}
+              rows={3}
+            />
+            {editedImprovedText !== preview.rawText && (
+              <div className="capture-preview-original">
+                <span className="capture-preview-original-label">Original:</span>
+                <span className="capture-preview-original-text">{preview.rawText}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Project selection in preview */}
+          <div className="capture-preview-section">
+            <label className="capture-preview-label">Projeto:</label>
+            <div className="capture-preview-project">
+              {!isCreatingProject ? (
+                <CustomSelect
+                  options={[
+                    { value: '', label: 'Selecionar projeto...' },
+                    ...projects.map((p) => ({ value: p.id, label: p.name })),
+                    { value: '__new__', label: '+ Criar novo projeto' }
+                  ]}
+                  value={editedProjectId}
+                  onChange={(val) => {
+                    if (val === '__new__') {
+                      setIsCreatingProject(true)
+                      setEditedProjectId('')
+                      setNewProjectName(preview.project.suggestedName || '')
+                    } else {
+                      setEditedProjectId(val)
+                    }
+                  }}
+                />
+              ) : (
+                <div className="capture-preview-new-project">
+                  <FolderPlus size={14} />
+                  <input
+                    type="text"
+                    className="vscode-input"
+                    value={newProjectName}
+                    onChange={(e) => setNewProjectName(e.target.value)}
+                    placeholder="Nome do novo projeto"
+                    autoFocus
+                  />
+                  <button
+                    className="vscode-button secondary"
+                    onClick={() => {
+                      setIsCreatingProject(false)
+                      setNewProjectName('')
+                      if (preview.project.id) {
+                        setEditedProjectId(preview.project.id)
                       }
                     }}
+                    title="Cancelar criação"
                   >
-                    <option value="">Selecionar projeto...</option>
-                    {projects.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                    <option value="__new__">+ Criar novo projeto</option>
-                  </select>
-                ) : (
-                  <div className="capture-preview-new-project">
-                    <FolderPlus size={14} />
-                    <input
-                      type="text"
-                      className="vscode-input"
-                      value={newProjectName}
-                      onChange={(e) => setNewProjectName(e.target.value)}
-                      placeholder="Nome do novo projeto"
-                      autoFocus
-                    />
-                    <button
-                      className="vscode-button secondary"
-                      onClick={() => {
-                        setIsCreatingProject(false)
-                        setNewProjectName('')
-                        // Restore AI suggestion if available
-                        if (preview.project.id) {
-                          setEditedProjectId(preview.project.id)
-                        }
-                      }}
-                      title="Cancelar criação"
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                )}
-                {preview.project.suggestedName && !isCreatingProject && !editedProjectId && (
-                  <div className="capture-preview-suggestion">
-                    <Sparkles size={12} />
-                    <span>Sugestão da IA: </span>
-                    <button
-                      className="capture-preview-suggestion-btn"
-                      onClick={() => {
-                        setIsCreatingProject(true)
-                        setNewProjectName(preview.project.suggestedName || '')
-                      }}
-                    >
-                      Criar "{preview.project.suggestedName}"
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Type and Action badges */}
-            <div className="capture-preview-section capture-preview-row">
-              <div className="capture-preview-field">
-                <label className="capture-preview-label">Tipo:</label>
-                <select
-                  className="vscode-select capture-preview-select-sm"
-                  value={editedType}
-                  onChange={(e) => setEditedType(e.target.value as EntryType)}
-                >
-                  {Object.entries(TYPE_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>{label}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="capture-preview-field">
-                <label className="capture-preview-label">Ação:</label>
-                <select
-                  className="vscode-select capture-preview-select-sm"
-                  value={editedAction}
-                  onChange={(e) => setEditedAction(e.target.value as ActionStatus)}
-                >
-                  {Object.entries(ACTION_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>{label}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Suggested task */}
-            {preview.suggestedTask && (
-              <div className="capture-preview-section">
-                <label className="capture-preview-label capture-preview-task-label">
-                  <input
-                    type="checkbox"
-                    checked={includeSuggestedTask}
-                    onChange={(e) => setIncludeSuggestedTask(e.target.checked)}
-                  />
-                  Criar tarefa sugerida:
-                </label>
-                <div className={`capture-preview-task ${!includeSuggestedTask ? 'disabled' : ''}`}>
-                  <strong>{preview.suggestedTask.title}</strong>
-                  {preview.suggestedTask.description && (
-                    <span className="capture-preview-task-desc">{preview.suggestedTask.description}</span>
-                  )}
+                    <X size={12} />
+                  </button>
                 </div>
-              </div>
-            )}
-
-            {/* AI reasoning */}
-            {preview.reasoning && (
-              <div className="capture-preview-reasoning">
-                <span className="capture-preview-reasoning-text">{preview.reasoning}</span>
-              </div>
-            )}
-
-            {/* Confirm / Cancel */}
-            <div className="capture-preview-actions">
-              <button
-                className="vscode-button"
-                onClick={handleConfirm}
-                disabled={captureState === 'confirming' || (!editedProjectId && !isCreatingProject) || (isCreatingProject && !newProjectName.trim())}
-              >
-                <CheckCircle2 size={14} />
-                {captureState === 'confirming' ? 'Salvando...' : 'Confirmar'}
-              </button>
-              <button
-                className="vscode-button secondary"
-                onClick={handleCancel}
-                disabled={captureState === 'confirming'}
-              >
-                Voltar e editar
-              </button>
-              {!editedProjectId && !isCreatingProject && (
-                <span className="capture-preview-warning">
-                  Selecione um projeto para confirmar
-                </span>
+              )}
+              {preview.project.suggestedName && !isCreatingProject && !editedProjectId && (
+                <div className="capture-preview-suggestion">
+                  <Sparkles size={12} />
+                  <span>Sugestão da IA: </span>
+                  <button
+                    className="capture-preview-suggestion-btn"
+                    onClick={() => {
+                      setIsCreatingProject(true)
+                      setNewProjectName(preview.project.suggestedName || '')
+                    }}
+                  >
+                    Criar "{preview.project.suggestedName}"
+                  </button>
+                </div>
               )}
             </div>
           </div>
-        )}
 
-        {/* Success toast */}
-        {lastSubmitted && (
-          <div className="toast">
-            <CheckCircle2 size={14} />
-            Registrado com sucesso
+          {/* Type and Action badges */}
+          <div className="capture-preview-section capture-preview-row">
+            <div className="capture-preview-field">
+              <label className="capture-preview-label">Tipo:</label>
+              <CustomSelect
+                options={Object.entries(TYPE_LABELS).map(([value, label]) => ({ value, label }))}
+                value={editedType}
+                onChange={(val) => setEditedType(val as EntryType)}
+                className="capture-preview-select-sm"
+              />
+            </div>
+            <div className="capture-preview-field">
+              <label className="capture-preview-label">Ação:</label>
+              <CustomSelect
+                options={Object.entries(ACTION_LABELS).map(([value, label]) => ({ value, label }))}
+                value={editedAction}
+                onChange={(val) => setEditedAction(val as ActionStatus)}
+                className="capture-preview-select-sm"
+              />
+            </div>
           </div>
-        )}
-      </div>
 
-      <div className="mt-16" style={{ color: 'var(--vscode-descriptionForeground)', fontSize: 12 }}>
-        Dica: Use <kbd>Ctrl+Shift+Space</kbd> para abrir a captura de qualquer lugar. <kbd>Ctrl+N</kbd> navega para cá. <kbd>Ctrl+Enter</kbd> envia.
-      </div>
+          {/* Suggested task */}
+          {preview.suggestedTask && (
+            <div className="capture-preview-section">
+              <label className="capture-preview-label capture-preview-task-label">
+                <input
+                  type="checkbox"
+                  checked={includeSuggestedTask}
+                  onChange={(e) => setIncludeSuggestedTask(e.target.checked)}
+                />
+                Criar tarefa sugerida:
+              </label>
+              <div className={`capture-preview-task ${!includeSuggestedTask ? 'disabled' : ''}`}>
+                <strong>{preview.suggestedTask.title}</strong>
+                {preview.suggestedTask.description && (
+                  <span className="capture-preview-task-desc">{preview.suggestedTask.description}</span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* AI reasoning */}
+          {preview.reasoning && (
+            <div className="capture-preview-reasoning">
+              <span className="capture-preview-reasoning-text">{preview.reasoning}</span>
+            </div>
+          )}
+
+          {/* Confirm / Cancel */}
+          <div className="capture-preview-actions">
+            <button
+              className="vscode-button"
+              onClick={handleConfirm}
+              disabled={captureState === 'confirming' || (!editedProjectId && !isCreatingProject) || (isCreatingProject && !newProjectName.trim())}
+            >
+              <CheckCircle2 size={14} />
+              {captureState === 'confirming' ? 'Salvando...' : 'Confirmar'}
+            </button>
+            <button
+              className="vscode-button secondary"
+              onClick={handleCancel}
+              disabled={captureState === 'confirming'}
+            >
+              Voltar e editar
+            </button>
+            {!editedProjectId && !isCreatingProject && (
+              <span className="capture-preview-warning">
+                Selecione um projeto para confirmar
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Success toast */}
+      {lastSubmitted && (
+        <div className="capture-success-toast">
+          <CheckCircle2 size={16} />
+          <span>Registrado com sucesso!</span>
+        </div>
+      )}
     </div>
   )
 }

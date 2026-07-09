@@ -17,6 +17,23 @@ interface SidebarProps {
   refreshKey: number
 }
 
+const PROJECT_COLORS = [
+  '#4fc1ff', // cyan
+  '#c586c0', // purple
+  '#6abf69', // green
+  '#e8a63b', // amber
+  '#f48771', // coral
+  '#75beff', // blue
+  '#dcdcaa', // gold
+  '#9cdcfe', // light blue
+  '#ce9178', // peach
+  '#b5cea8', // lime
+]
+
+function getProjectColor(index: number): string {
+  return PROJECT_COLORS[index % PROJECT_COLORS.length]
+}
+
 export function Sidebar({ currentView, onViewChange, onProjectSelect, refreshKey }: SidebarProps) {
   const [projects, setProjects] = useState<Project[]>([])
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
@@ -97,13 +114,14 @@ export function Sidebar({ currentView, onViewChange, onProjectSelect, refreshKey
           </div>
           {expandedSections.projects && (
             <div className="sidebar-section-body">
-              {projects.map((project) => (
+              {projects.map((project, index) => (
                 <div
                   key={project.id}
                   className="tree-item"
                   onClick={() => onProjectSelect(project.id, project.name)}
                 >
-                  <FolderOpen size={16} className="tree-item-icon" />
+                  <span className="project-color-dot" style={{ background: getProjectColor(index) }} />
+                  <FolderOpen size={16} className="tree-item-icon" style={{ color: getProjectColor(index) }} />
                   <span className="tree-item-label">{project.name}</span>
                   {project.isAutoSuggested && (
                     <Sparkles size={12} className="tree-item-icon" style={{ color: 'var(--vscode-notificationsWarningIcon-foreground)' }} />

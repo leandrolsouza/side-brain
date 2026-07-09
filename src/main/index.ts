@@ -1,4 +1,4 @@
-import { app, BrowserWindow, globalShortcut } from 'electron'
+import { app, BrowserWindow, globalShortcut, nativeTheme } from 'electron'
 import path from 'path'
 import { registerIpcHandlers } from './ipc/handlers'
 import { closeDatabase } from './database/schema'
@@ -17,6 +17,12 @@ function createWindow(): void {
     minWidth: 600,
     minHeight: 400,
     title: 'SideBrain',
+    titleBarStyle: 'hidden',
+    titleBarOverlay: {
+      color: '#1e1e1e',
+      symbolColor: '#cccccc',
+      height: 36,
+    },
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -49,6 +55,9 @@ function registerGlobalShortcut(): void {
 }
 
 app.whenReady().then(() => {
+  // Forçar tema escuro nos controles nativos (select dropdown, scrollbar, etc)
+  nativeTheme.themeSource = 'dark'
+
   // Auto backup antes de abrir a database
   const backupService = new BackupService()
   backupService.createAutoBackup()
