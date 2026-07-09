@@ -76,9 +76,12 @@
   --vscode-settings-headerForeground: #e7e7e7;
   --vscode-settings-modifiedItemIndicator: #0c7d9d;
   --vscode-textLink-foreground: #3794ff;
+
+  /* Content font customization */
+  --content-font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --content-font-size: 14px;
 }
 
-/* === VS Code Light Theme === */
 [data-theme="light"] {
   --vscode-editor-background: #ffffff;
   --vscode-editor-foreground: #333333;
@@ -461,6 +464,8 @@ body {
   overflow-y: auto;
   padding: 20px 32px;
   background: var(--vscode-editor-background);
+  font-family: var(--content-font-family);
+  font-size: var(--content-font-size);
 }
 
 /* === Status Bar === */

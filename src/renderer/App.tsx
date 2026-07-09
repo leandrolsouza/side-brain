@@ -27,6 +27,17 @@ const MODEL_LABELS: Record<string, string> = {
   'us.amazon.nova-micro-v1:0': 'Nova Micro',
 }
 
+const FONT_FAMILY_STACKS: Record<string, string> = {
+  'system-ui': 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  'inter': '"Inter", system-ui, sans-serif',
+  'segoe-ui': '"Segoe UI", system-ui, sans-serif',
+  'roboto': '"Roboto", system-ui, sans-serif',
+  'jetbrains-mono': '"JetBrains Mono", "Fira Code", monospace',
+  'fira-code': '"Fira Code", "JetBrains Mono", monospace',
+  'cascadia-code': '"Cascadia Code", "Fira Code", monospace',
+  'georgia': 'Georgia, "Times New Roman", serif',
+}
+
 export function App() {
   const [currentView, setCurrentView] = useState<View>('dashboard')
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
@@ -88,6 +99,12 @@ export function App() {
         } else if (data?.modelId) {
           setActiveModelLabel(MODEL_LABELS[data.modelId] || data.modelId)
         }
+        // Apply font settings
+        const fontFamily = data?.fontFamily || 'system-ui'
+        const fontSize = data?.fontSize || '14'
+        const stack = FONT_FAMILY_STACKS[fontFamily] || FONT_FAMILY_STACKS['system-ui']
+        document.documentElement.style.setProperty('--content-font-family', stack)
+        document.documentElement.style.setProperty('--content-font-size', `${fontSize}px`)
       } catch { /* ignore */ }
     }
     loadModel()

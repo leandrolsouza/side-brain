@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { CheckCircle2, Download, Upload, Trash2, RotateCcw, HardDrive, AlertTriangle, FolderOpen, Database, Settings as SettingsIcon, Cpu, Cloud, Monitor } from 'lucide-react'
+import { CheckCircle2, Download, Upload, Trash2, RotateCcw, HardDrive, AlertTriangle, FolderOpen, Database, Settings as SettingsIcon, Cpu, Cloud, Monitor, Type } from 'lucide-react'
 import { ConfirmModal } from './ConfirmModal'
 
 interface SettingsProps {
@@ -15,6 +15,8 @@ interface AppSettings {
   localEndpoint: string
   localModelId: string
   localApiKey: string
+  fontFamily: string
+  fontSize: string
 }
 
 const AVAILABLE_MODELS = [
@@ -37,7 +39,18 @@ const AWS_REGIONS = [
   'sa-east-1',
 ]
 
-type SettingsTab = 'geral' | 'dados' | 'avancado'
+const FONT_FAMILIES = [
+  { id: 'system-ui', label: 'Sistema (padrão)', stack: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' },
+  { id: 'inter', label: 'Inter', stack: '"Inter", system-ui, sans-serif' },
+  { id: 'segoe-ui', label: 'Segoe UI', stack: '"Segoe UI", system-ui, sans-serif' },
+  { id: 'roboto', label: 'Roboto', stack: '"Roboto", system-ui, sans-serif' },
+  { id: 'jetbrains-mono', label: 'JetBrains Mono', stack: '"JetBrains Mono", "Fira Code", monospace' },
+  { id: 'fira-code', label: 'Fira Code', stack: '"Fira Code", "JetBrains Mono", monospace' },
+  { id: 'cascadia-code', label: 'Cascadia Code', stack: '"Cascadia Code", "Fira Code", monospace' },
+  { id: 'georgia', label: 'Georgia', stack: 'Georgia, "Times New Roman", serif' },
+]
+
+type SettingsTab = 'geral' | 'aparencia' | 'dados' | 'avancado'
 
 export function Settings({ }: SettingsProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>('geral')
@@ -49,6 +62,8 @@ export function Settings({ }: SettingsProps) {
     localEndpoint: 'http://localhost:1234',
     localModelId: '',
     localApiKey: '',
+    fontFamily: 'system-ui',
+    fontSize: '14',
   })
   const [isSaving, setIsSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -301,6 +316,7 @@ export function Settings({ }: SettingsProps) {
 
   const tabs: { id: SettingsTab; label: string; icon: React.ReactNode }[] = [
     { id: 'geral', label: 'Geral', icon: <SettingsIcon size={14} /> },
+    { id: 'aparencia', label: 'Aparência', icon: <Type size={14} /> },
     { id: 'dados', label: 'Dados', icon: <HardDrive size={14} /> },
     { id: 'avancado', label: 'Avançado', icon: <Cpu size={14} /> },
   ]
@@ -450,6 +466,114 @@ export function Settings({ }: SettingsProps) {
           </div>
         </div>
       )}
+
+      {/* Save */}
+      <div className="flex-row" style={{ marginTop: 16 }}>
+        <button
+          className="vscode-button"
+          onClick={handleSave}
+          disabled={isSaving}
+        >
+          {isSaving ? 'Salvando...' : 'Salvar Configurações'}
+        </button>
+        {saved && (
+          <div className="toast">
+            <CheckCircle2 size={14} />
+            Salvo com sucesso
+          </div>
+        )}
+      </div>
+    </div>
+  )
+
+  const renderAparenciaTab = () => (
+    <div className="settings-tab-content">
+      <div className="settings-group">
+        <div className="settings-section-title">
+          <Type size={16} />
+          <span>Fonte do Conteúdo</span>
+        </div>
+
+        <div className="settings-item">
+          <div className="settings-item-label">Família da Fonte</div>
+          <div className="settings-item-description">
+            Fonte usada na área de conteúdo (entradas, tarefas, captura). A interface do app não é afetada.
+          </div>
+          <select
+            className="vscode-select"
+            value={settings.fontFamily}
+            onChange={(e) => setSettings({ ...settings, fontFamily: e.target.value })}
+          >
+            <optgroup label="Sans-serif">
+              {FONT_FAMILIES.filter(f => !f.stack.includes('monospace') && !f.stack.includes('serif,')).map((font) => (
+                <option key={font.id} value={font.id}>{font.label}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Monospace">
+              {FONT_FAMILIES.filter(f => f.stack.includes('monospace')).map((font) => (
+                <option key={font.id} value={font.id}>{font.label}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Serif">
+              {FONT_FAMILIES.filter(f => f.stack.includes('serif,') && !f.stack.includes('sans-serif')).map((font) => (
+                <option key={font.id} value={font.id}>{font.label}</option>
+              ))}
+            </optgroup>
+          </select>
+        </div>
+
+        <div className="settings-item">
+          <div className="settings-item-label">Tamanho da Fonte</div>
+          <div className="settings-item-description">
+            Tamanho em pixels para a área de conteúdo ({settings.fontSize}px).
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
+            <span style={{ fontSize: 11, opacity: 0.7 }}>12</span>
+            <input
+              type="range"
+              min="12"
+              max="20"
+              step="1"
+              value={settings.fontSize}
+              onChange={(e) => setSettings({ ...settings, fontSize: e.target.value })}
+              style={{ flex: 1, maxWidth: 200 }}
+            />
+            <span style={{ fontSize: 11, opacity: 0.7 }}>20</span>
+            <input
+              type="number"
+              className="vscode-input"
+              min="12"
+              max="20"
+              value={settings.fontSize}
+              onChange={(e) => {
+                const val = Math.min(20, Math.max(12, Number(e.target.value)))
+                setSettings({ ...settings, fontSize: String(val) })
+              }}
+              style={{ width: 56 }}
+            />
+          </div>
+        </div>
+
+        {/* Live Preview */}
+        <div className="settings-item">
+          <div className="settings-item-label">Pré-visualização</div>
+          <div
+            style={{
+              marginTop: 8,
+              padding: '16px',
+              borderRadius: 4,
+              background: 'var(--vscode-editor-background)',
+              border: '1px solid var(--vscode-panel-border)',
+              fontFamily: FONT_FAMILIES.find(f => f.id === settings.fontFamily)?.stack || 'system-ui',
+              fontSize: `${settings.fontSize}px`,
+              lineHeight: 1.6,
+            }}
+          >
+            <p>Reunião com equipe de produto sobre roadmap Q3.</p>
+            <p style={{ marginTop: 8, opacity: 0.7 }}>Decisão: priorizar integração com calendário antes do módulo de relatórios.</p>
+          </div>
+        </div>
+      </div>
 
       {/* Save */}
       <div className="flex-row" style={{ marginTop: 16 }}>
@@ -687,6 +811,7 @@ export function Settings({ }: SettingsProps) {
       {/* Tab content */}
       <div className="settings-panel">
         {activeTab === 'geral' && renderGeralTab()}
+        {activeTab === 'aparencia' && renderAparenciaTab()}
         {activeTab === 'dados' && renderDadosTab()}
         {activeTab === 'avancado' && renderAvancadoTab()}
       </div>

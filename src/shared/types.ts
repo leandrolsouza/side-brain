@@ -175,6 +175,9 @@ export interface AppSettings {
   localEndpoint: string
   localModelId: string
   localApiKey: string
+  // Appearance settings
+  fontFamily: string
+  fontSize: string
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -187,6 +190,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   localEndpoint: 'http://localhost:1234',
   localModelId: '',
   localApiKey: '',
+  fontFamily: 'system-ui',
+  fontSize: '14',
 }
 
 // === Meeting Types ===
