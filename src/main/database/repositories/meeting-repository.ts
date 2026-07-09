@@ -7,8 +7,8 @@ export class MeetingRepository {
     const db = getDatabase()
 
     let query = `
-      SELECT id, project_id as projectId, title, participants, started_at as startedAt,
-             ended_at as endedAt, status, raw_notes as rawNotes,
+      SELECT id, project_id as projectId, title, participants, meeting_date as meetingDate,
+             started_at as startedAt, ended_at as endedAt, status, raw_notes as rawNotes,
              pasted_transcription as pastedTranscription,
              generated_minutes as generatedMinutes, created_at as createdAt
       FROM meetings
@@ -16,10 +16,10 @@ export class MeetingRepository {
 
     let rows: any[]
     if (projectId) {
-      query += ' WHERE project_id = ? ORDER BY created_at DESC'
+      query += ' WHERE project_id = ? ORDER BY meeting_date DESC, created_at DESC'
       rows = db.prepare(query).all(projectId) as any[]
     } else {
-      query += ' ORDER BY created_at DESC'
+      query += ' ORDER BY meeting_date DESC, created_at DESC'
       rows = db.prepare(query).all() as any[]
     }
 
@@ -29,8 +29,8 @@ export class MeetingRepository {
   getById(id: string): Meeting | null {
     const db = getDatabase()
     const row = db.prepare(`
-      SELECT id, project_id as projectId, title, participants, started_at as startedAt,
-             ended_at as endedAt, status, raw_notes as rawNotes,
+      SELECT id, project_id as projectId, title, participants, meeting_date as meetingDate,
+             started_at as startedAt, ended_at as endedAt, status, raw_notes as rawNotes,
              pasted_transcription as pastedTranscription,
              generated_minutes as generatedMinutes, created_at as createdAt
       FROM meetings WHERE id = ?
@@ -43,8 +43,8 @@ export class MeetingRepository {
   getActive(): Meeting | null {
     const db = getDatabase()
     const row = db.prepare(`
-      SELECT id, project_id as projectId, title, participants, started_at as startedAt,
-             ended_at as endedAt, status, raw_notes as rawNotes,
+      SELECT id, project_id as projectId, title, participants, meeting_date as meetingDate,
+             started_at as startedAt, ended_at as endedAt, status, raw_notes as rawNotes,
              pasted_transcription as pastedTranscription,
              generated_minutes as generatedMinutes, created_at as createdAt
       FROM meetings WHERE status = 'active' LIMIT 1
@@ -58,23 +58,26 @@ export class MeetingRepository {
     projectId: string
     title: string
     participants?: string[]
+    meetingDate?: string
   }): Meeting {
     const db = getDatabase()
     const id = uuid()
     const now = new Date().toISOString()
     const participants = JSON.stringify(data.participants || [])
     const rawNotes = JSON.stringify([])
+    const meetingDate = data.meetingDate || now.slice(0, 10)
 
     db.prepare(`
-      INSERT INTO meetings (id, project_id, title, participants, started_at, status, raw_notes, created_at)
-      VALUES (?, ?, ?, ?, ?, 'active', ?, ?)
-    `).run(id, data.projectId, data.title, participants, now, rawNotes, now)
+      INSERT INTO meetings (id, project_id, title, participants, meeting_date, started_at, status, raw_notes, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?)
+    `).run(id, data.projectId, data.title, participants, meetingDate, now, rawNotes, now)
 
     return {
       id,
       projectId: data.projectId,
       title: data.title,
       participants: data.participants || [],
+      meetingDate,
       startedAt: now,
       endedAt: null,
       status: 'active',

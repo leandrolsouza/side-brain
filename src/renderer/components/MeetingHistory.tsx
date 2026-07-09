@@ -6,6 +6,7 @@ interface Meeting {
   projectId: string
   title: string
   participants: string[]
+  meetingDate: string
   startedAt: string
   endedAt: string | null
   status: string
@@ -107,7 +108,9 @@ export function MeetingHistory({ projectId }: MeetingHistoryProps) {
                 <div className="meeting-history-meta">
                   <span>
                     <Clock size={10} />
-                    {formatDate(meeting.startedAt)}
+                    {meeting.meetingDate
+                      ? new Date(meeting.meetingDate + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                      : formatDate(meeting.startedAt)}
                   </span>
                   <span>
                     Duração: {formatDuration(meeting.startedAt, meeting.endedAt)}

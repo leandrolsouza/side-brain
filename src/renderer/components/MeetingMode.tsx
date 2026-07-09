@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Play, Square, Plus, Clock, Users, ClipboardPaste, Sparkles, FileText, Copy, Download, Check, RefreshCw, Loader2, ListChecks } from 'lucide-react'
+import { Play, Square, Plus, Clock, Users, ClipboardPaste, Sparkles, FileText, Copy, Download, Check, RefreshCw, Loader2, ListChecks, Trash2, AlertTriangle } from 'lucide-react'
 import { MarkdownViewer } from './MarkdownViewer'
+import { ConfirmModal } from './ConfirmModal'
 
 interface Meeting {
   id: string
   projectId: string
   title: string
   participants: string[]
+  meetingDate: string
   startedAt: string
   endedAt: string | null
   status: string
@@ -30,6 +32,11 @@ interface ProcessedEntry {
 interface ProcessedTask {
   title: string
   description?: string
+  similarTo?: {
+    taskId: string
+    taskTitle: string
+    reason: string
+  }
   selected: boolean
 }
 
@@ -49,6 +56,7 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
   const [title, setTitle] = useState('')
   const [selectedProjectId, setSelectedProjectId] = useState(projectId || '')
   const [participantsInput, setParticipantsInput] = useState('')
+  const [meetingDate, setMeetingDate] = useState(() => new Date().toISOString().slice(0, 10))
 
   // Meeting prep (suggested agenda)
   const [suggestedAgenda, setSuggestedAgenda] = useState<string | null>(null)
@@ -69,11 +77,21 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
   const [previewEntries, setPreviewEntries] = useState<ProcessedEntry[]>([])
   const [previewTasks, setPreviewTasks] = useState<ProcessedTask[]>([])
   const [isSaving, setIsSaving] = useState(false)
+  const [savedEntryIds, setSavedEntryIds] = useState<string[]>([])
+  const [savedTaskIds, setSavedTaskIds] = useState<string[]>([])
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   useEffect(() => {
     loadProjects()
     checkActiveMeeting()
   }, [])
+
+  // Sync selectedProjectId when prop changes (e.g. navigating from a project)
+  useEffect(() => {
+    if (projectId) {
+      setSelectedProjectId(projectId)
+    }
+  }, [projectId])
 
   useEffect(() => {
     if (step === 'active' && meeting) {
@@ -139,6 +157,7 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
       projectId: selectedProjectId,
       title: title.trim(),
       participants,
+      meetingDate,
     })
 
     setMeeting(created)
@@ -179,7 +198,7 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
           (result.entries || []).map((e: any) => ({ ...e, selected: true }))
         )
         setPreviewTasks(
-          (result.tasks || []).map((t: any) => ({ ...t, selected: true }))
+          (result.tasks || []).map((t: any) => ({ ...t, selected: !t.similarTo }))
         )
         // Update meeting with minutes
         setMeeting((prev) => prev ? { ...prev, generatedMinutes: result.minutes, status: 'processed' } : null)
@@ -205,7 +224,9 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
         .filter((t) => t.selected)
         .map(({ title, description }) => ({ title, description }))
 
-      await window.electronAPI.saveSelectedMeetingItems(meeting.id, selectedE, selectedT)
+      const result = await window.electronAPI.saveSelectedMeetingItems(meeting.id, selectedE, selectedT)
+      setSavedEntryIds(result.entryIds || [])
+      setSavedTaskIds(result.taskIds || [])
       setStep('saved')
     } catch (error) {
       console.error('Failed to save selected items:', error)
@@ -262,7 +283,7 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
           (result.entries || []).map((e: any) => ({ ...e, selected: true }))
         )
         setPreviewTasks(
-          (result.tasks || []).map((t: any) => ({ ...t, selected: true }))
+          (result.tasks || []).map((t: any) => ({ ...t, selected: !t.similarTo }))
         )
       }
     } catch (error) {
@@ -277,11 +298,31 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
     setStep('setup')
     setTitle('')
     setParticipantsInput('')
+    setMeetingDate(new Date().toISOString().slice(0, 10))
     setTranscription('')
     setGeneratedMinutes('')
     setPreviewEntries([])
     setPreviewTasks([])
+    setSavedEntryIds([])
+    setSavedTaskIds([])
     setElapsed(0)
+  }
+
+  const handleDeleteMeeting = async () => {
+    if (!meeting) return
+    try {
+      if (savedEntryIds.length > 0 || savedTaskIds.length > 0) {
+        // Delete meeting + associated data that was created
+        await window.electronAPI.deleteMeetingWithData(meeting.id, savedEntryIds, savedTaskIds)
+      } else {
+        // Just delete the meeting (nothing was saved yet)
+        await window.electronAPI.deleteMeeting(meeting.id)
+      }
+      setShowDeleteConfirm(false)
+      handleNewMeeting()
+    } catch (error) {
+      console.error('Failed to delete meeting:', error)
+    }
   }
 
   const formatTime = (seconds: number): string => {
@@ -304,12 +345,20 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
   // === SETUP ===
   if (step === 'setup') {
     return (
-      <div className="meeting-container">
-        <div className="panel-header">
-          <span className="panel-title">Nova Reunião</span>
+      <div className="meeting-review-page">
+        {/* Hero */}
+        <div className="capture-hero">
+          <div className="capture-hero-icon">
+            <Play size={24} />
+          </div>
+          <h2 className="capture-hero-title">Nova Reunião</h2>
+          <p className="capture-hero-subtitle">
+            Capture notas ao vivo ou cole a transcrição depois. A IA gera a ata automaticamente.
+          </p>
         </div>
 
-        <div className="meeting-setup">
+        {/* Form card */}
+        <div className="meeting-review-card">
           <div className="meeting-form-group">
             <label>Título da reunião</label>
             <input
@@ -336,6 +385,16 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
           </div>
 
           <div className="meeting-form-group">
+            <label>Data da reunião</label>
+            <input
+              type="date"
+              className="vscode-input"
+              value={meetingDate}
+              onChange={(e) => setMeetingDate(e.target.value)}
+            />
+          </div>
+
+          <div className="meeting-form-group">
             <label>Participantes (opcional)</label>
             <input
               type="text"
@@ -345,59 +404,62 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
               placeholder="João, Maria, Pedro (separados por vírgula)"
             />
           </div>
+        </div>
 
-          <div className="meeting-capture-options">
-            {/* AI Agenda Preparation */}
-            <div className="meeting-prep-section">
-              <button
-                className="vscode-button secondary meeting-prep-button"
-                onClick={handlePrepareAgenda}
-                disabled={isPreparingAgenda || !title.trim() || !selectedProjectId}
-              >
-                {isPreparingAgenda ? (
-                  <>
-                    <Loader2 size={14} className="spinning" />
-                    Preparando pauta...
-                  </>
-                ) : (
-                  <>
-                    <ListChecks size={14} />
-                    Gerar pauta sugerida com IA
-                  </>
-                )}
-              </button>
+        {/* AI Agenda Preparation */}
+        <div className="meeting-prep-section">
+          <button
+            className="vscode-button secondary meeting-prep-button"
+            onClick={handlePrepareAgenda}
+            disabled={isPreparingAgenda || !title.trim() || !selectedProjectId}
+          >
+            {isPreparingAgenda ? (
+              <>
+                <Loader2 size={14} className="spinning" />
+                Preparando pauta...
+              </>
+            ) : (
+              <>
+                <ListChecks size={14} />
+                Gerar pauta sugerida com IA
+              </>
+            )}
+          </button>
 
-              {suggestedAgenda && (
-                <div className="meeting-agenda-card">
-                  <div className="meeting-agenda-header">
-                    <Sparkles size={14} />
-                    <span>Pauta Sugerida</span>
-                    <button className="icon-button" onClick={handleCopyAgenda} title="Copiar pauta">
-                      <Copy size={14} />
-                    </button>
-                  </div>
-                  <div className="meeting-agenda-body">
-                    <MarkdownViewer content={suggestedAgenda} />
-                  </div>
-                </div>
-              )}
+          {suggestedAgenda && (
+            <div className="meeting-agenda-card">
+              <div className="meeting-agenda-header">
+                <Sparkles size={14} />
+                <span>Pauta Sugerida</span>
+                <button className="icon-button" onClick={handleCopyAgenda} title="Copiar pauta">
+                  <Copy size={14} />
+                </button>
+              </div>
+              <div className="meeting-agenda-body">
+                <MarkdownViewer content={suggestedAgenda} />
+              </div>
             </div>
+          )}
+        </div>
 
-            <p className="meeting-hint">Como deseja capturar?</p>
-            <div className="meeting-option-cards">
-              <div className="meeting-option-card" onClick={handleStart}>
-                <Play size={20} />
-                <span className="meeting-option-title">Ao vivo</span>
-                <span className="meeting-option-desc">Digito notas durante a reunião</span>
-              </div>
-              <div className="meeting-option-card" onClick={() => {
-                if (!title.trim() || !selectedProjectId) return
-                handleStart().then(() => setStep('review'))
-              }}>
-                <ClipboardPaste size={20} />
-                <span className="meeting-option-title">Colar transcrição</span>
-                <span className="meeting-option-desc">Copio do Teams/Meet depois</span>
-              </div>
+        {/* Capture options */}
+        <div className="meeting-review-card" style={{ gap: '16px' }}>
+          <div className="meeting-review-card-header">
+            Como deseja capturar?
+          </div>
+          <div className="meeting-option-cards">
+            <div className="meeting-option-card" onClick={handleStart}>
+              <Play size={20} />
+              <span className="meeting-option-title">Ao vivo</span>
+              <span className="meeting-option-desc">Digito notas durante a reunião</span>
+            </div>
+            <div className="meeting-option-card" onClick={() => {
+              if (!title.trim() || !selectedProjectId) return
+              handleStart().then(() => setStep('review'))
+            }}>
+              <ClipboardPaste size={20} />
+              <span className="meeting-option-title">Colar transcrição</span>
+              <span className="meeting-option-desc">Copio do Teams/Meet depois</span>
             </div>
           </div>
         </div>
@@ -474,15 +536,44 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
 
   // === REVIEW (after ending or paste mode) ===
   if (step === 'review' && meeting) {
+    const reviewDate = meeting.meetingDate
+      ? new Date(meeting.meetingDate + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      : null
+
     return (
-      <div className="meeting-container">
-        <div className="panel-header">
-          <span className="panel-title">Reunião Encerrada — {meeting.title}</span>
+      <div className="meeting-review-page">
+        {/* Hero */}
+        <div className="capture-hero">
+          <div className="capture-hero-icon">
+            <FileText size={24} />
+          </div>
+          <h2 className="capture-hero-title">Reunião Encerrada</h2>
+          <p className="capture-hero-subtitle">{meeting.title}</p>
+          {(reviewDate || meeting.participants.length > 0) && (
+            <div className="meeting-review-meta">
+              {reviewDate && (
+                <span className="meeting-review-meta-item">
+                  <Clock size={12} />
+                  {reviewDate}
+                </span>
+              )}
+              {meeting.participants.length > 0 && (
+                <span className="meeting-review-meta-item">
+                  <Users size={12} />
+                  {meeting.participants.join(', ')}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
+        {/* Notes captured card */}
         {meeting.rawNotes.length > 0 && (
-          <div className="meeting-review-section">
-            <h4>Notas capturadas ({meeting.rawNotes.length})</h4>
+          <div className="meeting-review-card">
+            <div className="meeting-review-card-header">
+              <ListChecks size={14} />
+              <span>Notas capturadas ({meeting.rawNotes.length})</span>
+            </div>
             <div className="meeting-notes-list compact">
               {meeting.rawNotes.map((note, i) => (
                 <div key={i} className="meeting-note-item">
@@ -494,34 +585,38 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
           </div>
         )}
 
-        <div className="meeting-review-section">
-          <h4>
+        {/* Transcription paste card */}
+        <div className="meeting-review-card">
+          <div className="meeting-review-card-header">
             <ClipboardPaste size={14} />
-            Colar transcrição (opcional)
-          </h4>
-          <p className="meeting-hint">
+            <span>Colar transcrição (opcional)</span>
+          </div>
+          <p className="meeting-review-card-hint">
             Cole aqui a transcrição do Teams, Meet ou Zoom. A IA vai processar junto com as notas.
           </p>
           <textarea
-            className="vscode-textarea"
+            className="vscode-textarea meeting-review-textarea"
             value={transcription}
             onChange={(e) => setTranscription(e.target.value)}
             placeholder="Cole a transcrição aqui... (suporta texto puro ou formato VTT)"
-            rows={10}
+            rows={8}
           />
         </div>
 
-        <div className="meeting-actions">
+        {/* Action bar */}
+        <div className="meeting-review-action-bar">
           <button
-            className="vscode-button"
+            className="capture-send-btn"
             onClick={handleProcess}
             disabled={isProcessing || (meeting.rawNotes.length === 0 && !transcription.trim())}
           >
             <Sparkles size={14} />
-            {isProcessing ? 'Processando com IA...' : 'Processar Reunião'}
+            <span>{isProcessing ? 'Processando com IA...' : 'Processar Reunião'}</span>
           </button>
           {meeting.rawNotes.length === 0 && !transcription.trim() && (
-            <span className="meeting-hint">Adicione notas ou cole uma transcrição para processar.</span>
+            <span className="meeting-review-warning">
+              Adicione notas ou cole uma transcrição para processar.
+            </span>
           )}
         </div>
       </div>
@@ -530,13 +625,11 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
 
   // === SELECT (user picks which entries/tasks to save) ===
   if (step === 'select' && meeting) {
-    const meetingDate = new Date(meeting.startedAt).toLocaleDateString('pt-BR', {
+    const meetingDate = new Date(meeting.meetingDate + 'T12:00:00').toLocaleDateString('pt-BR', {
       weekday: 'long',
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
     })
 
     const selectedEntriesCount = previewEntries.filter((e) => e.selected).length
@@ -624,7 +717,7 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
             </div>
             <div className="meeting-select-list">
               {previewTasks.map((task, i) => (
-                <label key={i} className={`meeting-select-item ${task.selected ? 'selected' : ''}`}>
+                <label key={i} className={`meeting-select-item ${task.selected ? 'selected' : ''} ${task.similarTo ? 'has-warning' : ''}`}>
                   <input
                     type="checkbox"
                     checked={task.selected}
@@ -634,6 +727,12 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
                     <strong>{task.title}</strong>
                     {task.description && (
                       <span className="meeting-select-desc"> — {task.description}</span>
+                    )}
+                    {task.similarTo && (
+                      <span className="meeting-task-similar-warning">
+                        <AlertTriangle size={12} />
+                        <span>Similar a: "{task.similarTo.taskTitle}" — {task.similarTo.reason}</span>
+                      </span>
                     )}
                   </span>
                 </label>
@@ -664,7 +763,28 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
             <Copy size={14} />
             Copiar Ata
           </button>
+          <div style={{ flex: 1 }} />
+          <button
+            className="vscode-button danger"
+            onClick={() => setShowDeleteConfirm(true)}
+            disabled={isSaving || isProcessing}
+            title="Apagar reunião"
+          >
+            <Trash2 size={14} />
+            Apagar
+          </button>
         </div>
+
+        <ConfirmModal
+          isOpen={showDeleteConfirm}
+          title="Apagar Reunião"
+          message="Tem certeza que deseja apagar esta reunião? A ata e todos os dados associados serão removidos permanentemente."
+          confirmLabel="Apagar"
+          cancelLabel="Cancelar"
+          variant="danger"
+          onConfirm={handleDeleteMeeting}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
       </div>
     )
   }
@@ -703,7 +823,27 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
               Ver Kanban
             </button>
           )}
+          <div style={{ flex: 1 }} />
+          <button
+            className="vscode-button danger"
+            onClick={() => setShowDeleteConfirm(true)}
+            title="Apagar reunião e dados criados"
+          >
+            <Trash2 size={14} />
+            Apagar Tudo
+          </button>
         </div>
+
+        <ConfirmModal
+          isOpen={showDeleteConfirm}
+          title="Apagar Reunião e Dados"
+          message={`Tem certeza que deseja apagar esta reunião?\nIsso vai remover a ata, ${savedEntryIds.length} entrada(s) e ${savedTaskIds.length} task(s) que foram criadas.`}
+          confirmLabel="Apagar Tudo"
+          cancelLabel="Cancelar"
+          variant="danger"
+          onConfirm={handleDeleteMeeting}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
       </div>
     )
   }

@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { ArrowLeft, List, LayoutGrid, Sparkles, X, Download, Video } from 'lucide-react'
+import { ArrowLeft, List, LayoutGrid, Sparkles, X, Download, Video, Plus } from 'lucide-react'
 import { MarkdownViewer } from './MarkdownViewer'
 import { EntryList } from './EntryList'
 import { KanbanBoard } from './KanbanBoard'
-import { MeetingMode } from './MeetingMode'
 import { MeetingHistory } from './MeetingHistory'
 
 type ProjectTab = 'entries' | 'kanban' | 'meetings'
@@ -13,9 +12,10 @@ interface ProjectViewProps {
   projectId: string
   projectName: string
   onBack: () => void
+  onNavigateToMeeting: (projectId?: string) => void
 }
 
-export function ProjectView({ projectId, projectName, onBack }: ProjectViewProps) {
+export function ProjectView({ projectId, projectName, onBack, onNavigateToMeeting }: ProjectViewProps) {
   const [activeTab, setActiveTab] = useState<ProjectTab>('entries')
   const [summary, setSummary] = useState<string | null>(null)
   const [isLoadingSummary, setIsLoadingSummary] = useState(false)
@@ -129,17 +129,21 @@ export function ProjectView({ projectId, projectName, onBack }: ProjectViewProps
         </div>
       </div>
 
-      {/* Project-level summary */}
+      {/* Project-level summary modal */}
       {summary && (
-        <div className="dashboard-summary-card">
-          <div className="dashboard-summary-header">
-            <Sparkles size={14} />
-            <span>Resumo do Projeto</span>
-            <button className="icon-button" onClick={() => setSummary(null)} style={{ opacity: 1 }}>
-              <X size={14} />
-            </button>
+        <div className="summary-modal-overlay" onClick={() => setSummary(null)}>
+          <div className="summary-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="summary-modal-header">
+              <Sparkles size={16} />
+              <span>Resumo do Projeto</span>
+              <button className="icon-button" onClick={() => setSummary(null)}>
+                <X size={16} />
+              </button>
+            </div>
+            <div className="summary-modal-body">
+              <MarkdownViewer content={summary} />
+            </div>
           </div>
-          <MarkdownViewer content={summary} />
         </div>
       )}
 
@@ -152,8 +156,16 @@ export function ProjectView({ projectId, projectName, onBack }: ProjectViewProps
           <KanbanBoard projectId={projectId} />
         )}
         {activeTab === 'meetings' && (
-          <div className="flex-col" style={{ gap: 16, flex: 1, minHeight: 0, overflow: 'auto' }}>
-            <MeetingMode projectId={projectId} onFinished={() => setActiveTab('meetings')} />
+          <div className="flex-col" style={{ gap: 16, flex: 1, minHeight: 0, overflow: 'auto', padding: '16px 0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+              <button
+                className="vscode-button"
+                onClick={() => onNavigateToMeeting(projectId)}
+              >
+                <Plus size={14} />
+                Nova Reunião
+              </button>
+            </div>
             <MeetingHistory projectId={projectId} />
           </div>
         )}

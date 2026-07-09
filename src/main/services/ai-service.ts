@@ -108,8 +108,22 @@ ${entriesText}${tasksText}`
     title: string,
     participants: string[],
     content: string,
-    settings: AppSettings
+    settings: AppSettings,
+    existingTasks?: { id: string; title: string; status: string }[]
   ): Promise<MeetingProcessResult> {
+    const hasExistingTasks = existingTasks && existingTasks.length > 0
+
+    const similarityInstructions = hasExistingTasks
+      ? `
+REGRAS PARA DETECÇÃO DE DUPLICATAS:
+- Compare cada task sugerida com as TASKS EXISTENTES listadas abaixo
+- Se uma task sugerida é semanticamente similar a uma existente (mesma ação, mesmo objetivo, mesmo escopo), adicione o campo "similarTo"
+- "similarTo" deve conter: {"taskId": "id-da-task-existente", "taskTitle": "título-da-task-existente", "reason": "explicação curta de por que são similares"}
+- Similar = mesma intenção, mesmo resultado esperado, mesmo responsável/escopo (ex: "Revisar proposta" e "Fazer revisão da proposta comercial" são similares)
+- NÃO considere similar se: são ações distintas no mesmo tema, ou se uma é continuação/evolução da outra
+- Se não há similaridade, omita o campo "similarTo"`
+      : ''
+
     const systemPrompt = `Você é um assistente que gera atas de reunião estruturadas.
 Dadas as anotações e/ou transcrição de uma reunião, gere:
 1. Uma ata em markdown com: resumo, decisões, ações (com responsável se mencionado), e bloqueios
@@ -138,6 +152,7 @@ REGRAS PARA TASKS:
 - Título começa com verbo no infinitivo
 - Inclua o responsável na description se mencionado
 - NÃO crie task para coisas genéricas como "discutir" ou "pensar sobre"
+${similarityInstructions}
 
 REGRAS PARA A ATA:
 - O campo "minutes" deve ser markdown completo e bem formatado
@@ -149,11 +164,16 @@ REGRAS PARA A ATA:
       ? `Participantes: ${participants.join(', ')}`
       : ''
 
+    const existingTasksText = hasExistingTasks
+      ? `\n\nTASKS EXISTENTES NO PROJETO (para verificar duplicatas):
+${existingTasks.map((t) => `- [${t.id}] "${t.title}" (status: ${t.status})`).join('\n')}`
+      : ''
+
     const userMessage = `Reunião: "${title}"
 ${participantsText}
 
 Conteúdo capturado:
-${content}`
+${content}${existingTasksText}`
 
     const responseText = await this.invokeConverse(systemPrompt, userMessage, settings, 'meeting_processing')
 

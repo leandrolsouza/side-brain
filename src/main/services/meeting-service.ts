@@ -44,7 +44,7 @@ export class MeetingService {
   private settingsRepo = new SettingsRepository()
   private aiService = new AIService()
 
-  create(data: { projectId: string; title: string; participants?: string[] }): Meeting {
+  create(data: { projectId: string; title: string; participants?: string[]; meetingDate?: string }): Meeting {
     return this.meetingRepo.create(data)
   }
 
@@ -74,6 +74,19 @@ export class MeetingService {
 
   delete(id: string): void {
     return this.meetingRepo.delete(id)
+  }
+
+  /**
+   * Delete a meeting and its associated entries/tasks (by ID list).
+   */
+  deleteWithData(meetingId: string, entryIds: string[], taskIds: string[]): void {
+    for (const entryId of entryIds) {
+      this.entryRepo.delete(entryId)
+    }
+    for (const taskId of taskIds) {
+      this.taskRepo.delete(taskId)
+    }
+    this.meetingRepo.delete(meetingId)
   }
 
   /**
@@ -179,11 +192,18 @@ export class MeetingService {
     const settings = this.settingsRepo.get()
     const content = this.buildMeetingContent(meeting)
 
+    // Fetch existing tasks for the project (not done) to detect duplicates
+    const projectTasks = this.taskRepo.getByProject(meeting.projectId)
+    const existingTasks = projectTasks
+      .filter((t) => t.status !== 'done')
+      .map((t) => ({ id: t.id, title: t.title, status: t.status }))
+
     const result = await this.aiService.processMeeting(
       meeting.title,
       meeting.participants,
       content,
-      settings
+      settings,
+      existingTasks.length > 0 ? existingTasks : undefined
     )
 
     // Save the generated minutes on the meeting record
@@ -195,18 +215,22 @@ export class MeetingService {
   /**
    * Step 2: Save only the selected entries and tasks.
    * Called after the user reviews and picks what they want.
+   * Returns the IDs of created entries and tasks so they can be undone.
    */
   saveSelected(
     meetingId: string,
     selectedEntries: { text: string; type: EntryType; action: ActionStatus }[],
     selectedTasks: { title: string; description?: string }[]
-  ): void {
+  ): { entryIds: string[]; taskIds: string[] } {
     const meeting = this.meetingRepo.getById(meetingId)
-    if (!meeting) return
+    if (!meeting) return { entryIds: [], taskIds: [] }
+
+    const entryIds: string[] = []
+    const taskIds: string[] = []
 
     // Create selected entries
     for (const entry of selectedEntries) {
-      this.entryRepo.create({
+      const created = this.entryRepo.create({
         rawText: entry.text,
         improvedText: entry.text,
         projectId: meeting.projectId,
@@ -214,20 +238,24 @@ export class MeetingService {
         action: entry.action,
         reviewStatus: 'auto_approved',
       })
+      entryIds.push(created.id)
     }
 
     // Create selected tasks
     for (const task of selectedTasks) {
       const existing = this.taskRepo.findSimilar(meeting.projectId, task.title)
       if (!existing) {
-        this.taskRepo.create({
+        const created = this.taskRepo.create({
           projectId: meeting.projectId,
           title: task.title,
           description: task.description,
           status: 'todo',
         })
+        taskIds.push(created.id)
       }
     }
+
+    return { entryIds, taskIds }
   }
 
   private buildMeetingContent(meeting: Meeting): string {

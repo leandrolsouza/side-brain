@@ -11,6 +11,7 @@ import { ProjectRepository } from '../database/repositories/project-repository'
 import { TaskRepository } from '../database/repositories/task-repository'
 import { SettingsRepository } from '../database/repositories/settings-repository'
 import { AIUsageRepository } from '../database/repositories/ai-usage-repository'
+import { NotificationRepository } from '../database/repositories/notification-repository'
 import type { ExportFormat } from '../services/export-service'
 import type { EntryConfirmRequest } from '../../shared/types'
 
@@ -26,6 +27,7 @@ export function registerIpcHandlers(): void {
   const taskRepo = new TaskRepository()
   const settingsRepo = new SettingsRepository()
   const aiUsageRepo = new AIUsageRepository()
+  const notificationRepo = new NotificationRepository()
 
   // Entry handlers
   ipcMain.handle('entry:create', async (_event, rawText: string) => {
@@ -140,7 +142,7 @@ export function registerIpcHandlers(): void {
   })
 
   // Meeting handlers
-  ipcMain.handle('meeting:create', async (_event, data: { projectId: string; title: string; participants?: string[] }) => {
+  ipcMain.handle('meeting:create', async (_event, data: { projectId: string; title: string; participants?: string[]; meetingDate?: string }) => {
     return meetingService.create(data)
   })
 
@@ -178,6 +180,10 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('meeting:delete', async (_event, id: string) => {
     return meetingService.delete(id)
+  })
+
+  ipcMain.handle('meeting:deleteWithData', async (_event, meetingId: string, entryIds: string[], taskIds: string[]) => {
+    return meetingService.deleteWithData(meetingId, entryIds, taskIds)
   })
 
   ipcMain.handle('meeting:prepare', async (_event, projectId: string, title: string, participants: string[]) => {
@@ -282,6 +288,31 @@ export function registerIpcHandlers(): void {
   // Proactive Insights handlers
   ipcMain.handle('insights:generate', async () => {
     return insightsService.generateInsights()
+  })
+
+  // Notification handlers
+  ipcMain.handle('notification:getAll', async () => {
+    return notificationRepo.getAll()
+  })
+
+  ipcMain.handle('notification:getUnreadCount', async () => {
+    return notificationRepo.getUnreadCount()
+  })
+
+  ipcMain.handle('notification:markRead', async (_event, id: string) => {
+    return notificationRepo.markRead(id)
+  })
+
+  ipcMain.handle('notification:markAllRead', async () => {
+    return notificationRepo.markAllRead()
+  })
+
+  ipcMain.handle('notification:dismiss', async (_event, id: string) => {
+    return notificationRepo.dismiss(id)
+  })
+
+  ipcMain.handle('notification:dismissAll', async () => {
+    return notificationRepo.dismissAll()
   })
 
   // Theme handler — sincroniza controles nativos (select dropdown) com o tema do app

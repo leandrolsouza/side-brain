@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { ChevronDown, FolderOpen, PenLine, Sparkles } from 'lucide-react'
+import { ChevronDown, FolderOpen, PenLine, Video, Sparkles } from 'lucide-react'
 import type { View } from '../App'
 
 interface Project {
@@ -95,6 +95,13 @@ export function Sidebar({ currentView, onViewChange, onProjectSelect, refreshKey
               >
                 <PenLine size={16} className="tree-item-icon" />
                 <span className="tree-item-label">Nova Captura</span>
+              </div>
+              <div
+                className={`tree-item ${currentView === 'meeting' ? 'selected' : ''}`}
+                onClick={() => onViewChange('meeting')}
+              >
+                <Video size={16} className="tree-item-icon" />
+                <span className="tree-item-label">Nova Reunião</span>
               </div>
             </div>
           )}

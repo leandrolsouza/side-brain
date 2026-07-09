@@ -35,6 +35,8 @@ interface DashboardProps {
   onNavigateToProject: (projectId: string, projectName: string) => void
 }
 
+const TASKS_PER_GROUP = 5
+
 export function Dashboard({ onNavigateToProject }: DashboardProps) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [entries, setEntries] = useState<Entry[]>([])
@@ -46,6 +48,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
   const [isLoadingSummary, setIsLoadingSummary] = useState(false)
   const [insights, setInsights] = useState<{ id: string; type: string; title: string; description: string; priority: string; relatedProjectId?: string; relatedProjectName?: string }[]>([])
   const [isLoadingInsights, setIsLoadingInsights] = useState(false)
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     loadData()
@@ -89,6 +92,10 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
 
   const getProjectName = (projectId: string): string => {
     return projects.find((p) => p.id === projectId)?.name || 'Sem projeto'
+  }
+
+  const toggleGroup = (group: string) => {
+    setExpandedGroups((prev) => ({ ...prev, [group]: !prev[group] }))
   }
 
   // Pending tasks grouped by status
@@ -249,7 +256,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
                     <Circle size={10} className="dot-action" />
                     <span>A Fazer ({actionNeeded.length})</span>
                   </div>
-                  {actionNeeded.map((task) => (
+                  {(expandedGroups['todo'] ? actionNeeded : actionNeeded.slice(0, TASKS_PER_GROUP)).map((task) => (
                     <div
                       key={task.id}
                       className="dashboard-task-item"
@@ -259,6 +266,11 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
                       <span className="dashboard-task-project">{getProjectName(task.projectId)}</span>
                     </div>
                   ))}
+                  {actionNeeded.length > TASKS_PER_GROUP && (
+                    <button className="task-group-toggle" onClick={() => toggleGroup('todo')}>
+                      {expandedGroups['todo'] ? 'Ver menos' : `+${actionNeeded.length - TASKS_PER_GROUP} mais`}
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -268,7 +280,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
                     <Circle size={10} className="dot-progress" />
                     <span>Em Andamento ({inProgress.length})</span>
                   </div>
-                  {inProgress.map((task) => (
+                  {(expandedGroups['in_progress'] ? inProgress : inProgress.slice(0, TASKS_PER_GROUP)).map((task) => (
                     <div
                       key={task.id}
                       className="dashboard-task-item"
@@ -278,6 +290,11 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
                       <span className="dashboard-task-project">{getProjectName(task.projectId)}</span>
                     </div>
                   ))}
+                  {inProgress.length > TASKS_PER_GROUP && (
+                    <button className="task-group-toggle" onClick={() => toggleGroup('in_progress')}>
+                      {expandedGroups['in_progress'] ? 'Ver menos' : `+${inProgress.length - TASKS_PER_GROUP} mais`}
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -287,7 +304,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
                     <Timer size={10} className="dot-waiting" />
                     <span>Aguardando ({waiting.length})</span>
                   </div>
-                  {waiting.map((task) => (
+                  {(expandedGroups['waiting'] ? waiting : waiting.slice(0, TASKS_PER_GROUP)).map((task) => (
                     <div
                       key={task.id}
                       className="dashboard-task-item"
@@ -297,6 +314,11 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
                       <span className="dashboard-task-project">{getProjectName(task.projectId)}</span>
                     </div>
                   ))}
+                  {waiting.length > TASKS_PER_GROUP && (
+                    <button className="task-group-toggle" onClick={() => toggleGroup('waiting')}>
+                      {expandedGroups['waiting'] ? 'Ver menos' : `+${waiting.length - TASKS_PER_GROUP} mais`}
+                    </button>
+                  )}
                 </div>
               )}
             </div>

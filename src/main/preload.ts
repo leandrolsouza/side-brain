@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { EntryConfirmRequest, EntryPreviewResult, AIUsageSummary, AIUsageDailyPoint, AIUsageRecord, Workspace, SmartChatMessage, ProactiveInsight } from '../shared/types'
+import type { EntryConfirmRequest, EntryPreviewResult, AIUsageSummary, AIUsageDailyPoint, AIUsageRecord, Workspace, SmartChatMessage, ProactiveInsight, AppNotification } from '../shared/types'
 
 export interface ElectronAPI {
   // Workspaces
@@ -53,7 +53,7 @@ export interface ElectronAPI {
   exportProject: (projectId: string, format: 'markdown' | 'pdf') => Promise<{ success: boolean; filePath?: string }>
 
   // Meetings
-  createMeeting: (data: { projectId: string; title: string; participants?: string[] }) => Promise<any>
+  createMeeting: (data: { projectId: string; title: string; participants?: string[]; meetingDate?: string }) => Promise<any>
   getMeetings: (projectId?: string) => Promise<any[]>
   getMeetingById: (id: string) => Promise<any | null>
   getActiveMeeting: () => Promise<any | null>
@@ -61,8 +61,9 @@ export interface ElectronAPI {
   setMeetingTranscription: (id: string, transcription: string) => Promise<any>
   endMeeting: (id: string) => Promise<any>
   processMeeting: (id: string) => Promise<any>
-  saveSelectedMeetingItems: (meetingId: string, selectedEntries: any[], selectedTasks: any[]) => Promise<void>
+  saveSelectedMeetingItems: (meetingId: string, selectedEntries: any[], selectedTasks: any[]) => Promise<{ entryIds: string[]; taskIds: string[] }>
   deleteMeeting: (id: string) => Promise<void>
+  deleteMeetingWithData: (meetingId: string, entryIds: string[], taskIds: string[]) => Promise<void>
   prepareMeeting: (projectId: string, title: string, participants: string[]) => Promise<string>
 
   // Backup
@@ -89,6 +90,15 @@ export interface ElectronAPI {
 
   // Proactive Insights
   generateInsights: () => Promise<ProactiveInsight[]>
+
+  // Notifications
+  getNotifications: () => Promise<AppNotification[]>
+  getUnreadNotificationCount: () => Promise<number>
+  markNotificationRead: (id: string) => Promise<void>
+  markAllNotificationsRead: () => Promise<void>
+  dismissNotification: (id: string) => Promise<void>
+  dismissAllNotifications: () => Promise<void>
+  onNewNotification: (callback: (notification: AppNotification) => void) => void
 
   // Events
   onFocusCaptureInput: (callback: () => void) => void
@@ -181,7 +191,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('export:project', projectId, format),
 
   // Meetings
-  createMeeting: (data: { projectId: string; title: string; participants?: string[] }) =>
+  createMeeting: (data: { projectId: string; title: string; participants?: string[]; meetingDate?: string }) =>
     ipcRenderer.invoke('meeting:create', data),
   getMeetings: (projectId?: string) =>
     ipcRenderer.invoke('meeting:getAll', projectId),
@@ -201,6 +211,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('meeting:saveSelected', meetingId, selectedEntries, selectedTasks),
   deleteMeeting: (id: string) =>
     ipcRenderer.invoke('meeting:delete', id),
+  deleteMeetingWithData: (meetingId: string, entryIds: string[], taskIds: string[]) =>
+    ipcRenderer.invoke('meeting:deleteWithData', meetingId, entryIds, taskIds),
   prepareMeeting: (projectId: string, title: string, participants: string[]) =>
     ipcRenderer.invoke('meeting:prepare', projectId, title, participants),
 
@@ -243,6 +255,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Proactive Insights
   generateInsights: () =>
     ipcRenderer.invoke('insights:generate'),
+
+  // Notifications
+  getNotifications: () =>
+    ipcRenderer.invoke('notification:getAll'),
+  getUnreadNotificationCount: () =>
+    ipcRenderer.invoke('notification:getUnreadCount'),
+  markNotificationRead: (id: string) =>
+    ipcRenderer.invoke('notification:markRead', id),
+  markAllNotificationsRead: () =>
+    ipcRenderer.invoke('notification:markAllRead'),
+  dismissNotification: (id: string) =>
+    ipcRenderer.invoke('notification:dismiss', id),
+  dismissAllNotifications: () =>
+    ipcRenderer.invoke('notification:dismissAll'),
+  onNewNotification: (callback: (notification: AppNotification) => void) => {
+    ipcRenderer.on('notification:new', (_event, notification) => callback(notification))
+  },
 
   // Events
   onFocusCaptureInput: (callback: () => void) => {

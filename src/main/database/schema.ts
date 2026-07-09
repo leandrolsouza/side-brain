@@ -41,6 +41,15 @@ function runMigrations(database: Database.Database): void {
   // Always ensure the index exists (safe for both new and migrated DBs)
   database.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date)`)
 
+  // Add meeting_date column to meetings if it doesn't exist
+  const meetingColumns = database.prepare("PRAGMA table_info(meetings)").all() as { name: string }[]
+  const hasMeetingDate = meetingColumns.some((col) => col.name === 'meeting_date')
+  if (!hasMeetingDate) {
+    database.exec(`ALTER TABLE meetings ADD COLUMN meeting_date TEXT`)
+    // Backfill existing meetings: use the date part of started_at
+    database.exec(`UPDATE meetings SET meeting_date = substr(started_at, 1, 10) WHERE meeting_date IS NULL`)
+  }
+
   // Add active column to projects if it doesn't exist
   const projectColumns = database.prepare("PRAGMA table_info(projects)").all() as { name: string }[]
   const hasActive = projectColumns.some((col) => col.name === 'active')
@@ -132,6 +141,21 @@ function initializeSchema(database: Database.Database): void {
 
     CREATE INDEX IF NOT EXISTS idx_ai_usage_operation_type ON ai_usage(operation_type);
     CREATE INDEX IF NOT EXISTS idx_ai_usage_created_at ON ai_usage(created_at);
+
+    CREATE TABLE IF NOT EXISTS notifications (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT NOT NULL,
+      read INTEGER NOT NULL DEFAULT 0,
+      dismissed INTEGER NOT NULL DEFAULT 0,
+      metadata TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(read);
+    CREATE INDEX IF NOT EXISTS idx_notifications_dismissed ON notifications(dismissed);
+    CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at);
   `)
 }
 

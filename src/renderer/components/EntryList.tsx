@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { ArrowLeft, Sparkles, X, Trash2 } from 'lucide-react'
 import { ConfirmModal } from './ConfirmModal'
+import { MarkdownViewer } from './MarkdownViewer'
 
 interface Entry {
   id: string
@@ -108,20 +109,19 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
       </div>
 
       {summary && (
-        <div className="vscode-card mb-16" style={{ borderColor: 'var(--vscode-focusBorder)' }}>
-          <div className="vscode-card-header">
-            <span style={{ fontWeight: 600, color: 'var(--vscode-notificationsInfoIcon-foreground)' }}>
-              Resumo por IA
-            </span>
-            <button
-              className="inline-action-btn"
-              onClick={() => setSummary(null)}
-              style={{ opacity: 1 }}
-            >
-              <X size={14} />
-            </button>
+        <div className="summary-modal-overlay" onClick={() => setSummary(null)}>
+          <div className="summary-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="summary-modal-header">
+              <Sparkles size={16} />
+              <span>Resumo do Projeto</span>
+              <button className="icon-button" onClick={() => setSummary(null)}>
+                <X size={16} />
+              </button>
+            </div>
+            <div className="summary-modal-body">
+              <MarkdownViewer content={summary} />
+            </div>
           </div>
-          <div className="vscode-card-body">{summary}</div>
         </div>
       )}
 

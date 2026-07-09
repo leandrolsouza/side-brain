@@ -201,6 +201,7 @@ export interface Meeting {
   projectId: string
   title: string
   participants: string[]
+  meetingDate: string
   startedAt: string
   endedAt: string | null
   status: MeetingStatus
@@ -222,6 +223,11 @@ export interface MeetingProcessResult {
   tasks: {
     title: string
     description?: string
+    similarTo?: {
+      taskId: string
+      taskTitle: string
+      reason: string
+    }
   }[]
 }
 
@@ -358,4 +364,28 @@ export interface ProactiveInsight {
   priority: 'high' | 'medium' | 'low'
   relatedProjectId?: string
   relatedProjectName?: string
+}
+
+
+// === Notification Types ===
+
+export type NotificationType =
+  | 'task_overdue'
+  | 'task_due_today'
+  | 'task_due_tomorrow'
+  | 'review_pending'
+  | 'meeting_reminder'
+  | 'insight_generated'
+  | 'digest_ready'
+  | 'ai_error'
+
+export interface AppNotification {
+  id: string
+  type: NotificationType
+  title: string
+  body: string
+  read: boolean
+  dismissed: boolean
+  metadata?: Record<string, string>
+  createdAt: string
 }

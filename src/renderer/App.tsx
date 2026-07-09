@@ -13,6 +13,7 @@ import { AIUsageDashboard } from './components/AIUsageDashboard'
 import { AboutModal } from './components/AboutModal'
 import { WorkspaceSwitcher } from './components/WorkspaceSwitcher'
 import { SmartChat } from './components/SmartChat'
+import { NotificationCenter } from './components/NotificationCenter'
 
 export type View = 'dashboard' | 'capture' | 'projects' | 'entries' | 'meeting' | 'settings' | 'ai-usage' | 'smart-chat'
 export type Theme = 'dark' | 'light'
@@ -42,6 +43,7 @@ export function App() {
   const [currentView, setCurrentView] = useState<View>('dashboard')
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
   const [selectedProjectName, setSelectedProjectName] = useState<string>('')
+  const [meetingProjectId, setMeetingProjectId] = useState<string | undefined>(undefined)
   const [projectsRefreshKey, setProjectsRefreshKey] = useState(0)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [showDigest, setShowDigest] = useState(false)
@@ -155,6 +157,11 @@ export function App() {
     setCurrentView('entries')
   }
 
+  const handleNavigateToMeeting = (projectId?: string) => {
+    setMeetingProjectId(projectId)
+    setCurrentView('meeting')
+  }
+
   const handleBackToProjects = () => {
     setSelectedProjectId(null)
     setSelectedProjectName('')
@@ -184,12 +191,12 @@ export function App() {
         return <ProjectList onSelectProject={handleProjectSelect} onProjectsChanged={refreshProjects} />
       case 'entries':
         return selectedProjectId ? (
-          <ProjectView projectId={selectedProjectId} projectName={selectedProjectName} onBack={handleBackToProjects} />
+          <ProjectView projectId={selectedProjectId} projectName={selectedProjectName} onBack={handleBackToProjects} onNavigateToMeeting={handleNavigateToMeeting} />
         ) : (
           <ProjectList onSelectProject={handleProjectSelect} onProjectsChanged={refreshProjects} />
         )
       case 'meeting':
-        return <MeetingMode onFinished={() => setCurrentView('dashboard')} />
+        return <MeetingMode projectId={meetingProjectId} onFinished={() => setCurrentView('dashboard')} />
       case 'settings':
         return <Settings />
       case 'ai-usage':
@@ -252,6 +259,7 @@ export function App() {
           <span>SideBrain v0.1.0</span>
         </div>
         <div className="status-bar-right">
+          <NotificationCenter />
           <div className="status-bar-item ai-status-indicator" title={aiStatus === 'processing' ? 'IA processando...' : aiStatus === 'error' ? 'Erro na IA' : 'IA conectada'}>
             <span className={`ai-status-dot ${aiStatus}`} />
             <span>{aiStatus === 'processing' ? 'IA processando...' : 'AI: ' + activeModelLabel}</span>
