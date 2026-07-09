@@ -24,8 +24,12 @@ export function registerAIHandlers(): void {
   })
 
   // Proactive Insights handlers
-  safeHandle('insights:generate', async () => {
-    return insightsService.generateInsights()
+  safeHandle('insights:generate', async (_event, forceRefresh?: boolean) => {
+    return insightsService.generateInsights(forceRefresh ?? false)
+  })
+
+  safeHandle('insights:getLastGeneratedAt', async () => {
+    return insightsService.getLastGeneratedAt()
   })
 
   // AI Usage handlers

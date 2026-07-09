@@ -115,7 +115,8 @@ export interface ElectronAPI {
   smartChatSend: (message: string) => Promise<SmartChatMessage>
 
   // Proactive Insights
-  generateInsights: () => Promise<ProactiveInsight[]>
+  generateInsights: (forceRefresh?: boolean) => Promise<ProactiveInsight[]>
+  getInsightsLastGeneratedAt: () => Promise<number | null>
 
   // Reports
   getReportsData: (period: ReportPeriod) => Promise<ReportsData>
@@ -308,8 +309,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('smart-chat:send', message),
 
   // Proactive Insights
-  generateInsights: () =>
-    ipcRenderer.invoke('insights:generate'),
+  generateInsights: (forceRefresh?: boolean) =>
+    ipcRenderer.invoke('insights:generate', forceRefresh),
+  getInsightsLastGeneratedAt: () =>
+    ipcRenderer.invoke('insights:getLastGeneratedAt'),
 
   // Reports
   getReportsData: (period: ReportPeriod) =>

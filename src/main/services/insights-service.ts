@@ -28,7 +28,16 @@ Responda APENAS com JSON válido:
 ]
 `
 
+interface InsightsCache {
+  insights: ProactiveInsight[]
+  generatedAt: number
+}
+
+const CACHE_TTL_MS = 4 * 60 * 60 * 1000 // 4 hours
+
 export class InsightsService {
+  private cache: InsightsCache | null = null
+
   constructor(
     private entryRepo: EntryRepository,
     private projectRepo: ProjectRepository,
@@ -39,9 +48,30 @@ export class InsightsService {
 
   /**
    * Generates proactive insights by analyzing patterns in tasks and entries.
-   * Combines rule-based detection with AI-powered suggestions.
+   * Uses a 4-hour cache to avoid excessive AI token usage.
+   * @param forceRefresh - If true, bypasses the cache and regenerates insights.
    */
-  async generateInsights(): Promise<ProactiveInsight[]> {
+  async generateInsights(forceRefresh = false): Promise<ProactiveInsight[]> {
+    if (!forceRefresh && this.cache) {
+      const age = Date.now() - this.cache.generatedAt
+      if (age < CACHE_TTL_MS) {
+        return this.cache.insights
+      }
+    }
+
+    const insights = await this._generateInsightsInternal()
+    this.cache = { insights, generatedAt: Date.now() }
+    return insights
+  }
+
+  /**
+   * Returns the timestamp of when insights were last generated, or null if no cache.
+   */
+  getLastGeneratedAt(): number | null {
+    return this.cache?.generatedAt ?? null
+  }
+
+  private async _generateInsightsInternal(): Promise<ProactiveInsight[]> {
     const insights: ProactiveInsight[] = []
     const projects = this.projectRepo.getAll()
     const allTasks = this.taskRepo.getAll()

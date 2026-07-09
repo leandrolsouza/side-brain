@@ -5970,6 +5970,48 @@ kbd {
 }
 
 /* === Proactive Insights (Dashboard) === */
+.dashboard-section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.dashboard-section-header-row .dashboard-section-title {
+  margin-bottom: 0;
+}
+
+.insights-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.insights-last-updated {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.8;
+}
+
+.insights-refresh-btn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.insights-refresh-btn:hover:not(:disabled) {
+  background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+}
+
+.insights-refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .dashboard-insights-loading {
   display: flex;
   align-items: center;

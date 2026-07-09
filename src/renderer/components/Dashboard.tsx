@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Circle, Clock, CheckCircle2, AlertCircle, Timer, Sparkles, X, Calendar, Target, Inbox, History, Lightbulb, Loader2 } from 'lucide-react'
+import { Circle, Clock, CheckCircle2, AlertCircle, Timer, Sparkles, X, Calendar, Target, Inbox, History, Lightbulb, Loader2, RefreshCw } from 'lucide-react'
 import { MarkdownViewer } from './MarkdownViewer'
 
 interface Task {
@@ -48,6 +48,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
   const [isLoadingSummary, setIsLoadingSummary] = useState(false)
   const [insights, setInsights] = useState<{ id: string; type: string; title: string; description: string; priority: string; relatedProjectId?: string; relatedProjectName?: string }[]>([])
   const [isLoadingInsights, setIsLoadingInsights] = useState(false)
+  const [insightsLastUpdated, setInsightsLastUpdated] = useState<number | null>(null)
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
@@ -75,16 +76,24 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
     }
   }
 
-  const loadInsights = async () => {
+  const loadInsights = async (forceRefresh = false) => {
     setIsLoadingInsights(true)
-    window.dispatchEvent(new Event('ai:start'))
+    if (forceRefresh) {
+      window.dispatchEvent(new Event('ai:start'))
+    }
     try {
-      const data = await window.electronAPI.generateInsights()
+      const data = await window.electronAPI.generateInsights(forceRefresh)
       setInsights(data)
-      window.dispatchEvent(new Event('ai:end'))
+      const lastGenerated = await window.electronAPI.getInsightsLastGeneratedAt()
+      setInsightsLastUpdated(lastGenerated)
+      if (forceRefresh) {
+        window.dispatchEvent(new Event('ai:end'))
+      }
     } catch (error) {
       console.error('Failed to generate insights:', error)
-      window.dispatchEvent(new Event('ai:error'))
+      if (forceRefresh) {
+        window.dispatchEvent(new Event('ai:error'))
+      }
     } finally {
       setIsLoadingInsights(false)
     }
@@ -137,6 +146,16 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
     } finally {
       setIsLoadingSummary(false)
     }
+  }
+
+  const formatRelativeTime = (timestamp: number): string => {
+    const diffMs = Date.now() - timestamp
+    const diffMin = Math.floor(diffMs / 60000)
+    if (diffMin < 1) return 'agora'
+    if (diffMin < 60) return `há ${diffMin} min`
+    const diffHours = Math.floor(diffMin / 60)
+    if (diffHours < 24) return `há ${diffHours}h`
+    return `há ${Math.floor(diffHours / 24)}d`
   }
 
   if (isLoading) {
@@ -450,10 +469,27 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
 
         {/* Section 5: Proactive Insights */}
         <div className="dashboard-section dashboard-insights">
-          <h3 className="dashboard-section-title">
-            <Lightbulb size={14} />
-            Sugestões da IA
-          </h3>
+          <div className="dashboard-section-header-row">
+            <h3 className="dashboard-section-title">
+              <Lightbulb size={14} />
+              Sugestões da IA
+            </h3>
+            <div className="insights-actions">
+              {insightsLastUpdated && !isLoadingInsights && (
+                <span className="insights-last-updated">
+                  Atualizado {formatRelativeTime(insightsLastUpdated)}
+                </span>
+              )}
+              <button
+                className="icon-button insights-refresh-btn"
+                onClick={() => loadInsights(true)}
+                disabled={isLoadingInsights}
+                title="Atualizar sugestões agora"
+              >
+                <RefreshCw size={14} className={isLoadingInsights ? 'spinning' : ''} />
+              </button>
+            </div>
+          </div>
 
           {isLoadingInsights ? (
             <div className="dashboard-insights-loading">
