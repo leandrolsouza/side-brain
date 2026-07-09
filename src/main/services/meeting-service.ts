@@ -39,13 +39,15 @@ Se não houver dados suficientes para uma seção, omita-a.
 Responda APENAS com o markdown da pauta.`
 
 export class MeetingService {
-  private meetingRepo = new MeetingRepository()
-  private entryRepo = new EntryRepository()
-  private projectRepo = new ProjectRepository()
-  private taskRepo = new TaskRepository()
-  private settingsRepo = new SettingsRepository()
-  private notificationRepo = new NotificationRepository()
-  private aiService = new AIService()
+  constructor(
+    private meetingRepo: MeetingRepository,
+    private entryRepo: EntryRepository,
+    private projectRepo: ProjectRepository,
+    private taskRepo: TaskRepository,
+    private settingsRepo: SettingsRepository,
+    private notificationRepo: NotificationRepository,
+    private aiService: AIService
+  ) { }
 
   create(data: { projectId: string; title: string; participants?: string[]; meetingDate?: string }): Meeting {
     return this.meetingRepo.create(data)

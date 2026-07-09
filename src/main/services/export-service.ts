@@ -4,22 +4,7 @@ import { Entry, EntryType, ActionStatus, Task, TaskStatus, TASK_STATUS_LABELS } 
 import { EntryRepository } from '../database/repositories/entry-repository'
 import { ProjectRepository } from '../database/repositories/project-repository'
 import { TaskRepository } from '../database/repositories/task-repository'
-
-const ENTRY_TYPE_LABELS: Record<EntryType, string> = {
-  information: 'Informação',
-  decision: 'Decisão',
-  demand: 'Demanda',
-  idea: 'Ideia',
-  blocker: 'Bloqueio',
-  update: 'Atualização',
-}
-
-const ACTION_STATUS_LABELS: Record<ActionStatus, string> = {
-  none: 'Nenhuma',
-  action_needed: 'Ação necessária',
-  waiting_response: 'Aguardando resposta',
-  done: 'Concluída',
-}
+import { CustomFieldsRepository } from '../database/repositories/custom-fields-repository'
 
 export type ExportFormat = 'markdown' | 'pdf'
 
@@ -27,6 +12,31 @@ export class ExportService {
   private entryRepo = new EntryRepository()
   private projectRepo = new ProjectRepository()
   private taskRepo = new TaskRepository()
+  private customFieldsRepo = new CustomFieldsRepository()
+
+  /**
+   * Builds entry type labels dynamically from custom fields.
+   */
+  private getEntryTypeLabels(): Record<string, string> {
+    const types = this.customFieldsRepo.getEntryTypes()
+    const labels: Record<string, string> = {}
+    for (const t of types) {
+      labels[t.key] = t.label
+    }
+    return labels
+  }
+
+  /**
+   * Builds action status labels dynamically from custom fields.
+   */
+  private getActionStatusLabels(): Record<string, string> {
+    const statuses = this.customFieldsRepo.getActionStatuses()
+    const labels: Record<string, string> = {}
+    for (const s of statuses) {
+      labels[s.key] = s.label
+    }
+    return labels
+  }
 
   async exportProject(projectId: string, format: ExportFormat): Promise<{ success: boolean; filePath?: string }> {
     const project = this.projectRepo.getById(projectId)
@@ -132,21 +142,39 @@ export class ExportService {
     if (entries.length > 0) {
       md += `## Entradas\n\n`
 
-      const typeOrder: EntryType[] = ['decision', 'blocker', 'demand', 'idea', 'update', 'information']
+      const entryTypeLabels = this.getEntryTypeLabels()
+      const actionStatusLabels = this.getActionStatusLabels()
+
+      // Use custom field order (sorted by the configured sort_order)
+      const entryTypes = this.customFieldsRepo.getEntryTypes()
+      const typeOrder = entryTypes.map((t) => t.key)
+
       for (const type of typeOrder) {
         const typeEntries = entriesByType[type]
         if (typeEntries && typeEntries.length > 0) {
-          md += `### ${ENTRY_TYPE_LABELS[type]} (${typeEntries.length})\n\n`
+          md += `### ${entryTypeLabels[type] || type} (${typeEntries.length})\n\n`
           for (const entry of typeEntries) {
             const date = new Date(entry.createdAt).toLocaleDateString('pt-BR')
             md += `- **[${date}]** ${entry.improvedText || entry.rawText}`
             if (entry.action !== 'none') {
-              md += ` _(${ACTION_STATUS_LABELS[entry.action]})_`
+              md += ` _(${actionStatusLabels[entry.action] || entry.action})_`
             }
             md += `\n`
           }
           md += `\n`
         }
+      }
+
+      // Also render entries with types not in custom fields (orphaned)
+      const knownTypes = new Set(typeOrder)
+      for (const [type, typeEntries] of Object.entries(entriesByType)) {
+        if (knownTypes.has(type) || !typeEntries || typeEntries.length === 0) continue
+        md += `### ${type} (${typeEntries.length})\n\n`
+        for (const entry of typeEntries) {
+          const date = new Date(entry.createdAt).toLocaleDateString('pt-BR')
+          md += `- **[${date}]** ${entry.improvedText || entry.rawText}\n`
+        }
+        md += `\n`
       }
     }
 

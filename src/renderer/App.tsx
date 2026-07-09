@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect } from 'react'
 import { ToastProvider } from './components/ToastContext'
 import { ToastContainer } from './components/ToastContainer'
+import { AppProvider, useApp } from './components/AppContext'
 import { ActivityBar } from './components/ActivityBar'
 import { Sidebar } from './components/Sidebar'
 import { Dashboard } from './components/Dashboard'
@@ -44,37 +45,24 @@ const FONT_FAMILY_STACKS: Record<string, string> = {
   'georgia': 'Georgia, "Times New Roman", serif',
 }
 
-export function App() {
-  const [currentView, setCurrentView] = useState<View>('dashboard')
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
-  const [selectedProjectName, setSelectedProjectName] = useState<string>('')
-  const [meetingProjectId, setMeetingProjectId] = useState<string | undefined>(undefined)
-  const [projectInitialTab, setProjectInitialTab] = useState<'entries' | 'kanban' | 'meetings' | undefined>(undefined)
-  const [projectsRefreshKey, setProjectsRefreshKey] = useState(0)
-  const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const [showDigest, setShowDigest] = useState(false)
-  const [showAbout, setShowAbout] = useState(false)
-  const [activeModelLabel, setActiveModelLabel] = useState<string>('Claude Sonnet 4')
-  const [aiStatus, setAiStatus] = useState<'idle' | 'processing' | 'error'>('idle')
-  const [theme, setTheme] = useState<Theme>(() => {
-    return (localStorage.getItem('app-theme') as Theme) || 'dark'
-  })
+function AppContent() {
+  const { state, dispatch, navigateToProject, navigateToMeeting, refreshProjects } = useApp()
+  const { currentView, selectedProjectId, selectedProjectName, meetingProjectId, projectInitialTab, projectsRefreshKey, isSearchOpen, showDigest, showAbout, activeModelLabel, aiStatus, theme } = state
 
   // Apply theme to document
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
     localStorage.setItem('app-theme', theme)
-    // Sincronizar tema nativo (controles do OS: select dropdown, etc)
     window.electronAPI.setNativeTheme(theme)
   }, [theme])
 
   // Track AI processing status via custom events
   useEffect(() => {
-    const handleAiStart = () => setAiStatus('processing')
-    const handleAiEnd = () => setAiStatus('idle')
+    const handleAiStart = () => dispatch({ type: 'SET_AI_STATUS', status: 'processing' })
+    const handleAiEnd = () => dispatch({ type: 'SET_AI_STATUS', status: 'idle' })
     const handleAiError = () => {
-      setAiStatus('error')
-      setTimeout(() => setAiStatus('idle'), 3000)
+      dispatch({ type: 'SET_AI_STATUS', status: 'error' })
+      setTimeout(() => dispatch({ type: 'SET_AI_STATUS', status: 'idle' }), 3000)
     }
     window.addEventListener('ai:start', handleAiStart)
     window.addEventListener('ai:end', handleAiEnd)
@@ -84,17 +72,17 @@ export function App() {
       window.removeEventListener('ai:end', handleAiEnd)
       window.removeEventListener('ai:error', handleAiError)
     }
-  }, [])
+  }, [dispatch])
 
   // Show Daily Digest on app start
   useEffect(() => {
     const digestKey = `digest-shown-${new Date().toISOString().slice(0, 10)}`
     const alreadyShown = sessionStorage.getItem(digestKey)
     if (!alreadyShown) {
-      setShowDigest(true)
+      dispatch({ type: 'SET_DIGEST_OPEN', open: true })
       sessionStorage.setItem(digestKey, 'true')
     }
-  }, [])
+  }, [dispatch])
 
   // Load active model from settings
   useEffect(() => {
@@ -103,9 +91,9 @@ export function App() {
         const data = await window.electronAPI.getSettings()
         if (data?.aiProvider === 'local') {
           const modelName = data.localModelId || 'LLM Local'
-          setActiveModelLabel(`Local: ${modelName}`)
+          dispatch({ type: 'SET_MODEL_LABEL', label: `Local: ${modelName}` })
         } else if (data?.modelId) {
-          setActiveModelLabel(MODEL_LABELS[data.modelId] || data.modelId)
+          dispatch({ type: 'SET_MODEL_LABEL', label: MODEL_LABELS[data.modelId] || data.modelId })
         }
         // Apply font settings
         const fontFamily = data?.fontFamily || 'system-ui'
@@ -116,25 +104,22 @@ export function App() {
       } catch { /* ignore */ }
     }
     loadModel()
-  }, [currentView])
+  }, [currentView, dispatch])
 
   // Global keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl+K → global search
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault()
-        setIsSearchOpen(true)
+        dispatch({ type: 'SET_SEARCH_OPEN', open: true })
         return
       }
-      // Ctrl+N → nova captura
       if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
         e.preventDefault()
-        setCurrentView('capture')
+        dispatch({ type: 'SET_VIEW', view: 'capture' })
         return
       }
-      // Ctrl+1/2/3/4/5 → navegar entre views
-      if ((e.ctrlKey || e.metaKey) && e.key >= '1' && e.key <= '5') {
+      if ((e.ctrlKey || e.metaKey) && e.key >= '1' && e.key <= '7') {
         e.preventDefault()
         const viewMap: Record<string, View> = {
           '1': 'dashboard',
@@ -146,34 +131,16 @@ export function App() {
           '7': 'error-center',
         }
         const view = viewMap[e.key]
-        if (view) setCurrentView(view)
+        if (view) dispatch({ type: 'SET_VIEW', view })
         return
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
-
-  const refreshProjects = () => {
-    setProjectsRefreshKey((k) => k + 1)
-  }
-
-  const handleProjectSelect = (projectId: string, projectName: string) => {
-    setSelectedProjectId(projectId)
-    setSelectedProjectName(projectName)
-    setProjectInitialTab(undefined)
-    setCurrentView('entries')
-  }
-
-  const handleNavigateToMeeting = (projectId?: string) => {
-    setMeetingProjectId(projectId)
-    setCurrentView('meeting')
-  }
+  }, [dispatch])
 
   const handleBackToProjects = () => {
-    setSelectedProjectId(null)
-    setSelectedProjectName('')
-    setCurrentView('projects')
+    dispatch({ type: 'BACK_TO_PROJECTS' })
   }
 
   const getTabTitle = (): string => {
@@ -194,30 +161,28 @@ export function App() {
   const renderContent = () => {
     switch (currentView) {
       case 'dashboard':
-        return <Dashboard onNavigateToProject={handleProjectSelect} />
+        return <Dashboard onNavigateToProject={navigateToProject} />
       case 'capture':
         return <CaptureInput onProjectsChanged={refreshProjects} />
       case 'projects':
-        return <ProjectList onSelectProject={handleProjectSelect} onProjectsChanged={refreshProjects} />
+        return <ProjectList onSelectProject={navigateToProject} onProjectsChanged={refreshProjects} />
       case 'entries':
         return selectedProjectId ? (
-          <ProjectView projectId={selectedProjectId} projectName={selectedProjectName} initialTab={projectInitialTab} onBack={handleBackToProjects} onNavigateToMeeting={handleNavigateToMeeting} />
+          <ProjectView projectId={selectedProjectId} projectName={selectedProjectName} initialTab={projectInitialTab} onBack={handleBackToProjects} onNavigateToMeeting={navigateToMeeting} />
         ) : (
-          <ProjectList onSelectProject={handleProjectSelect} onProjectsChanged={refreshProjects} />
+          <ProjectList onSelectProject={navigateToProject} onProjectsChanged={refreshProjects} />
         )
       case 'meeting':
         return <MeetingMode projectId={meetingProjectId} onFinished={(projId) => {
           if (projId) {
-            setSelectedProjectId(projId)
-            setSelectedProjectName('')
-            setProjectInitialTab('kanban')
+            dispatch({ type: 'SELECT_PROJECT', projectId: projId, projectName: '' })
+            dispatch({ type: 'SET_PROJECT_TAB', tab: 'kanban' })
             window.electronAPI.getProjects().then((projects) => {
               const found = projects.find((p: any) => p.id === projId)
-              if (found) setSelectedProjectName(found.name)
+              if (found) dispatch({ type: 'SET_SELECTED_PROJECT_NAME', name: found.name })
             })
-            setCurrentView('entries')
           } else {
-            setCurrentView('dashboard')
+            dispatch({ type: 'SET_VIEW', view: 'dashboard' })
           }
         }} />
       case 'settings':
@@ -234,74 +199,80 @@ export function App() {
   }
 
   return (
-    <ToastProvider>
-      <div className="workbench">
-        {/* Title Bar */}
-        <div className="titlebar">
-          <span className="titlebar-text">SideBrain</span>
-        </div>
+    <div className="workbench">
+      {/* Title Bar */}
+      <div className="titlebar">
+        <span className="titlebar-text">SideBrain</span>
+      </div>
 
-        {/* Body: Activity Bar + Sidebar + Editor */}
-        <div className="workbench-body">
-          <ActivityBar currentView={currentView} onViewChange={setCurrentView} theme={theme} onThemeChange={setTheme} onAboutClick={() => setShowAbout(true)} />
-          <Sidebar currentView={currentView} onViewChange={setCurrentView} onProjectSelect={handleProjectSelect} refreshKey={projectsRefreshKey} />
+      {/* Body: Activity Bar + Sidebar + Editor */}
+      <div className="workbench-body">
+        <ActivityBar currentView={currentView} onViewChange={(v) => dispatch({ type: 'SET_VIEW', view: v })} theme={theme} onThemeChange={(t) => dispatch({ type: 'SET_THEME', theme: t })} onAboutClick={() => dispatch({ type: 'SET_ABOUT_OPEN', open: true })} />
+        <Sidebar currentView={currentView} onViewChange={(v) => dispatch({ type: 'SET_VIEW', view: v })} onProjectSelect={navigateToProject} refreshKey={projectsRefreshKey} />
 
-          {/* Editor Area */}
-          <div className="editor-area">
-            {/* Tabs */}
-            <div className="tabs-bar">
-              <div className="tab active">
-                <span>{getTabTitle()}</span>
-              </div>
-            </div>
-
-            {/* Content */}
-            <div className="editor-content">
-              {renderContent()}
+        {/* Editor Area */}
+        <div className="editor-area">
+          {/* Tabs */}
+          <div className="tabs-bar">
+            <div className="tab active">
+              <span>{getTabTitle()}</span>
             </div>
           </div>
-        </div>
 
-        {/* Global Search Modal */}
-        <GlobalSearch
-          isOpen={isSearchOpen}
-          onClose={() => setIsSearchOpen(false)}
-          onNavigateToProject={handleProjectSelect}
-        />
-
-        {/* Daily Digest Modal */}
-        {showDigest && (
-          <DailyDigest
-            onClose={() => setShowDigest(false)}
-            onNavigateToProject={handleProjectSelect}
-          />
-        )}
-
-        {/* About Modal */}
-        <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />
-
-        {/* Status Bar */}
-        <div className="status-bar">
-          <WorkspaceSwitcher />
-          <div className="status-bar-item">
-            <span>SideBrain v0.1.0</span>
-          </div>
-          <div className="status-bar-right">
-            <StatusBarErrorIndicator onClick={() => setCurrentView('error-center')} />
-            <NotificationCenter />
-            <div className="status-bar-item ai-status-indicator" title={aiStatus === 'processing' ? 'IA processando...' : aiStatus === 'error' ? 'Erro na IA' : 'IA conectada'}>
-              <span className={`ai-status-dot ${aiStatus}`} />
-              <span>{aiStatus === 'processing' ? 'IA processando...' : 'AI: ' + activeModelLabel}</span>
-              {aiStatus === 'processing' && <span className="ai-status-progress" />}
-            </div>
-            <div className="status-bar-item clickable" onClick={() => setCurrentView('settings')} title="Clique para alterar o provedor de IA">
-              <span>⚙</span>
-            </div>
+          {/* Content */}
+          <div className="editor-content">
+            {renderContent()}
           </div>
         </div>
       </div>
 
-      {/* App Toast (feedback messages) */}
+      {/* Global Search Modal */}
+      <GlobalSearch
+        isOpen={isSearchOpen}
+        onClose={() => dispatch({ type: 'SET_SEARCH_OPEN', open: false })}
+        onNavigateToProject={navigateToProject}
+      />
+
+      {/* Daily Digest Modal */}
+      {showDigest && (
+        <DailyDigest
+          onClose={() => dispatch({ type: 'SET_DIGEST_OPEN', open: false })}
+          onNavigateToProject={navigateToProject}
+        />
+      )}
+
+      {/* About Modal */}
+      <AboutModal isOpen={showAbout} onClose={() => dispatch({ type: 'SET_ABOUT_OPEN', open: false })} />
+
+      {/* Status Bar */}
+      <div className="status-bar">
+        <WorkspaceSwitcher />
+        <div className="status-bar-item">
+          <span>SideBrain v0.1.0</span>
+        </div>
+        <div className="status-bar-right">
+          <StatusBarErrorIndicator onClick={() => dispatch({ type: 'SET_VIEW', view: 'error-center' })} />
+          <NotificationCenter />
+          <div className="status-bar-item ai-status-indicator" title={aiStatus === 'processing' ? 'IA processando...' : aiStatus === 'error' ? 'Erro na IA' : 'IA conectada'}>
+            <span className={`ai-status-dot ${aiStatus}`} />
+            <span>{aiStatus === 'processing' ? 'IA processando...' : 'AI: ' + activeModelLabel}</span>
+            {aiStatus === 'processing' && <span className="ai-status-progress" />}
+          </div>
+          <div className="status-bar-item clickable" onClick={() => dispatch({ type: 'SET_VIEW', view: 'settings' })} title="Clique para alterar o provedor de IA">
+            <span>⚙</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function App() {
+  return (
+    <ToastProvider>
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
       <ToastContainer />
     </ToastProvider>
   )

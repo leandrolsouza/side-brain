@@ -1,5 +1,31 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { EntryConfirmRequest, EntryPreviewResult, AIUsageSummary, AIUsageDailyPoint, AIUsageRecord, Workspace, SmartChatMessage, ProactiveInsight, AppNotification, ErrorLog, ErrorCategory, ErrorSeverity, ReportPeriod, ReportsData, CustomEntryType, CustomActionStatus, CustomCaptureTemplate } from '../shared/types'
+import type {
+  Entry,
+  Project,
+  Task,
+  Meeting,
+  MeetingProcessResult,
+  DailyDigestData,
+  BackupInfo,
+  AppSettings,
+  EntryConfirmRequest,
+  EntryPreviewResult,
+  AIUsageSummary,
+  AIUsageDailyPoint,
+  AIUsageRecord,
+  Workspace,
+  SmartChatMessage,
+  ProactiveInsight,
+  AppNotification,
+  ErrorLog,
+  ErrorCategory,
+  ErrorSeverity,
+  ReportPeriod,
+  ReportsData,
+  CustomEntryType,
+  CustomActionStatus,
+  CustomCaptureTemplate,
+} from '../shared/types'
 
 export interface ElectronAPI {
   // Workspaces
@@ -12,27 +38,27 @@ export interface ElectronAPI {
   selectWorkspaceFolder: () => Promise<string | null>
 
   // Entries
-  createEntry: (rawText: string) => Promise<any>
+  createEntry: (rawText: string) => Promise<Entry & { autoSuggestedProject?: { id: string; name: string } }>
   previewEntry: (rawText: string, projectIdHint?: string) => Promise<EntryPreviewResult>
-  confirmEntry: (data: EntryConfirmRequest) => Promise<any>
-  getEntries: (projectId?: string) => Promise<any[]>
-  updateEntry: (id: string, updates: Record<string, any>) => Promise<any>
+  confirmEntry: (data: EntryConfirmRequest) => Promise<Entry & { autoSuggestedProject?: { id: string; name: string } }>
+  getEntries: (projectId?: string) => Promise<Entry[]>
+  updateEntry: (id: string, updates: Record<string, any>) => Promise<Entry | null>
   deleteEntry: (id: string) => Promise<void>
 
   // Projects
-  getProjects: (includeInactive?: boolean) => Promise<any[]>
-  createProject: (name: string, description?: string) => Promise<any>
-  updateProject: (id: string, updates: Record<string, any>) => Promise<any>
-  setProjectActive: (id: string, active: boolean) => Promise<any>
+  getProjects: (includeInactive?: boolean) => Promise<Project[]>
+  createProject: (name: string, description?: string) => Promise<Project>
+  updateProject: (id: string, updates: Record<string, any>) => Promise<Project | null>
+  setProjectActive: (id: string, active: boolean) => Promise<Project | null>
   deleteProject: (id: string) => Promise<void>
 
   // Tasks
-  getTasksByProject: (projectId: string) => Promise<any[]>
-  getAllTasks: () => Promise<any[]>
-  getTasksDueThisWeek: () => Promise<any[]>
-  getOverdueTasks: () => Promise<any[]>
-  createTask: (data: { projectId: string; title: string; description?: string; dueDate?: string | null }) => Promise<any>
-  updateTask: (id: string, updates: Record<string, any>) => Promise<any>
+  getTasksByProject: (projectId: string) => Promise<Task[]>
+  getAllTasks: () => Promise<Task[]>
+  getTasksDueThisWeek: () => Promise<Task[]>
+  getOverdueTasks: () => Promise<Task[]>
+  createTask: (data: { projectId: string; title: string; description?: string; dueDate?: string | null }) => Promise<Task>
+  updateTask: (id: string, updates: Record<string, any>) => Promise<Task | null>
   deleteTask: (id: string) => Promise<void>
 
   // AI
@@ -40,34 +66,34 @@ export interface ElectronAPI {
   generateGlobalSummary: () => Promise<string>
 
   // Daily Digest
-  generateDailyDigest: () => Promise<any>
+  generateDailyDigest: () => Promise<DailyDigestData>
 
   // Settings
-  getSettings: () => Promise<Record<string, any>>
-  updateSettings: (settings: Record<string, any>) => Promise<void>
+  getSettings: () => Promise<AppSettings>
+  updateSettings: (settings: Partial<AppSettings>) => Promise<void>
 
   // Global Search
-  globalSearch: (query: string, filters?: { type?: string; projectId?: string; dateFrom?: string; dateTo?: string }) => Promise<{ entries: any[]; tasks: any[]; projects: any[] }>
+  globalSearch: (query: string, filters?: { type?: string; projectId?: string; dateFrom?: string; dateTo?: string }) => Promise<{ entries: Entry[]; tasks: Task[]; projects: Project[] }>
 
   // Export
   exportProject: (projectId: string, format: 'markdown' | 'pdf') => Promise<{ success: boolean; filePath?: string }>
 
   // Meetings
-  createMeeting: (data: { projectId: string; title: string; participants?: string[]; meetingDate?: string }) => Promise<any>
-  getMeetings: (projectId?: string) => Promise<any[]>
-  getMeetingById: (id: string) => Promise<any | null>
-  getActiveMeeting: () => Promise<any | null>
-  addMeetingNote: (id: string, note: string) => Promise<any>
-  setMeetingTranscription: (id: string, transcription: string) => Promise<any>
-  endMeeting: (id: string) => Promise<any>
-  processMeeting: (id: string) => Promise<any>
+  createMeeting: (data: { projectId: string; title: string; participants?: string[]; meetingDate?: string }) => Promise<Meeting>
+  getMeetings: (projectId?: string) => Promise<Meeting[]>
+  getMeetingById: (id: string) => Promise<Meeting | null>
+  getActiveMeeting: () => Promise<Meeting | null>
+  addMeetingNote: (id: string, note: string) => Promise<Meeting | null>
+  setMeetingTranscription: (id: string, transcription: string) => Promise<Meeting | null>
+  endMeeting: (id: string) => Promise<Meeting | null>
+  processMeeting: (id: string) => Promise<MeetingProcessResult | null>
   saveSelectedMeetingItems: (meetingId: string, selectedEntries: any[], selectedTasks: any[]) => Promise<{ entryIds: string[]; taskIds: string[] }>
   deleteMeeting: (id: string) => Promise<void>
   deleteMeetingWithData: (meetingId: string, entryIds: string[], taskIds: string[]) => Promise<void>
   prepareMeeting: (projectId: string, title: string, participants: string[]) => Promise<string>
 
   // Backup
-  listBackups: () => Promise<any[]>
+  listBackups: () => Promise<BackupInfo[]>
   createManualBackup: () => Promise<{ success: boolean; filePath?: string }>
   restoreBackup: (filePath: string) => Promise<{ success: boolean; error?: string }>
   importBackup: () => Promise<{ success: boolean; error?: string }>

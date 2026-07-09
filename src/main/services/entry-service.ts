@@ -6,11 +6,13 @@ import { SettingsRepository } from '../database/repositories/settings-repository
 import { AIService } from './ai-service'
 
 export class EntryService {
-  private entryRepo = new EntryRepository()
-  private projectRepo = new ProjectRepository()
-  private taskRepo = new TaskRepository()
-  private settingsRepo = new SettingsRepository()
-  private aiService = new AIService()
+  constructor(
+    private entryRepo: EntryRepository,
+    private projectRepo: ProjectRepository,
+    private taskRepo: TaskRepository,
+    private settingsRepo: SettingsRepository,
+    private aiService: AIService
+  ) { }
 
   async createEntry(rawText: string): Promise<Entry & { autoSuggestedProject?: { id: string; name: string } }> {
     const settings = this.settingsRepo.get()

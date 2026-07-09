@@ -6,11 +6,13 @@ import { SettingsRepository } from '../database/repositories/settings-repository
 import { AIService } from './ai-service'
 
 export class DigestService {
-  private entryRepo = new EntryRepository()
-  private taskRepo = new TaskRepository()
-  private projectRepo = new ProjectRepository()
-  private settingsRepo = new SettingsRepository()
-  private aiService = new AIService()
+  constructor(
+    private entryRepo: EntryRepository,
+    private taskRepo: TaskRepository,
+    private projectRepo: ProjectRepository,
+    private settingsRepo: SettingsRepository,
+    private aiService: AIService
+  ) { }
 
   async generateDailyDigest(): Promise<DailyDigestData> {
     const now = new Date()

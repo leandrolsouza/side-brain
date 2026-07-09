@@ -28,11 +28,13 @@ Você pode responder perguntas como:
 `
 
 export class SmartChatService {
-  private entryRepo = new EntryRepository()
-  private projectRepo = new ProjectRepository()
-  private taskRepo = new TaskRepository()
-  private settingsRepo = new SettingsRepository()
-  private aiService = new AIService()
+  constructor(
+    private entryRepo: EntryRepository,
+    private projectRepo: ProjectRepository,
+    private taskRepo: TaskRepository,
+    private settingsRepo: SettingsRepository,
+    private aiService: AIService
+  ) { }
 
   async chat(userMessage: string): Promise<SmartChatMessage> {
     const settings = this.settingsRepo.get()
