@@ -5,6 +5,13 @@ Todas as mudanças notáveis do SideBrain serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.3.6] - 2025-07-10
+
+### Adicionado
+- Caminho de "usuário existente" no onboarding: importar base .db de outra máquina
+- Tela de boas-vindas agora oferece duas opções: "Começar do zero" ou "Já uso o SideBrain"
+- Componente OnboardingImport com feedback de sucesso/erro e dica de como exportar
+
 ## [0.3.5] - 2025-07-10
 
 ### Adicionado
