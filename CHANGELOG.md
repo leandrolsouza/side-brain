@@ -5,6 +5,13 @@ Todas as mudanças notáveis do SideBrain serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.3.3] - 2025-07-10
+
+### Corrigido
+- `better-sqlite3` era compilado para Node.js no CI ao invés de Electron, causando crash ao abrir (`NODE_MODULE_VERSION mismatch`)
+- Workflow de release agora usa `npm ci --ignore-scripts` para deixar o `electron-builder` fazer o rebuild nativo correto
+- Removido `npm test` duplicado do release (CI workflow `test.yml` já cobre)
+
 ## [0.3.2] - 2025-07-10
 
 ### Corrigido
