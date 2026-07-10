@@ -127,6 +127,29 @@ const migrations: Migration[] = [
       }
     },
   },
+  {
+    version: 6,
+    name: 'add_entry_connections',
+    up: (database) => {
+      database.exec(`
+        CREATE TABLE IF NOT EXISTS entry_connections (
+          id TEXT PRIMARY KEY,
+          source_entry_id TEXT NOT NULL,
+          target_entry_id TEXT NOT NULL,
+          connection_type TEXT NOT NULL DEFAULT 'related',
+          description TEXT,
+          is_ai_suggested INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          FOREIGN KEY (source_entry_id) REFERENCES entries(id) ON DELETE CASCADE,
+          FOREIGN KEY (target_entry_id) REFERENCES entries(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_connections_source ON entry_connections(source_entry_id);
+        CREATE INDEX IF NOT EXISTS idx_connections_target ON entry_connections(target_entry_id);
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_connections_pair ON entry_connections(source_entry_id, target_entry_id);
+      `)
+    },
+  },
 ]
 
 function runMigrations(database: Database.Database): void {

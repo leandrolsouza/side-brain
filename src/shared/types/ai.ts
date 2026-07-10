@@ -47,6 +47,7 @@ export type AIOperationType =
   | 'meeting_processing'
   | 'smart_chat'
   | 'insights'
+  | 'connection_discovery'
 
 export interface AIUsageRecord {
   id: string

@@ -10,6 +10,7 @@ import { AIUsageRepository } from '../database/repositories/ai-usage-repository'
 import { MeetingRepository } from '../database/repositories/meeting-repository'
 import { NotificationRepository } from '../database/repositories/notification-repository'
 import { CustomFieldsRepository } from '../database/repositories/custom-fields-repository'
+import { ConnectionRepository } from '../database/repositories/connection-repository'
 
 import { AIProvider } from './ai-provider'
 import { AIService } from './ai-service'
@@ -32,6 +33,7 @@ export interface AppContainer {
   meetingRepo: MeetingRepository
   notificationRepo: NotificationRepository
   customFieldsRepo: CustomFieldsRepository
+  connectionRepo: ConnectionRepository
 
   // Services
   aiProvider: AIProvider
@@ -60,6 +62,7 @@ export function getContainer(): AppContainer {
   const meetingRepo = new MeetingRepository()
   const notificationRepo = new NotificationRepository()
   const customFieldsRepo = new CustomFieldsRepository()
+  const connectionRepo = new ConnectionRepository()
 
   // AI layer
   const aiProvider = new AIProvider(aiUsageRepo, settingsRepo)
@@ -84,6 +87,7 @@ export function getContainer(): AppContainer {
     meetingRepo,
     notificationRepo,
     customFieldsRepo,
+    connectionRepo,
     aiProvider,
     aiService,
     entryService,

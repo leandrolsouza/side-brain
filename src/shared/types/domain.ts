@@ -142,6 +142,33 @@ export interface DailyDigestData {
   generatedAt: string
 }
 
+// === Entry Connection Types ===
+
+export type ConnectionType = 'related' | 'follows_up' | 'contradicts' | 'depends_on' | 'evolves'
+
+export const CONNECTION_TYPE_LABELS: Record<ConnectionType, string> = {
+  related: 'Relacionado',
+  follows_up: 'Continuação de',
+  contradicts: 'Contradiz',
+  depends_on: 'Depende de',
+  evolves: 'Evolui',
+}
+
+export interface EntryConnection {
+  id: string
+  sourceEntryId: string
+  targetEntryId: string
+  connectionType: ConnectionType
+  description?: string
+  isAiSuggested: boolean
+  createdAt: string
+}
+
+export interface ConnectedEntry {
+  connection: EntryConnection
+  entry: Entry
+}
+
 // === Backup ===
 
 export interface BackupInfo {

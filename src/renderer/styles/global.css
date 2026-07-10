@@ -7425,3 +7425,158 @@ kbd {
   color: var(--vscode-panelTitle-activeForeground);
   border-bottom-color: var(--vscode-panelTitle-activeBorder);
 }
+
+/* === Entry Connections === */
+
+.connection-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: var(--vscode-badge-background, #4d4d4d);
+  border: 1px solid var(--vscode-widget-border, #474747);
+  font-size: 11px;
+  max-width: 280px;
+  cursor: default;
+}
+
+.connection-chip-type {
+  color: var(--vscode-activityBarBadge-background);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.connection-chip-text {
+  color: var(--vscode-editor-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.connection-chip-remove {
+  background: none;
+  border: none;
+  color: var(--vscode-descriptionForeground);
+  cursor: pointer;
+  padding: 1px;
+  display: flex;
+  align-items: center;
+  border-radius: 50%;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+
+.connection-chip-remove:hover {
+  opacity: 1;
+  color: var(--vscode-errorForeground);
+}
+
+.connection-search-result {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.connection-search-result:hover {
+  background: var(--vscode-list-hoverBackground, #2a2d2e);
+  border-color: var(--vscode-focusBorder);
+}
+
+/* === Connection Graph === */
+
+.graph-legend {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background: var(--vscode-sideBar-background);
+  border: 1px solid var(--vscode-widget-border, #474747);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 180px;
+  opacity: 0.9;
+}
+
+.graph-legend-section {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.graph-legend-title {
+  font-weight: 500;
+  color: var(--vscode-sideBarTitle-foreground);
+  margin-bottom: 2px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.graph-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--vscode-editor-foreground);
+}
+
+.graph-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.graph-legend-line {
+  width: 14px;
+  height: 2px;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+
+.graph-detail-panel {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: var(--vscode-sideBar-background);
+  border: 1px solid var(--vscode-widget-border, #474747);
+  border-radius: 6px;
+  width: 280px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.graph-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--vscode-widget-border, #474747);
+  font-size: 12px;
+}
+
+.graph-detail-body {
+  padding: 10px 12px;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}

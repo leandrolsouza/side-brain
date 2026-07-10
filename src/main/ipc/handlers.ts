@@ -11,6 +11,7 @@ import { registerNotificationHandlers } from './notification-handlers'
 import { registerReportsHandlers } from './reports-handlers'
 import { registerCustomFieldsHandlers } from './custom-fields-handlers'
 import { registerErrorHandlers } from './error-handlers'
+import { registerConnectionHandlers } from './connection-handlers'
 
 export function registerIpcHandlers(): void {
   registerEntryHandlers()
@@ -26,4 +27,5 @@ export function registerIpcHandlers(): void {
   registerReportsHandlers()
   registerCustomFieldsHandlers()
   registerErrorHandlers()
+  registerConnectionHandlers()
 }

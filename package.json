@@ -19,6 +19,7 @@
   "dependencies": {
     "better-sqlite3": "12.6.2",
     "lucide-react": "^1.23.0",
+    "react-force-graph-2d": "^1.28.0",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
     "uuid": "13.0.0"

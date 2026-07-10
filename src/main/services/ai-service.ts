@@ -330,4 +330,69 @@ ${projectsSummaryText}`
   ): Promise<string> {
     return this.provider.invoke(systemPrompt, userMessage, settings, operationType)
   }
+
+  /**
+   * Analyzes a batch of entries and discovers semantic connections between them.
+   * Returns suggested connections with type and reasoning.
+   */
+  async discoverConnections(
+    entries: { id: string; improvedText: string; type: string; projectId: string; createdAt: string }[],
+    settings: AppSettings
+  ): Promise<{ sourceId: string; targetId: string; connectionType: string; reason: string }[]> {
+    if (entries.length < 2) return []
+
+    const systemPrompt = `Você é um assistente que analisa entradas de trabalho e identifica CONEXÕES SEMÂNTICAS entre elas.
+
+Dado um conjunto de entradas (notas de trabalho), identifique pares de entradas que estão relacionadas.
+
+Tipos de conexão possíveis:
+- "related": As entradas tratam do mesmo tema ou contexto
+- "follows_up": Uma entrada é continuação ou resultado da outra (a source é continuação do target)
+- "contradicts": Uma entrada invalida ou contradiz informação da outra
+- "depends_on": Uma entrada depende de algo mencionado na outra
+- "evolves": Uma entrada representa uma evolução ou atualização da outra
+
+REGRAS:
+- Só sugira conexões quando houver relação SEMÂNTICA CLARA entre as entradas
+- NÃO conecte entradas apenas por serem do mesmo projeto ou tipo
+- Prefira qualidade sobre quantidade — menos conexões corretas > muitas conexões fracas
+- O campo "reason" deve explicar brevemente POR QUE as entradas estão conectadas
+- Máximo de 15 conexões sugeridas por chamada
+- sourceId e targetId devem ser IDs válidos da lista fornecida
+
+Responda APENAS com JSON válido no formato:
+{
+  "connections": [
+    {"sourceId": "id-1", "targetId": "id-2", "connectionType": "related", "reason": "Ambas discutem a migração do banco de dados"}
+  ]
+}`
+
+    const entriesText = entries.map((e, i) =>
+      `[${e.id}] (${e.type}, ${new Date(e.createdAt).toLocaleDateString('pt-BR')}): ${e.improvedText}`
+    ).join('\n')
+
+    const userMessage = `Analise as seguintes entradas e identifique conexões semânticas entre elas:
+
+${entriesText}`
+
+    const responseText = await this.provider.invoke(systemPrompt, userMessage, settings, 'connection_discovery')
+
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) return []
+
+    try {
+      const parsed = JSON.parse(jsonMatch[0])
+      if (!parsed.connections || !Array.isArray(parsed.connections)) return []
+
+      // Validate that IDs exist in the input
+      const validIds = new Set(entries.map(e => e.id))
+      return parsed.connections.filter((c: any) =>
+        c.sourceId && c.targetId && c.connectionType && c.reason &&
+        validIds.has(c.sourceId) && validIds.has(c.targetId) &&
+        c.sourceId !== c.targetId
+      )
+    } catch {
+      return []
+    }
+  }
 }

@@ -1,5 +1,5 @@
 import React from 'react'
-import { LayoutDashboard, PenLine, FolderOpen, Video, Settings, Sun, Moon, BarChart3, Info, MessageCircle, SlidersHorizontal } from 'lucide-react'
+import { LayoutDashboard, PenLine, FolderOpen, Video, Settings, Sun, Moon, BarChart3, Info, MessageCircle, SlidersHorizontal, Network } from 'lucide-react'
 import type { View, Theme } from '../App'
 
 interface ActivityBarProps {
@@ -17,6 +17,7 @@ const activityItems: { view: View; icon: React.ReactNode; tooltip: string }[] = 
   { view: 'meeting', icon: <Video size={24} />, tooltip: 'Nova Reunião (Ctrl+4)' },
   { view: 'reports', icon: <BarChart3 size={24} />, tooltip: 'Métricas & Relatórios (Ctrl+5)' },
   { view: 'smart-chat', icon: <MessageCircle size={24} />, tooltip: 'Chat Inteligente (Ctrl+6)' },
+  { view: 'connection-graph', icon: <Network size={24} />, tooltip: 'Mapa de Conexões (Ctrl+7)' },
 ]
 
 export function ActivityBar({ currentView, onViewChange, theme, onThemeChange, onAboutClick }: ActivityBarProps) {

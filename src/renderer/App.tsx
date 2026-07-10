@@ -20,8 +20,9 @@ import { NotificationCenter } from './components/NotificationCenter'
 import { ErrorCenter } from './components/ErrorCenter'
 import { StatusBarErrorIndicator } from './components/StatusBarErrorIndicator'
 import { CustomFieldsSettings } from './components/CustomFieldsSettings'
+import { ConnectionGraph } from './components/ConnectionGraph'
 
-export type View = 'dashboard' | 'capture' | 'projects' | 'entries' | 'meeting' | 'settings' | 'reports' | 'smart-chat' | 'error-center' | 'custom-fields'
+export type View = 'dashboard' | 'capture' | 'projects' | 'entries' | 'meeting' | 'settings' | 'reports' | 'smart-chat' | 'error-center' | 'custom-fields' | 'connection-graph'
 export type Theme = 'dark' | 'light'
 
 const MODEL_LABELS: Record<string, string> = {
@@ -155,6 +156,7 @@ function AppContent() {
       case 'smart-chat': return 'Chat Inteligente'
       case 'error-center': return 'Central de Erros'
       case 'custom-fields': return 'Campos Personalizados'
+      case 'connection-graph': return 'Mapa de Conexões'
     }
   }
 
@@ -195,6 +197,8 @@ function AppContent() {
         return <ErrorCenter />
       case 'custom-fields':
         return <CustomFieldsSettings />
+      case 'connection-graph':
+        return <ConnectionGraph />
     }
   }
 

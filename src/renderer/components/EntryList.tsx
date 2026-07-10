@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react'
-import { ArrowLeft, Sparkles, X, Trash2 } from 'lucide-react'
+import React, { useState, useEffect, useCallback } from 'react'
+import { ArrowLeft, Sparkles, X, Trash2, Link2, Search, Plus } from 'lucide-react'
 import { ConfirmModal } from './ConfirmModal'
 import { MarkdownViewer } from './MarkdownViewer'
+import { CONNECTION_TYPE_LABELS, ConnectionType, ConnectedEntry } from '../../shared/types'
 
 interface Entry {
   id: string
@@ -23,6 +24,15 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
   const [summary, setSummary] = useState<string | null>(null)
   const [isLoadingSummary, setIsLoadingSummary] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+
+  // Connections state
+  const [connectionsMap, setConnectionsMap] = useState<Record<string, ConnectedEntry[]>>({})
+  const [expandedConnections, setExpandedConnections] = useState<Set<string>>(new Set())
+  const [connectModalEntry, setConnectModalEntry] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<Entry[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [selectedConnectionType, setSelectedConnectionType] = useState<ConnectionType>('related')
 
   // Dynamic labels from custom fields
   const [typeLabels, setTypeLabels] = useState<Record<string, string>>({})
@@ -51,6 +61,24 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
     setEntries(data)
   }
 
+  const loadConnectionsForEntry = useCallback(async (entryId: string) => {
+    const connections = await window.electronAPI.getConnectionsByEntry(entryId)
+    setConnectionsMap(prev => ({ ...prev, [entryId]: connections }))
+  }, [])
+
+  const toggleConnections = async (entryId: string) => {
+    const newExpanded = new Set(expandedConnections)
+    if (newExpanded.has(entryId)) {
+      newExpanded.delete(entryId)
+    } else {
+      newExpanded.add(entryId)
+      if (!connectionsMap[entryId]) {
+        await loadConnectionsForEntry(entryId)
+      }
+    }
+    setExpandedConnections(newExpanded)
+  }
+
   const handleGenerateSummary = async () => {
     setIsLoadingSummary(true)
     try {
@@ -75,6 +103,59 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
     await window.electronAPI.deleteEntry(deleteTarget)
     setDeleteTarget(null)
     await loadEntries()
+  }
+
+  // Connection actions
+  const openConnectModal = (entryId: string) => {
+    setConnectModalEntry(entryId)
+    setSearchQuery('')
+    setSearchResults([])
+    setSelectedConnectionType('related')
+  }
+
+  const closeConnectModal = () => {
+    setConnectModalEntry(null)
+    setSearchQuery('')
+    setSearchResults([])
+  }
+
+  const handleSearchConnections = async (query: string) => {
+    setSearchQuery(query)
+    if (query.trim().length < 2) {
+      setSearchResults([])
+      return
+    }
+    setIsSearching(true)
+    try {
+      const results = await window.electronAPI.searchEntriesForConnection(query, connectModalEntry!)
+      setSearchResults(results)
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  const handleCreateConnection = async (targetEntryId: string) => {
+    if (!connectModalEntry) return
+    try {
+      await window.electronAPI.createConnection({
+        sourceEntryId: connectModalEntry,
+        targetEntryId,
+        connectionType: selectedConnectionType,
+      })
+      // Reload connections for this entry
+      await loadConnectionsForEntry(connectModalEntry)
+      // Ensure expanded
+      setExpandedConnections(prev => new Set(prev).add(connectModalEntry))
+      closeConnectModal()
+    } catch (err: any) {
+      // Connection already exists — silently ignore or could show toast
+      console.warn('Conexão já existe:', err.message)
+    }
+  }
+
+  const handleDeleteConnection = async (connectionId: string, entryId: string) => {
+    await window.electronAPI.deleteConnection(connectionId)
+    await loadConnectionsForEntry(entryId)
   }
 
   return (
@@ -152,6 +233,14 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
                   )}
                   <button
                     className="inline-action-btn"
+                    onClick={() => openConnectModal(entry.id)}
+                    title="Conectar a outra entrada"
+                    style={{ opacity: 0.6 }}
+                  >
+                    <Link2 size={14} />
+                  </button>
+                  <button
+                    className="inline-action-btn"
                     onClick={() => handleDelete(entry.id)}
                     title="Excluir entrada"
                     style={{ opacity: 0.6, color: 'var(--vscode-errorForeground)' }}
@@ -168,8 +257,128 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
                   Original: {entry.rawText}
                 </div>
               )}
+
+              {/* Connections toggle & display */}
+              <div style={{ marginTop: 8, borderTop: '1px solid var(--vscode-widget-border)', paddingTop: 6 }}>
+                <button
+                  className="inline-action-btn"
+                  onClick={() => toggleConnections(entry.id)}
+                  style={{ fontSize: 11, opacity: 0.8, display: 'flex', alignItems: 'center', gap: 4 }}
+                >
+                  <Link2 size={12} />
+                  {expandedConnections.has(entry.id) ? 'Ocultar conexões' : 'Ver conexões'}
+                </button>
+
+                {expandedConnections.has(entry.id) && connectionsMap[entry.id] && (
+                  <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {connectionsMap[entry.id].length === 0 ? (
+                      <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>
+                        Nenhuma conexão ainda.
+                      </span>
+                    ) : (
+                      connectionsMap[entry.id].map((conn) => (
+                        <div
+                          key={conn.connection.id}
+                          className="connection-chip"
+                          title={conn.entry.improvedText}
+                        >
+                          <span className="connection-chip-type">
+                            {CONNECTION_TYPE_LABELS[conn.connection.connectionType] || conn.connection.connectionType}
+                          </span>
+                          <span className="connection-chip-text">
+                            {conn.entry.improvedText.length > 50
+                              ? conn.entry.improvedText.slice(0, 50) + '...'
+                              : conn.entry.improvedText}
+                          </span>
+                          <button
+                            className="connection-chip-remove"
+                            onClick={() => handleDeleteConnection(conn.connection.id, entry.id)}
+                            title="Remover conexão"
+                          >
+                            <X size={10} />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Connect Modal */}
+      {connectModalEntry && (
+        <div className="summary-modal-overlay" onClick={closeConnectModal}>
+          <div className="summary-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 500 }}>
+            <div className="summary-modal-header">
+              <Link2 size={16} />
+              <span>Conectar Entrada</span>
+              <button className="icon-button" onClick={closeConnectModal}>
+                <X size={16} />
+              </button>
+            </div>
+            <div className="summary-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {/* Connection type selector */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <label style={{ fontSize: 12, color: 'var(--vscode-descriptionForeground)' }}>Tipo:</label>
+                <select
+                  className="vscode-select"
+                  value={selectedConnectionType}
+                  onChange={(e) => setSelectedConnectionType(e.target.value as ConnectionType)}
+                  style={{ fontSize: 12 }}
+                >
+                  {Object.entries(CONNECTION_TYPE_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Search input */}
+              <div style={{ position: 'relative' }}>
+                <Search size={14} style={{ position: 'absolute', left: 8, top: 8, opacity: 0.5 }} />
+                <input
+                  type="text"
+                  className="vscode-input"
+                  placeholder="Buscar entradas para conectar..."
+                  value={searchQuery}
+                  onChange={(e) => handleSearchConnections(e.target.value)}
+                  autoFocus
+                  style={{ paddingLeft: 28, width: '100%' }}
+                />
+              </div>
+
+              {/* Search results */}
+              <div style={{ maxHeight: 300, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {isSearching && (
+                  <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>Buscando...</span>
+                )}
+                {!isSearching && searchQuery.length >= 2 && searchResults.length === 0 && (
+                  <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>Nenhuma entrada encontrada.</span>
+                )}
+                {searchResults.map((result) => (
+                  <div
+                    key={result.id}
+                    className="connection-search-result"
+                    onClick={() => handleCreateConnection(result.id)}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Plus size={12} style={{ opacity: 0.6 }} />
+                      <span style={{ fontSize: 12 }}>
+                        {result.improvedText.length > 80
+                          ? result.improvedText.slice(0, 80) + '...'
+                          : result.improvedText}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: 10, color: 'var(--vscode-descriptionForeground)' }}>
+                      {new Date(result.createdAt).toLocaleDateString('pt-BR')}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

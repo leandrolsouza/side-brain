@@ -25,6 +25,9 @@ import type {
   CustomEntryType,
   CustomActionStatus,
   CustomCaptureTemplate,
+  EntryConnection,
+  ConnectedEntry,
+  ConnectionType,
 } from '../shared/types'
 
 export interface ElectronAPI {
@@ -158,6 +161,14 @@ export interface ElectronAPI {
 
   // Events
   onFocusCaptureInput: (callback: () => void) => void
+
+  // Connections
+  createConnection: (data: { sourceEntryId: string; targetEntryId: string; connectionType: ConnectionType; description?: string }) => Promise<EntryConnection>
+  getConnectionsByEntry: (entryId: string) => Promise<ConnectedEntry[]>
+  deleteConnection: (connectionId: string) => Promise<{ success: boolean }>
+  searchEntriesForConnection: (query: string, excludeEntryId: string) => Promise<Entry[]>
+  getConnectionGraphData: () => Promise<{ entries: Entry[]; connections: EntryConnection[] }>
+  discoverConnections: (projectId?: string) => Promise<{ created: number; suggestions: EntryConnection[] }>
 
   // Theme
   setNativeTheme: (theme: 'dark' | 'light') => Promise<void>
@@ -388,6 +399,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onFocusCaptureInput: (callback: () => void) => {
     ipcRenderer.on('focus-capture-input', () => callback())
   },
+
+  // Connections
+  createConnection: (data: { sourceEntryId: string; targetEntryId: string; connectionType: ConnectionType; description?: string }) =>
+    ipcRenderer.invoke('connection:create', data),
+  getConnectionsByEntry: (entryId: string) =>
+    ipcRenderer.invoke('connection:getByEntry', entryId),
+  deleteConnection: (connectionId: string) =>
+    ipcRenderer.invoke('connection:delete', connectionId),
+  searchEntriesForConnection: (query: string, excludeEntryId: string) =>
+    ipcRenderer.invoke('connection:searchEntries', query, excludeEntryId),
+  getConnectionGraphData: () =>
+    ipcRenderer.invoke('connection:getGraphData'),
+  discoverConnections: (projectId?: string) =>
+    ipcRenderer.invoke('connection:discover', projectId),
 
   // Theme
   setNativeTheme: (theme: 'dark' | 'light') =>
