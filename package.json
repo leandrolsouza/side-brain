@@ -1,6 +1,6 @@
 {
   "name": "sidebrain",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "description": "Organize your work life with AI-powered note categorization",
   "main": "dist/main/main/index.js",
   "scripts": {

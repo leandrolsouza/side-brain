@@ -5,6 +5,11 @@ Todas as mudanças notáveis do SideBrain serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.3.7] - 2025-07-10
+
+### Corrigido
+- Import de base no onboarding voltava para tela inicial — agora grava `onboardingCompleted` na base restaurada antes de recarregar
+
 ## [0.3.6] - 2025-07-10
 
 ### Adicionado
