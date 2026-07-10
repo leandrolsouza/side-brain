@@ -181,6 +181,9 @@ export interface ElectronAPI {
   getUpdateStatus: () => Promise<any>
   onUpdateStatusChanged: (callback: (status: any) => void) => void
 
+  // App Info
+  getAppVersion: () => Promise<string>
+
   // System
   openLogsFolder: () => Promise<void>
   openUserDataFolder: () => Promise<void>
@@ -444,6 +447,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onUpdateStatusChanged: (callback: (status: any) => void) => {
     ipcRenderer.on('updater:status-changed', (_event, status) => callback(status))
   },
+
+  // App Info
+  getAppVersion: () =>
+    ipcRenderer.invoke('app:getVersion'),
 
   // System
   openLogsFolder: () =>

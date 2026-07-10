@@ -1,12 +1,41 @@
-import React from 'react'
-import { X, Brain, Github, Coffee } from 'lucide-react'
+import React, { useEffect, useState } from 'react'
+import { X, RefreshCw, CheckCircle, Download } from 'lucide-react'
+import logo from '../assets/logo.png'
 
 interface AboutModalProps {
   isOpen: boolean
   onClose: () => void
 }
 
+type UpdateCheckState = 'idle' | 'checking' | 'available' | 'not-available' | 'error'
+
 export function AboutModal({ isOpen, onClose }: AboutModalProps) {
+  const [version, setVersion] = useState<string>('')
+  const [updateState, setUpdateState] = useState<UpdateCheckState>('idle')
+  const [updateVersion, setUpdateVersion] = useState<string>('')
+
+  useEffect(() => {
+    if (isOpen) {
+      window.electronAPI.getAppVersion().then(setVersion)
+      setUpdateState('idle')
+    }
+  }, [isOpen])
+
+  const handleCheckUpdates = async () => {
+    setUpdateState('checking')
+    try {
+      const result = await window.electronAPI.checkForUpdates()
+      if (result?.updateInfo?.version && result.updateInfo.version !== version) {
+        setUpdateVersion(result.updateInfo.version)
+        setUpdateState('available')
+      } else {
+        setUpdateState('not-available')
+      }
+    } catch {
+      setUpdateState('error')
+    }
+  }
+
   if (!isOpen) return null
 
   return (
@@ -21,11 +50,43 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
 
         <div className="about-body">
           <div className="about-logo">
-            <Brain size={64} strokeWidth={1.5} />
+            <img src={logo} alt="SideBrain" width={64} height={64} />
           </div>
 
           <h1 className="about-title">SideBrain</h1>
-          <p className="about-version">Versão 0.1.0</p>
+          <p className="about-version">Versão {version || '...'}</p>
+
+          <div className="about-update-section">
+            {updateState === 'idle' && (
+              <button className="about-check-update-btn" onClick={handleCheckUpdates}>
+                <RefreshCw size={14} />
+                Verificar atualizações
+              </button>
+            )}
+            {updateState === 'checking' && (
+              <span className="about-update-status">
+                <RefreshCw size={14} className="update-spinner" />
+                Verificando...
+              </span>
+            )}
+            {updateState === 'not-available' && (
+              <span className="about-update-status about-update-ok">
+                <CheckCircle size={14} />
+                Você está na versão mais recente
+              </span>
+            )}
+            {updateState === 'available' && (
+              <span className="about-update-status about-update-available">
+                <Download size={14} />
+                Nova versão disponível: {updateVersion}
+              </span>
+            )}
+            {updateState === 'error' && (
+              <span className="about-update-status about-update-error">
+                Não foi possível verificar atualizações
+              </span>
+            )}
+          </div>
 
           <p className="about-description">
             Seu segundo cérebro para organizar o trabalho. Capture notas rápidas durante o dia

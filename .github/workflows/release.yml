@@ -76,7 +76,7 @@ jobs:
             const releaseId = parseInt(process.env.RELEASE_ID);
             const releaseDir = path.join(process.env.GITHUB_WORKSPACE, 'release');
             const files = fs.readdirSync(releaseDir).filter(f => {
-              return f.endsWith('.exe') || f.endsWith('.blockmap') || f === 'latest.yml';
+              return f.endsWith('.exe') || f.endsWith('.msi') || f.endsWith('.blockmap') || f === 'latest.yml';
             });
             for (const file of files) {
               const filePath = path.join(releaseDir, file);

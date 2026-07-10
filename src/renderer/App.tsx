@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { ToastProvider } from './components/ToastContext'
 import { ToastContainer } from './components/ToastContainer'
 import { AppProvider, useApp } from './components/AppContext'
@@ -50,6 +50,12 @@ const FONT_FAMILY_STACKS: Record<string, string> = {
 function AppContent() {
   const { state, dispatch, navigateToProject, navigateToMeeting, refreshProjects } = useApp()
   const { currentView, selectedProjectId, selectedProjectName, meetingProjectId, projectInitialTab, projectsRefreshKey, isSearchOpen, showDigest, showAbout, activeModelLabel, aiStatus, theme } = state
+  const [appVersion, setAppVersion] = useState<string>('')
+
+  // Load app version
+  useEffect(() => {
+    window.electronAPI.getAppVersion().then(setAppVersion)
+  }, [])
 
   // Apply theme to document
   useEffect(() => {
@@ -287,7 +293,7 @@ function AppContent() {
       <div className="status-bar">
         <WorkspaceSwitcher />
         <div className="status-bar-item">
-          <span>SideBrain v0.1.0</span>
+          <span>SideBrain v{appVersion}</span>
         </div>
         <div className="status-bar-right">
           <StatusBarErrorIndicator onClick={() => dispatch({ type: 'SET_VIEW', view: 'error-center' })} />

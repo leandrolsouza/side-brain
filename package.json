@@ -1,6 +1,6 @@
 {
   "name": "sidebrain",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Organize your work life with AI-powered note categorization",
   "main": "dist/main/main/index.js",
   "scripts": {
@@ -50,7 +50,8 @@
     "appId": "com.sidebrain.app",
     "productName": "SideBrain",
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "assets"
     },
     "files": [
       "dist/**/*"
@@ -61,7 +62,10 @@
       "repo": "my-agent"
     },
     "win": {
-      "target": "nsis"
+      "target": [
+        "nsis",
+        "msi"
+      ]
     },
     "nsis": {
       "oneClick": true,
