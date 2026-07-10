@@ -1,13 +1,10 @@
+import { app } from 'electron'
 import { safeHandle } from './safe-handle'
 import { getUpdaterService } from '../services/updater-service'
 
-// Read version directly from package.json to avoid Electron returning its own version in dev mode
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const APP_VERSION: string = require('../../../../package.json').version
-
 export function registerUpdaterHandlers(): void {
   safeHandle('app:getVersion', async () => {
-    return APP_VERSION
+    return app.getVersion()
   })
 
   safeHandle('updater:checkForUpdates', async () => {

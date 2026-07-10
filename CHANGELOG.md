@@ -5,6 +5,12 @@ Todas as mudanças notáveis do SideBrain serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.3.1] - 2025-07-10
+
+### Corrigido
+- App não abria em produção devido a `require` de `package.json` com caminho inválido no asar
+- Voltado a usar `app.getVersion()` que funciona corretamente em builds empacotados
+
 ## [0.3.0] - 2025-07-10
 
 ### Adicionado
