@@ -75,14 +75,22 @@ function AppContent() {
     }
   }, [dispatch])
 
-  // Show Daily Digest on app start
+  // Show Daily Digest on app start (if enabled in settings)
   useEffect(() => {
-    const digestKey = `digest-shown-${new Date().toISOString().slice(0, 10)}`
-    const alreadyShown = sessionStorage.getItem(digestKey)
-    if (!alreadyShown) {
+    const checkDigest = async () => {
+      const digestKey = `digest-shown-${new Date().toISOString().slice(0, 10)}`
+      const alreadyShown = sessionStorage.getItem(digestKey)
+      if (alreadyShown) return
+
+      try {
+        const data = await window.electronAPI.getSettings()
+        if (data?.dailyDigestEnabled === 'false') return
+      } catch { /* if settings fail, show digest anyway */ }
+
       dispatch({ type: 'SET_DIGEST_OPEN', open: true })
       sessionStorage.setItem(digestKey, 'true')
     }
+    checkDigest()
   }, [dispatch])
 
   // Load active model from settings
@@ -90,11 +98,29 @@ function AppContent() {
     const loadModel = async () => {
       try {
         const data = await window.electronAPI.getSettings()
+        const providerLabels: Record<string, string> = {
+          bedrock: 'Bedrock',
+          openai: 'OpenAI',
+          gemini: 'Gemini',
+          grok: 'Grok',
+          local: 'Local',
+        }
+        const provider = providerLabels[data?.aiProvider || 'bedrock'] || 'Bedrock'
+
         if (data?.aiProvider === 'local') {
           const modelName = data.localModelId || 'LLM Local'
-          dispatch({ type: 'SET_MODEL_LABEL', label: `Local: ${modelName}` })
+          dispatch({ type: 'SET_MODEL_LABEL', label: `${provider} · ${modelName}` })
+        } else if (data?.aiProvider === 'openai') {
+          const modelName = data.openaiModelId || 'gpt-4.1'
+          dispatch({ type: 'SET_MODEL_LABEL', label: `${provider} · ${modelName}` })
+        } else if (data?.aiProvider === 'gemini') {
+          const modelName = data.geminiModelId || 'gemini-3.5-flash'
+          dispatch({ type: 'SET_MODEL_LABEL', label: `${provider} · ${modelName}` })
+        } else if (data?.aiProvider === 'grok') {
+          const modelName = data.grokModelId || 'grok-4.3-latest'
+          dispatch({ type: 'SET_MODEL_LABEL', label: `${provider} · ${modelName}` })
         } else if (data?.modelId) {
-          dispatch({ type: 'SET_MODEL_LABEL', label: MODEL_LABELS[data.modelId] || data.modelId })
+          dispatch({ type: 'SET_MODEL_LABEL', label: `${provider} · ${MODEL_LABELS[data.modelId] || data.modelId}` })
         }
         // Apply font settings
         const fontFamily = data?.fontFamily || 'system-ui'
@@ -102,6 +128,14 @@ function AppContent() {
         const stack = FONT_FAMILY_STACKS[fontFamily] || FONT_FAMILY_STACKS['system-ui']
         document.documentElement.style.setProperty('--content-font-family', stack)
         document.documentElement.style.setProperty('--content-font-size', `${fontSize}px`)
+
+        // Apply UI density
+        const density = data?.uiDensity || 'comfortable'
+        document.documentElement.setAttribute('data-density', density)
+
+        // Store dateFormat for components to read
+        const dateFormat = data?.dateFormat || 'DD/MM/YYYY'
+        document.documentElement.setAttribute('data-date-format', dateFormat)
       } catch { /* ignore */ }
     }
     loadModel()

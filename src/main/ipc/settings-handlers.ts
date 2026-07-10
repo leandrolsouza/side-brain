@@ -1,4 +1,5 @@
-import { ipcMain, nativeTheme } from 'electron'
+import { ipcMain, nativeTheme, shell, app } from 'electron'
+import path from 'path'
 import { safeHandle } from './safe-handle'
 import { getContainer } from '../services/container'
 
@@ -16,5 +17,15 @@ export function registerSettingsHandlers(): void {
   // Theme handler — sincroniza controles nativos (select dropdown) com o tema do app
   ipcMain.handle('theme:set', async (_event, theme: 'dark' | 'light') => {
     nativeTheme.themeSource = theme
+  })
+
+  // System: open folders
+  safeHandle('system:openLogsFolder', async () => {
+    const logsPath = path.join(app.getPath('userData'), 'logs')
+    await shell.openPath(logsPath)
+  })
+
+  safeHandle('system:openUserDataFolder', async () => {
+    await shell.openPath(app.getPath('userData'))
   })
 }

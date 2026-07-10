@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { CheckCircle2, Download, Upload, Trash2, RotateCcw, HardDrive, AlertTriangle, FolderOpen, Database, Settings as SettingsIcon, Cpu, Cloud, Monitor, Type } from 'lucide-react'
+import { CheckCircle2, Download, Upload, Trash2, RotateCcw, HardDrive, AlertTriangle, FolderOpen, Database, Settings as SettingsIcon, Cpu, Cloud, Monitor, Type, Bell, Clock, Keyboard, FileText, Sunrise, Eye, EyeOff } from 'lucide-react'
 import { ConfirmModal } from './ConfirmModal'
 import { useToast } from './ToastContext'
 
@@ -7,6 +7,10 @@ interface SettingsProps {
 }
 
 type AIProvider = 'bedrock' | 'openai' | 'gemini' | 'grok' | 'local'
+type DateFormat = 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD'
+type UIDensity = 'compact' | 'comfortable'
+type BackupFrequency = 'startup' | '4h' | '8h' | '12h' | 'disabled'
+type TaskCheckInterval = '15' | '30' | '60' | 'disabled'
 
 interface AppSettings {
   aiProvider: AIProvider
@@ -24,6 +28,14 @@ interface AppSettings {
   localApiKey: string
   fontFamily: string
   fontSize: string
+  dateFormat: DateFormat
+  uiDensity: UIDensity
+  backupFrequency: BackupFrequency
+  backupLimit: string
+  nativeNotifications: string
+  taskCheckInterval: TaskCheckInterval
+  dailyDigestEnabled: string
+  dailyDigestSections: string
   userName: string
 }
 
@@ -105,9 +117,18 @@ export function Settings({ }: SettingsProps) {
     localApiKey: '',
     fontFamily: 'system-ui',
     fontSize: '14',
+    dateFormat: 'DD/MM/YYYY',
+    uiDensity: 'comfortable',
+    backupFrequency: 'startup',
+    backupLimit: '7',
+    nativeNotifications: 'true',
+    taskCheckInterval: '30',
+    dailyDigestEnabled: 'true',
+    dailyDigestSections: 'aiSuggestion,pendingTasks,yesterdayActivity',
     userName: '',
   })
   const [isSaving, setIsSaving] = useState(false)
+  const [showApiKey, setShowApiKey] = useState(false)
   const [backups, setBackups] = useState<{ filename: string; filePath: string; createdAt: string; sizeBytes: number }[]>([])
   const [backupLoading, setBackupLoading] = useState(false)
   const [dbPathInfo, setDbPathInfo] = useState<{ currentPath: string; defaultPath: string; isCustom: boolean } | null>(null)
@@ -455,14 +476,25 @@ export function Settings({ }: SettingsProps) {
             <div className="settings-item-description">
               Gere em: Console AWS → Bedrock → API Keys. Usada como Bearer Token.
             </div>
-            <input
-              type="password"
-              className="vscode-input"
-              value={settings.bedrockApiKey}
-              onChange={(e) => setSettings({ ...settings, bedrockApiKey: e.target.value })}
-              placeholder="Cole aqui sua API Key..."
-              style={{ maxWidth: 400 }}
-            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, maxWidth: 400 }}>
+              <input
+                type={showApiKey ? 'text' : 'password'}
+                className="vscode-input"
+                value={settings.bedrockApiKey}
+                onChange={(e) => setSettings({ ...settings, bedrockApiKey: e.target.value })}
+                placeholder="Cole aqui sua API Key..."
+                style={{ flex: 1 }}
+              />
+              <button
+                className="icon-button"
+                type="button"
+                title={showApiKey ? 'Ocultar chave' : 'Mostrar chave'}
+                onClick={() => setShowApiKey(!showApiKey)}
+                style={{ flexShrink: 0 }}
+              >
+                {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
 
           <div className="settings-item">
@@ -498,14 +530,25 @@ export function Settings({ }: SettingsProps) {
             <div className="settings-item-description">
               Gere em: <code>platform.openai.com/api-keys</code>
             </div>
-            <input
-              type="password"
-              className="vscode-input"
-              value={settings.openaiApiKey}
-              onChange={(e) => setSettings({ ...settings, openaiApiKey: e.target.value })}
-              placeholder="sk-..."
-              style={{ maxWidth: 400 }}
-            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, maxWidth: 400 }}>
+              <input
+                type={showApiKey ? 'text' : 'password'}
+                className="vscode-input"
+                value={settings.openaiApiKey}
+                onChange={(e) => setSettings({ ...settings, openaiApiKey: e.target.value })}
+                placeholder="sk-..."
+                style={{ flex: 1 }}
+              />
+              <button
+                className="icon-button"
+                type="button"
+                title={showApiKey ? 'Ocultar chave' : 'Mostrar chave'}
+                onClick={() => setShowApiKey(!showApiKey)}
+                style={{ flexShrink: 0 }}
+              >
+                {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
 
           <div className="settings-item">
@@ -534,14 +577,25 @@ export function Settings({ }: SettingsProps) {
             <div className="settings-item-description">
               Gere em: <code>aistudio.google.com/apikey</code>
             </div>
-            <input
-              type="password"
-              className="vscode-input"
-              value={settings.geminiApiKey}
-              onChange={(e) => setSettings({ ...settings, geminiApiKey: e.target.value })}
-              placeholder="Cole aqui sua API Key..."
-              style={{ maxWidth: 400 }}
-            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, maxWidth: 400 }}>
+              <input
+                type={showApiKey ? 'text' : 'password'}
+                className="vscode-input"
+                value={settings.geminiApiKey}
+                onChange={(e) => setSettings({ ...settings, geminiApiKey: e.target.value })}
+                placeholder="Cole aqui sua API Key..."
+                style={{ flex: 1 }}
+              />
+              <button
+                className="icon-button"
+                type="button"
+                title={showApiKey ? 'Ocultar chave' : 'Mostrar chave'}
+                onClick={() => setShowApiKey(!showApiKey)}
+                style={{ flexShrink: 0 }}
+              >
+                {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
 
           <div className="settings-item">
@@ -570,14 +624,25 @@ export function Settings({ }: SettingsProps) {
             <div className="settings-item-description">
               Gere em: <code>console.x.ai</code>
             </div>
-            <input
-              type="password"
-              className="vscode-input"
-              value={settings.grokApiKey}
-              onChange={(e) => setSettings({ ...settings, grokApiKey: e.target.value })}
-              placeholder="xai-..."
-              style={{ maxWidth: 400 }}
-            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, maxWidth: 400 }}>
+              <input
+                type={showApiKey ? 'text' : 'password'}
+                className="vscode-input"
+                value={settings.grokApiKey}
+                onChange={(e) => setSettings({ ...settings, grokApiKey: e.target.value })}
+                placeholder="xai-..."
+                style={{ flex: 1 }}
+              />
+              <button
+                className="icon-button"
+                type="button"
+                title={showApiKey ? 'Ocultar chave' : 'Mostrar chave'}
+                onClick={() => setShowApiKey(!showApiKey)}
+                style={{ flexShrink: 0 }}
+              >
+                {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
 
           <div className="settings-item">
@@ -636,14 +701,25 @@ export function Settings({ }: SettingsProps) {
             <div className="settings-item-description">
               Apenas se o servidor local exigir autenticação. A maioria não precisa.
             </div>
-            <input
-              type="password"
-              className="vscode-input"
-              value={settings.localApiKey}
-              onChange={(e) => setSettings({ ...settings, localApiKey: e.target.value })}
-              placeholder="Deixe vazio se não necessário"
-              style={{ maxWidth: 400 }}
-            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, maxWidth: 400 }}>
+              <input
+                type={showApiKey ? 'text' : 'password'}
+                className="vscode-input"
+                value={settings.localApiKey}
+                onChange={(e) => setSettings({ ...settings, localApiKey: e.target.value })}
+                placeholder="Deixe vazio se não necessário"
+                style={{ flex: 1 }}
+              />
+              <button
+                className="icon-button"
+                type="button"
+                title={showApiKey ? 'Ocultar chave' : 'Mostrar chave'}
+                onClick={() => setShowApiKey(!showApiKey)}
+                style={{ flexShrink: 0 }}
+              >
+                {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
 
           <div className="settings-item" style={{ padding: '12px', borderRadius: 4, background: 'var(--vscode-editor-background)', border: '1px solid var(--vscode-panel-border)' }}>
@@ -742,7 +818,7 @@ export function Settings({ }: SettingsProps) {
           <div
             style={{
               marginTop: 8,
-              padding: '16px',
+              padding: settings.uiDensity === 'compact' ? '10px' : '16px',
               borderRadius: 4,
               background: 'var(--vscode-editor-background)',
               border: '1px solid var(--vscode-panel-border)',
@@ -752,7 +828,63 @@ export function Settings({ }: SettingsProps) {
             }}
           >
             <p>Reunião com equipe de produto sobre roadmap Q3.</p>
-            <p style={{ marginTop: 8, opacity: 0.7 }}>Decisão: priorizar integração com calendário antes do módulo de relatórios.</p>
+            <p style={{ marginTop: settings.uiDensity === 'compact' ? 4 : 8, opacity: 0.7 }}>Decisão: priorizar integração com calendário antes do módulo de relatórios.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Date Format & UI Density */}
+      <div className="settings-group">
+        <div className="settings-section-title">
+          <Monitor size={16} />
+          <span>Exibição</span>
+        </div>
+
+        <div className="settings-item">
+          <div className="settings-item-label">Formato de Data</div>
+          <div className="settings-item-description">
+            Como as datas são exibidas na interface e nos exports.
+          </div>
+          <select
+            className="vscode-select"
+            value={settings.dateFormat}
+            onChange={(e) => setSettings({ ...settings, dateFormat: e.target.value as DateFormat })}
+          >
+            <option value="DD/MM/YYYY">DD/MM/YYYY (brasileiro)</option>
+            <option value="MM/DD/YYYY">MM/DD/YYYY (americano)</option>
+            <option value="YYYY-MM-DD">YYYY-MM-DD (ISO)</option>
+          </select>
+          <div style={{ marginTop: 8, fontSize: 12, opacity: 0.7 }}>
+            Exemplo: {(() => {
+              const now = new Date()
+              const d = String(now.getDate()).padStart(2, '0')
+              const m = String(now.getMonth() + 1).padStart(2, '0')
+              const y = now.getFullYear()
+              if (settings.dateFormat === 'DD/MM/YYYY') return `${d}/${m}/${y}`
+              if (settings.dateFormat === 'MM/DD/YYYY') return `${m}/${d}/${y}`
+              return `${y}-${m}-${d}`
+            })()}
+          </div>
+        </div>
+
+        <div className="settings-item">
+          <div className="settings-item-label">Densidade da Interface</div>
+          <div className="settings-item-description">
+            Controla o espaçamento entre elementos. Compacta mostra mais informação por tela.
+          </div>
+          <div className="provider-toggle" style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            <button
+              className={`vscode-button ${settings.uiDensity === 'comfortable' ? '' : 'secondary'}`}
+              onClick={() => setSettings({ ...settings, uiDensity: 'comfortable' })}
+            >
+              Confortável
+            </button>
+            <button
+              className={`vscode-button ${settings.uiDensity === 'compact' ? '' : 'secondary'}`}
+              onClick={() => setSettings({ ...settings, uiDensity: 'compact' })}
+            >
+              Compacta
+            </button>
           </div>
         </div>
       </div>
@@ -780,8 +912,53 @@ export function Settings({ }: SettingsProps) {
         </div>
 
         <div className="settings-item">
+          <div className="settings-item-label">Frequência de Backup</div>
           <div className="settings-item-description">
-            Backups automáticos são criados a cada inicialização do app (máximo 7 mantidos).
+            Com que frequência backups automáticos são criados.
+          </div>
+          <select
+            className="vscode-select"
+            value={settings.backupFrequency}
+            onChange={(e) => setSettings({ ...settings, backupFrequency: e.target.value as BackupFrequency })}
+            style={{ marginTop: 6 }}
+          >
+            <option value="startup">A cada inicialização</option>
+            <option value="4h">A cada 4 horas</option>
+            <option value="8h">A cada 8 horas</option>
+            <option value="12h">A cada 12 horas</option>
+            <option value="disabled">Desativado</option>
+          </select>
+        </div>
+
+        <div className="settings-item">
+          <div className="settings-item-label">Limite de Backups</div>
+          <div className="settings-item-description">
+            Máximo de backups automáticos mantidos. Os mais antigos são removidos ({settings.backupLimit} atualmente).
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
+            <span style={{ fontSize: 11, opacity: 0.7 }}>3</span>
+            <input
+              type="range"
+              min="3"
+              max="30"
+              step="1"
+              value={settings.backupLimit}
+              onChange={(e) => setSettings({ ...settings, backupLimit: e.target.value })}
+              style={{ flex: 1, maxWidth: 200 }}
+            />
+            <span style={{ fontSize: 11, opacity: 0.7 }}>30</span>
+            <input
+              type="number"
+              className="vscode-input"
+              min="3"
+              max="30"
+              value={settings.backupLimit}
+              onChange={(e) => {
+                const val = Math.min(30, Math.max(3, Number(e.target.value)))
+                setSettings({ ...settings, backupLimit: String(val) })
+              }}
+              style={{ width: 56 }}
+            />
           </div>
         </div>
 
@@ -918,13 +1095,212 @@ export function Settings({ }: SettingsProps) {
           )}
         </div>
       </div>
+
+      {/* Save */}
+      <div className="flex-row" style={{ marginTop: 16 }}>
+        <button
+          className="vscode-button"
+          onClick={handleSave}
+          disabled={isSaving}
+        >
+          {isSaving ? 'Salvando...' : 'Salvar Configurações'}
+        </button>
+      </div>
     </div>
   )
 
   const renderAvancadoTab = () => (
     <div className="settings-tab-content">
-      {/* Danger Zone */}
+      {/* Notifications */}
       <div className="settings-group">
+        <div className="settings-section-title">
+          <Bell size={16} />
+          <span>Notificações</span>
+        </div>
+
+        <div className="settings-item">
+          <div className="settings-item-label">Notificações Nativas do Sistema</div>
+          <div className="settings-item-description">
+            Exibe notificações do sistema operacional para tarefas vencidas, reuniões e lembretes.
+          </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={settings.nativeNotifications === 'true'}
+              onChange={(e) => setSettings({ ...settings, nativeNotifications: e.target.checked ? 'true' : 'false' })}
+            />
+            <span style={{ fontSize: 13 }}>Ativar notificações nativas</span>
+          </label>
+        </div>
+
+        <div className="settings-item">
+          <div className="settings-item-label">Intervalo de Verificação de Tarefas</div>
+          <div className="settings-item-description">
+            Com que frequência o app verifica tarefas vencidas e próximas do vencimento.
+          </div>
+          <select
+            className="vscode-select"
+            value={settings.taskCheckInterval}
+            onChange={(e) => setSettings({ ...settings, taskCheckInterval: e.target.value as TaskCheckInterval })}
+            style={{ marginTop: 6 }}
+          >
+            <option value="15">A cada 15 minutos</option>
+            <option value="30">A cada 30 minutos</option>
+            <option value="60">A cada 1 hora</option>
+            <option value="disabled">Desativado</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Daily Digest */}
+      <div className="settings-group" style={{ marginTop: 24 }}>
+        <div className="settings-section-title">
+          <Sunrise size={16} />
+          <span>Daily Digest</span>
+        </div>
+
+        <div className="settings-item">
+          <div className="settings-item-label">Exibir ao iniciar o app</div>
+          <div className="settings-item-description">
+            Mostra um resumo do dia com tasks pendentes, atividade de ontem e sugestão de foco da IA.
+          </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={settings.dailyDigestEnabled === 'true'}
+              onChange={(e) => setSettings({ ...settings, dailyDigestEnabled: e.target.checked ? 'true' : 'false' })}
+            />
+            <span style={{ fontSize: 13 }}>Ativar Daily Digest no startup</span>
+          </label>
+        </div>
+
+        {settings.dailyDigestEnabled === 'true' && (
+          <div className="settings-item">
+            <div className="settings-item-label">Seções visíveis</div>
+            <div className="settings-item-description">
+              Escolha quais seções aparecem no digest.
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
+              {[
+                { key: 'aiSuggestion', label: '💡 Sugestão de foco (IA)' },
+                { key: 'pendingTasks', label: '📋 Tasks pendentes' },
+                { key: 'yesterdayActivity', label: '📅 Atividade de ontem' },
+              ].map((section) => {
+                const sections = settings.dailyDigestSections.split(',').filter(Boolean)
+                const isChecked = sections.includes(section.key)
+                return (
+                  <label key={section.key} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={(e) => {
+                        let updated: string[]
+                        if (e.target.checked) {
+                          updated = [...sections, section.key]
+                        } else {
+                          updated = sections.filter((s) => s !== section.key)
+                        }
+                        setSettings({ ...settings, dailyDigestSections: updated.join(',') })
+                      }}
+                    />
+                    <span style={{ fontSize: 13 }}>{section.label}</span>
+                  </label>
+                )
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Keyboard Shortcuts */}
+      <div className="settings-group" style={{ marginTop: 24 }}>
+        <div className="settings-section-title">
+          <Keyboard size={16} />
+          <span>Atalhos de Teclado</span>
+        </div>
+
+        <div className="settings-item">
+          <div className="settings-item-description">
+            Atalhos disponíveis no app. Não são configuráveis no momento.
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+            {[
+              { keys: 'Ctrl+K', description: 'Busca global (projetos, entradas, tarefas)' },
+              { keys: 'Ctrl+N', description: 'Nova captura rápida' },
+              { keys: 'Ctrl+Shift+N', description: 'Nova captura (janela em foco)' },
+              { keys: 'Esc', description: 'Fechar modais / cancelar ação' },
+            ].map((shortcut) => (
+              <div
+                key={shortcut.keys}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '8px 12px',
+                  borderRadius: 4,
+                  background: 'var(--vscode-editor-background)',
+                  border: '1px solid var(--vscode-panel-border)',
+                }}
+              >
+                <span style={{ fontSize: 13 }}>{shortcut.description}</span>
+                <kbd style={{
+                  padding: '2px 8px',
+                  borderRadius: 3,
+                  background: 'var(--vscode-badge-background)',
+                  color: 'var(--vscode-badge-foreground)',
+                  fontSize: 12,
+                  fontFamily: 'monospace',
+                  whiteSpace: 'nowrap',
+                }}>{shortcut.keys}</kbd>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Logs & Diagnostics */}
+      <div className="settings-group" style={{ marginTop: 24 }}>
+        <div className="settings-section-title">
+          <FileText size={16} />
+          <span>Logs & Diagnóstico</span>
+        </div>
+
+        <div className="settings-item">
+          <div className="settings-item-description">
+            Acesse os logs do app e a pasta de dados para diagnóstico de problemas.
+          </div>
+          <div className="flex-row" style={{ gap: 8, marginTop: 8 }}>
+            <button
+              className="vscode-button secondary"
+              onClick={() => window.electronAPI.openLogsFolder()}
+            >
+              <FolderOpen size={14} style={{ marginRight: 4 }} />
+              Abrir Pasta de Logs
+            </button>
+            <button
+              className="vscode-button secondary"
+              onClick={() => window.electronAPI.openUserDataFolder()}
+            >
+              <FolderOpen size={14} style={{ marginRight: 4 }} />
+              Abrir Pasta do App
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Save */}
+      <div className="flex-row" style={{ marginTop: 16 }}>
+        <button
+          className="vscode-button"
+          onClick={handleSave}
+          disabled={isSaving}
+        >
+          {isSaving ? 'Salvando...' : 'Salvar Configurações'}
+        </button>
+      </div>
+
+      {/* Danger Zone */}
+      <div className="settings-group" style={{ marginTop: 24 }}>
         <div className="settings-section-title danger">
           <AlertTriangle size={16} />
           <span>Zona de Perigo</span>

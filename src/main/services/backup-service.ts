@@ -4,11 +4,13 @@ import path from 'path'
 import { BackupInfo } from '../../shared/types'
 import { closeDatabase, getDatabase, getDatabasePath } from '../database/schema'
 import { getErrorService } from './error-service'
+import { SettingsRepository } from '../database/repositories/settings-repository'
 
 const BACKUPS_DIR = 'backups'
-const MAX_AUTO_BACKUPS = 7
 
 export class BackupService {
+  private periodicInterval: ReturnType<typeof setInterval> | null = null
+
   private getBackupsDir(): string {
     const dir = path.join(app.getPath('userData'), BACKUPS_DIR)
     if (!fs.existsSync(dir)) {
@@ -25,11 +27,60 @@ export class BackupService {
     return date.toISOString().replace(/[:.]/g, '-')
   }
 
+  private getBackupLimit(): number {
+    try {
+      const settings = new SettingsRepository().get()
+      const limit = Number(settings.backupLimit)
+      return limit >= 3 && limit <= 30 ? limit : 7
+    } catch {
+      return 7
+    }
+  }
+
   /**
-   * Cria backup automático no startup do app.
-   * Mantém no máximo MAX_AUTO_BACKUPS, removendo os mais antigos.
+   * Inicia backup periódico baseado na configuração de frequência.
+   * Deve ser chamado após o startup.
+   */
+  startPeriodicBackup(): void {
+    this.stopPeriodicBackup()
+
+    try {
+      const settings = new SettingsRepository().get()
+      const freq = settings.backupFrequency
+
+      if (freq === 'startup' || freq === 'disabled') return
+
+      const hours = Number(freq.replace('h', ''))
+      if (isNaN(hours) || hours <= 0) return
+
+      const ms = hours * 60 * 60 * 1000
+      this.periodicInterval = setInterval(() => {
+        this.createAutoBackup()
+      }, ms)
+    } catch {
+      // If settings can't be read, don't schedule
+    }
+  }
+
+  stopPeriodicBackup(): void {
+    if (this.periodicInterval) {
+      clearInterval(this.periodicInterval)
+      this.periodicInterval = null
+    }
+  }
+
+  /**
+   * Cria backup automático no startup do app (se frequência não estiver desativada).
+   * Mantém no máximo o limite configurado, removendo os mais antigos.
    */
   createAutoBackup(): void {
+    try {
+      const settings = new SettingsRepository().get()
+      if (settings.backupFrequency === 'disabled') return
+    } catch {
+      // If settings can't be read, proceed with backup (safe default)
+    }
+
     const dbPath = this.getDbPath()
     if (!fs.existsSync(dbPath)) return
 
@@ -56,14 +107,15 @@ export class BackupService {
   }
 
   /**
-   * Remove backups mais antigos que o limite.
+   * Remove backups mais antigos que o limite configurado.
    */
   private rotateBackups(): void {
     const backupsDir = this.getBackupsDir()
     const backups = this.listBackupsInternal(backupsDir)
+    const maxBackups = this.getBackupLimit()
 
-    if (backups.length > MAX_AUTO_BACKUPS) {
-      const toDelete = backups.slice(MAX_AUTO_BACKUPS)
+    if (backups.length > maxBackups) {
+      const toDelete = backups.slice(maxBackups)
       for (const backup of toDelete) {
         try {
           fs.unlinkSync(backup.filePath)

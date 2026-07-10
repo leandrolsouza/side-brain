@@ -125,25 +125,62 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
 
     baseTextRef.current = text ? (text.endsWith(' ') ? text : text + ' ') : ''
 
+    // Flag to track intentional stop vs premature end
+    let intentionallyStopped = false
+
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let transcript = ''
+      let finalTranscript = ''
+      let interimTranscript = ''
       for (let i = 0; i < event.results.length; i++) {
-        transcript += event.results[i][0].transcript
+        const result = event.results[i]
+        if (result.isFinal) {
+          finalTranscript += result[0].transcript
+        } else {
+          interimTranscript += result[0].transcript
+        }
       }
-      setText(baseTextRef.current + transcript)
+      setText(baseTextRef.current + finalTranscript + interimTranscript)
     }
 
-    recognition.onerror = () => {
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      console.warn('[SpeechRecognition] Error:', event.error, event.message)
+      // 'no-speech' is not fatal — don't stop listening
+      if (event.error === 'no-speech') return
+      // 'aborted' means we stopped it intentionally
+      if (event.error === 'aborted') return
       setIsListening(false)
     }
 
     recognition.onend = () => {
+      // If we didn't intentionally stop and we're still supposed to be listening,
+      // restart the recognition (Chromium sometimes stops after silence)
+      if (!intentionallyStopped && recognitionRef.current === recognition) {
+        try {
+          recognition.start()
+          return
+        } catch {
+          // If restart fails, just stop
+        }
+      }
       setIsListening(false)
     }
 
     recognitionRef.current = recognition
-    recognition.start()
-    setIsListening(true)
+
+    // Override stop to set our flag
+    const originalStop = recognition.stop.bind(recognition)
+    recognition.stop = () => {
+      intentionallyStopped = true
+      originalStop()
+    }
+
+    try {
+      recognition.start()
+      setIsListening(true)
+    } catch (err) {
+      console.error('[SpeechRecognition] Failed to start:', err)
+      setIsListening(false)
+    }
   }, [isListening, text])
 
   useEffect(() => {
@@ -154,7 +191,10 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
 
   useEffect(() => {
     return () => {
-      recognitionRef.current?.stop()
+      if (recognitionRef.current) {
+        recognitionRef.current.stop()
+        recognitionRef.current = null
+      }
     }
   }, [])
 

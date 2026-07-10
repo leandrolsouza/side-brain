@@ -80,6 +80,22 @@
   /* Content font customization */
   --content-font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --content-font-size: 14px;
+
+  /* UI Density — comfortable (default) */
+  --density-padding: 12px;
+  --density-padding-sm: 8px;
+  --density-gap: 12px;
+  --density-gap-sm: 8px;
+  --density-card-padding: 16px;
+}
+
+/* Compact density overrides */
+[data-density="compact"] {
+  --density-padding: 8px;
+  --density-padding-sm: 4px;
+  --density-gap: 8px;
+  --density-gap-sm: 4px;
+  --density-card-padding: 10px;
 }
 
 [data-theme="light"] {
@@ -463,7 +479,7 @@ body {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 20px 32px;
+  padding: var(--density-card-padding) 32px;
   background: var(--vscode-editor-background);
   font-family: var(--content-font-family);
   font-size: var(--content-font-size);
@@ -1311,8 +1327,8 @@ kbd {
 .kanban-card {
   display: flex;
   align-items: flex-start;
-  gap: 6px;
-  padding: 8px 10px;
+  gap: var(--density-gap-sm);
+  padding: var(--density-padding-sm) 10px;
   background: var(--vscode-editor-background, #1e1e1e);
   border: 1px solid var(--vscode-panel-border, #2d2d2d);
   border-radius: 6px;

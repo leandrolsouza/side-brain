@@ -1,32 +1,53 @@
 import { BrowserWindow, Notification } from 'electron'
 import { TaskRepository } from '../database/repositories/task-repository'
 import { NotificationRepository } from '../database/repositories/notification-repository'
+import { SettingsRepository } from '../database/repositories/settings-repository'
 import type { AppNotification, NotificationType } from '../../shared/types'
 
 export class NotificationService {
   private taskRepo: TaskRepository
   private notificationRepo: NotificationRepository
+  private settingsRepo: SettingsRepository
   private checkInterval: ReturnType<typeof setInterval> | null = null
   private cleanupInterval: ReturnType<typeof setInterval> | null = null
 
   constructor() {
     this.taskRepo = new TaskRepository()
     this.notificationRepo = new NotificationRepository()
+    this.settingsRepo = new SettingsRepository()
   }
 
   start(): void {
     // Check immediately on start
     this.checkDueTasks()
 
-    // Then check every 30 minutes
-    this.checkInterval = setInterval(() => {
-      this.checkDueTasks()
-    }, 30 * 60 * 1000)
+    // Read interval from settings
+    this.scheduleTaskCheck()
 
     // Cleanup old notifications once a day
     this.cleanupInterval = setInterval(() => {
       this.notificationRepo.cleanup(30)
     }, 24 * 60 * 60 * 1000)
+  }
+
+  /**
+   * Reagenda a verificação de tarefas baseado nas configurações atuais.
+   */
+  scheduleTaskCheck(): void {
+    if (this.checkInterval) {
+      clearInterval(this.checkInterval)
+      this.checkInterval = null
+    }
+
+    const settings = this.settingsRepo.get()
+    const interval = settings.taskCheckInterval
+
+    if (interval === 'disabled') return
+
+    const ms = Number(interval) * 60 * 1000
+    this.checkInterval = setInterval(() => {
+      this.checkDueTasks()
+    }, ms)
   }
 
   stop(): void {
@@ -67,8 +88,11 @@ export class NotificationService {
     // Emitir para o renderer via webContents
     this.emitToRenderer('notification:new', notification)
 
-    // Notificação nativa do OS (opcional)
-    if (data.showNative !== false && Notification.isSupported()) {
+    // Notificação nativa do OS (respeita configuração do usuário)
+    const settings = this.settingsRepo.get()
+    const nativeEnabled = settings.nativeNotifications !== 'false'
+
+    if (data.showNative !== false && nativeEnabled && Notification.isSupported()) {
       const nativeNotification = new Notification({
         title: data.title,
         body: data.body,

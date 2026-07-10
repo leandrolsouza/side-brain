@@ -1,6 +1,10 @@
 // === Settings ===
 
 export type AIProvider = 'bedrock' | 'openai' | 'gemini' | 'grok' | 'local'
+export type DateFormat = 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD'
+export type UIDensity = 'compact' | 'comfortable'
+export type BackupFrequency = 'startup' | '4h' | '8h' | '12h' | 'disabled'
+export type TaskCheckInterval = '15' | '30' | '60' | 'disabled'
 
 export interface AppSettings {
   aiProvider: AIProvider
@@ -26,6 +30,17 @@ export interface AppSettings {
   // Appearance settings
   fontFamily: string
   fontSize: string
+  dateFormat: DateFormat
+  uiDensity: UIDensity
+  // Backup settings
+  backupFrequency: BackupFrequency
+  backupLimit: string
+  // Notification settings
+  nativeNotifications: string
+  taskCheckInterval: TaskCheckInterval
+  // Daily Digest settings
+  dailyDigestEnabled: string
+  dailyDigestSections: string // comma-separated: aiSuggestion,pendingTasks,yesterdayActivity
   // User identity
   userName: string
 }
@@ -48,5 +63,13 @@ export const DEFAULT_SETTINGS: AppSettings = {
   localApiKey: '',
   fontFamily: 'system-ui',
   fontSize: '14',
+  dateFormat: 'DD/MM/YYYY',
+  uiDensity: 'comfortable',
+  backupFrequency: 'startup',
+  backupLimit: '7',
+  nativeNotifications: 'true',
+  taskCheckInterval: '30',
+  dailyDigestEnabled: 'true',
+  dailyDigestSections: 'aiSuggestion,pendingTasks,yesterdayActivity',
   userName: '',
 }

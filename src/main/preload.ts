@@ -173,6 +173,10 @@ export interface ElectronAPI {
 
   // Theme
   setNativeTheme: (theme: 'dark' | 'light') => Promise<void>
+
+  // System
+  openLogsFolder: () => Promise<void>
+  openUserDataFolder: () => Promise<void>
 }
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -420,4 +424,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Theme
   setNativeTheme: (theme: 'dark' | 'light') =>
     ipcRenderer.invoke('theme:set', theme),
+
+  // System
+  openLogsFolder: () =>
+    ipcRenderer.invoke('system:openLogsFolder'),
+  openUserDataFolder: () =>
+    ipcRenderer.invoke('system:openUserDataFolder'),
 } satisfies ElectronAPI)

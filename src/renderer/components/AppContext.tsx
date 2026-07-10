@@ -28,7 +28,7 @@ export const initialState: AppState = {
   isSearchOpen: false,
   showDigest: false,
   showAbout: false,
-  activeModelLabel: 'Claude Sonnet 4',
+  activeModelLabel: 'Bedrock · Claude Sonnet 4',
   aiStatus: 'idle',
   theme: (localStorage.getItem('app-theme') as Theme) || 'dark',
 }

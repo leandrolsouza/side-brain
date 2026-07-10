@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { DailyDigestData } from '../../shared/types'
+import React, { useState, useEffect, useMemo } from 'react'
+import { DailyDigestData, CustomEntryType } from '../../shared/types'
 
 interface DailyDigestProps {
   onClose: () => void
@@ -10,9 +10,23 @@ export function DailyDigest({ onClose, onNavigateToProject }: DailyDigestProps) 
   const [digest, setDigest] = useState<DailyDigestData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [entryTypes, setEntryTypes] = useState<CustomEntryType[]>([])
+  const [visibleSections, setVisibleSections] = useState<string[]>(['aiSuggestion', 'pendingTasks', 'yesterdayActivity'])
+
+  const typeLabels: Record<string, string> = useMemo(
+    () => Object.fromEntries(entryTypes.map(t => [t.key, t.label])),
+    [entryTypes]
+  )
 
   useEffect(() => {
     loadDigest()
+    window.electronAPI.getEntryTypes().then(setEntryTypes).catch(() => { })
+    // Load section visibility from settings
+    window.electronAPI.getSettings().then((data) => {
+      if (data?.dailyDigestSections) {
+        setVisibleSections(data.dailyDigestSections.split(',').filter(Boolean))
+      }
+    }).catch(() => { })
   }, [])
 
   const loadDigest = async () => {
@@ -76,7 +90,7 @@ export function DailyDigest({ onClose, onNavigateToProject }: DailyDigestProps) 
 
         <div className="digest-body">
           {/* AI Suggestion */}
-          {digest.aiSuggestion && (
+          {visibleSections.includes('aiSuggestion') && digest.aiSuggestion && (
             <div className="digest-section digest-suggestion">
               <div className="digest-section-icon">💡</div>
               <div className="digest-section-content">
@@ -87,81 +101,85 @@ export function DailyDigest({ onClose, onNavigateToProject }: DailyDigestProps) 
           )}
 
           {/* Tasks Needing Attention */}
-          <div className="digest-section">
-            <h3>📋 Tasks pendentes ({totalPending})</h3>
+          {visibleSections.includes('pendingTasks') && (
+            <div className="digest-section">
+              <h3>📋 Tasks pendentes ({totalPending})</h3>
 
-            {digest.tasksNeedingAttention.inProgress.length > 0 && (
-              <div className="digest-task-group">
-                <span className="digest-task-label in-progress">Em andamento</span>
-                <ul>
-                  {digest.tasksNeedingAttention.inProgress.slice(0, 5).map((task) => (
-                    <li key={task.id}>{task.title}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
+              {digest.tasksNeedingAttention.inProgress.length > 0 && (
+                <div className="digest-task-group">
+                  <span className="digest-task-label in-progress">Em andamento</span>
+                  <ul>
+                    {digest.tasksNeedingAttention.inProgress.slice(0, 5).map((task) => (
+                      <li key={task.id}>{task.title}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
-            {digest.tasksNeedingAttention.overdue.length > 0 && (
-              <div className="digest-task-group">
-                <span className="digest-task-label todo">A fazer</span>
-                <ul>
-                  {digest.tasksNeedingAttention.overdue.slice(0, 5).map((task) => (
-                    <li key={task.id}>{task.title}</li>
-                  ))}
-                  {digest.tasksNeedingAttention.overdue.length > 5 && (
-                    <li className="digest-more">+{digest.tasksNeedingAttention.overdue.length - 5} mais...</li>
-                  )}
-                </ul>
-              </div>
-            )}
+              {digest.tasksNeedingAttention.overdue.length > 0 && (
+                <div className="digest-task-group">
+                  <span className="digest-task-label todo">A fazer</span>
+                  <ul>
+                    {digest.tasksNeedingAttention.overdue.slice(0, 5).map((task) => (
+                      <li key={task.id}>{task.title}</li>
+                    ))}
+                    {digest.tasksNeedingAttention.overdue.length > 5 && (
+                      <li className="digest-more">+{digest.tasksNeedingAttention.overdue.length - 5} mais...</li>
+                    )}
+                  </ul>
+                </div>
+              )}
 
-            {digest.tasksNeedingAttention.waiting.length > 0 && (
-              <div className="digest-task-group">
-                <span className="digest-task-label waiting">Aguardando</span>
-                <ul>
-                  {digest.tasksNeedingAttention.waiting.slice(0, 3).map((task) => (
-                    <li key={task.id}>{task.title}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
+              {digest.tasksNeedingAttention.waiting.length > 0 && (
+                <div className="digest-task-group">
+                  <span className="digest-task-label waiting">Aguardando</span>
+                  <ul>
+                    {digest.tasksNeedingAttention.waiting.slice(0, 3).map((task) => (
+                      <li key={task.id}>{task.title}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
-            {totalPending === 0 && (
-              <p className="digest-empty">Nenhuma task pendente. Tudo em dia! 🎉</p>
-            )}
-          </div>
+              {totalPending === 0 && (
+                <p className="digest-empty">Nenhuma task pendente. Tudo em dia! 🎉</p>
+              )}
+            </div>
+          )}
 
           {/* Yesterday Activity */}
-          <div className="digest-section">
-            <h3>📅 Ontem</h3>
-            <div className="digest-stats">
-              <div className="digest-stat">
-                <span className="digest-stat-number">{digest.yesterdayActivity.entriesCreated.length}</span>
-                <span className="digest-stat-label">entradas criadas</span>
+          {visibleSections.includes('yesterdayActivity') && (
+            <div className="digest-section">
+              <h3>📅 Ontem</h3>
+              <div className="digest-stats">
+                <div className="digest-stat">
+                  <span className="digest-stat-number">{digest.yesterdayActivity.entriesCreated.length}</span>
+                  <span className="digest-stat-label">entradas criadas</span>
+                </div>
+                <div className="digest-stat">
+                  <span className="digest-stat-number">{digest.yesterdayActivity.tasksCompleted.length}</span>
+                  <span className="digest-stat-label">tasks concluídas</span>
+                </div>
+                <div className="digest-stat">
+                  <span className="digest-stat-number">{digest.yesterdayActivity.tasksCreated.length}</span>
+                  <span className="digest-stat-label">tasks criadas</span>
+                </div>
               </div>
-              <div className="digest-stat">
-                <span className="digest-stat-number">{digest.yesterdayActivity.tasksCompleted.length}</span>
-                <span className="digest-stat-label">tasks concluídas</span>
-              </div>
-              <div className="digest-stat">
-                <span className="digest-stat-number">{digest.yesterdayActivity.tasksCreated.length}</span>
-                <span className="digest-stat-label">tasks criadas</span>
-              </div>
-            </div>
 
-            {digest.yesterdayActivity.entriesCreated.length > 0 && (
-              <div className="digest-yesterday-entries">
-                <ul>
-                  {digest.yesterdayActivity.entriesCreated.slice(0, 3).map((entry) => (
-                    <li key={entry.id}>
-                      <span className={`entry-type-badge ${entry.type}`}>{entry.type}</span>
-                      {entry.improvedText.slice(0, 80)}{entry.improvedText.length > 80 ? '...' : ''}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
+              {digest.yesterdayActivity.entriesCreated.length > 0 && (
+                <div className="digest-yesterday-entries">
+                  <ul>
+                    {digest.yesterdayActivity.entriesCreated.slice(0, 3).map((entry) => (
+                      <li key={entry.id}>
+                        <span className={`entry-type-badge ${entry.type}`}>{typeLabels[entry.type] || entry.type}</span>
+                        {entry.improvedText.slice(0, 80)}{entry.improvedText.length > 80 ? '...' : ''}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Footer */}
