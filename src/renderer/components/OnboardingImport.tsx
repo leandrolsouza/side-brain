@@ -12,7 +12,7 @@ export function OnboardingImport({ onComplete, onBack }: Props) {
 
   const handleImport = async () => {
     try {
-      const result = await window.electronAPI.importBackup()
+      const result = await window.electronAPI.importBackupForOnboarding()
       if (result.success) {
         setStatus('success')
       } else if (result.error && result.error !== 'Operação cancelada.') {

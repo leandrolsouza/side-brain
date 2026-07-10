@@ -73,6 +73,10 @@ export function registerWorkspaceHandlers(): void {
     return backupService.importBackup()
   })
 
+  safeHandle('backup:importForOnboarding', async () => {
+    return backupService.importBackup({ markOnboardingComplete: true })
+  })
+
   safeHandle('backup:delete', async (_event, filePath: string) => {
     return backupService.deleteBackup(filePath)
   })

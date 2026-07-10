@@ -101,6 +101,7 @@ export interface ElectronAPI {
   createManualBackup: () => Promise<{ success: boolean; filePath?: string }>
   restoreBackup: (filePath: string) => Promise<{ success: boolean; error?: string }>
   importBackup: () => Promise<{ success: boolean; error?: string }>
+  importBackupForOnboarding: () => Promise<{ success: boolean; error?: string }>
   deleteBackup: (filePath: string) => Promise<boolean>
   resetDatabase: () => Promise<{ success: boolean; archivedPath?: string; error?: string }>
 
@@ -309,6 +310,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('backup:restore', filePath),
   importBackup: () =>
     ipcRenderer.invoke('backup:import'),
+  importBackupForOnboarding: () =>
+    ipcRenderer.invoke('backup:importForOnboarding'),
   deleteBackup: (filePath: string) =>
     ipcRenderer.invoke('backup:delete', filePath),
   resetDatabase: () =>

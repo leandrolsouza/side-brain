@@ -224,7 +224,7 @@ export class BackupService {
   /**
    * Importa backup de arquivo externo — abre file dialog.
    */
-  async importBackup(): Promise<{ success: boolean; error?: string }> {
+  async importBackup(options?: { markOnboardingComplete?: boolean }): Promise<{ success: boolean; error?: string }> {
     const result = await dialog.showOpenDialog({
       title: 'Importar Backup',
       filters: [
@@ -238,13 +238,13 @@ export class BackupService {
       return { success: false, error: 'Operação cancelada.' }
     }
 
-    return this.performRestore(result.filePaths[0])
+    return this.performRestore(result.filePaths[0], options)
   }
 
   /**
    * Executa a restauração: fecha DB, cria backup de segurança, substitui, reinicia.
    */
-  private async performRestore(sourceFilePath: string): Promise<{ success: boolean; error?: string }> {
+  private async performRestore(sourceFilePath: string, options?: { markOnboardingComplete?: boolean }): Promise<{ success: boolean; error?: string }> {
     const dbPath = this.getDbPath()
 
     try {
@@ -276,6 +276,17 @@ export class BackupService {
       const shmPath = dbPath + '-shm'
       if (fs.existsSync(walPath)) fs.unlinkSync(walPath)
       if (fs.existsSync(shmPath)) fs.unlinkSync(shmPath)
+
+      // Se veio do onboarding, marca como completo na base restaurada
+      if (options?.markOnboardingComplete) {
+        try {
+          const db = getDatabase()
+          db.prepare(`
+            INSERT INTO settings (key, value) VALUES ('onboardingCompleted', 'true')
+            ON CONFLICT(key) DO UPDATE SET value = 'true'
+          `).run()
+        } catch { /* base pode não ter tabela settings — segue sem erro */ }
+      }
 
       // Reinicia a janela pra recarregar tudo com a nova DB
       const windows = BrowserWindow.getAllWindows()
