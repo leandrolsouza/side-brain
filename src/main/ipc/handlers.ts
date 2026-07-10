@@ -12,6 +12,7 @@ import { registerReportsHandlers } from './reports-handlers'
 import { registerCustomFieldsHandlers } from './custom-fields-handlers'
 import { registerErrorHandlers } from './error-handlers'
 import { registerConnectionHandlers } from './connection-handlers'
+import { registerUpdaterHandlers } from './updater-handlers'
 
 export function registerIpcHandlers(): void {
   registerEntryHandlers()
@@ -28,4 +29,5 @@ export function registerIpcHandlers(): void {
   registerCustomFieldsHandlers()
   registerErrorHandlers()
   registerConnectionHandlers()
+  registerUpdaterHandlers()
 }

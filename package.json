@@ -1,6 +1,6 @@
 {
   "name": "sidebrain",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Organize your work life with AI-powered note categorization",
   "main": "dist/main/main/index.js",
   "scripts": {
@@ -13,14 +13,16 @@
     "build:renderer": "vite build",
     "build:main": "tsc -p tsconfig.main.json",
     "start": "electron dist/main/main/index.js",
-    "test": "vitest run --config vitest.config.main.ts",
-    "test:watch": "vitest --config vitest.config.main.ts",
-    "test:coverage": "vitest run --config vitest.config.main.ts --coverage",
+    "test": "npm run test:rebuild && vitest run --config vitest.config.main.ts",
+    "test:watch": "npm run test:rebuild && vitest --config vitest.config.main.ts",
+    "test:coverage": "npm run test:rebuild && vitest run --config vitest.config.main.ts --coverage",
+    "test:rebuild": "npm rebuild better-sqlite3",
     "pack": "electron-builder --dir",
     "dist": "electron-builder"
   },
   "dependencies": {
     "better-sqlite3": "12.6.2",
+    "electron-updater": "^6.3.9",
     "lucide-react": "^1.23.0",
     "react-force-graph-2d": "^1.28.0",
     "react-markdown": "^10.1.0",
@@ -53,8 +55,18 @@
     "files": [
       "dist/**/*"
     ],
+    "publish": {
+      "provider": "github",
+      "owner": "leandrolsouza",
+      "repo": "my-agent"
+    },
     "win": {
       "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": true,
+      "allowToChangeInstallationDirectory": false,
+      "deleteAppDataOnUninstall": false
     },
     "mac": {
       "target": "dmg"

@@ -174,6 +174,13 @@ export interface ElectronAPI {
   // Theme
   setNativeTheme: (theme: 'dark' | 'light') => Promise<void>
 
+  // Updater
+  checkForUpdates: () => Promise<any>
+  downloadUpdate: () => Promise<void>
+  quitAndInstall: () => Promise<void>
+  getUpdateStatus: () => Promise<any>
+  onUpdateStatusChanged: (callback: (status: any) => void) => void
+
   // System
   openLogsFolder: () => Promise<void>
   openUserDataFolder: () => Promise<void>
@@ -424,6 +431,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Theme
   setNativeTheme: (theme: 'dark' | 'light') =>
     ipcRenderer.invoke('theme:set', theme),
+
+  // Updater
+  checkForUpdates: () =>
+    ipcRenderer.invoke('updater:checkForUpdates'),
+  downloadUpdate: () =>
+    ipcRenderer.invoke('updater:downloadUpdate'),
+  quitAndInstall: () =>
+    ipcRenderer.invoke('updater:quitAndInstall'),
+  getUpdateStatus: () =>
+    ipcRenderer.invoke('updater:getStatus'),
+  onUpdateStatusChanged: (callback: (status: any) => void) => {
+    ipcRenderer.on('updater:status-changed', (_event, status) => callback(status))
+  },
 
   // System
   openLogsFolder: () =>

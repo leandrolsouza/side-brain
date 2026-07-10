@@ -6,6 +6,7 @@ import { NotificationService } from './services/notification-service'
 import { BackupService } from './services/backup-service'
 import { getConfigService } from './services/config-service'
 import { getErrorService } from './services/error-service'
+import { getUpdaterService } from './services/updater-service'
 
 let mainWindow: BrowserWindow | null = null
 let notificationService: NotificationService | null = null
@@ -152,6 +153,16 @@ app.whenReady().then(() => {
   createWindow()
   createTray()
   registerGlobalShortcut()
+
+  // Initialize auto-updater (only in production)
+  if (process.env.NODE_ENV !== 'development') {
+    const updaterService = getUpdaterService()
+    updaterService.setMainWindow(mainWindow)
+    // Check for updates after a short delay to not block startup
+    setTimeout(() => {
+      updaterService.checkForUpdates()
+    }, 5000)
+  }
 
   // Setup global error handlers for observability
   const errorService = getErrorService()

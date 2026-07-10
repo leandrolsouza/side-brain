@@ -7863,3 +7863,104 @@ kbd {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important;
   opacity: 1 !important;
 }
+
+/* === Update Notification === */
+
+.update-notification {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--vscode-statusBar-background);
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--vscode-statusBar-foreground);
+  animation: update-slide-in 0.3s ease-out;
+}
+
+@keyframes update-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.update-notification-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.update-notification-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.update-btn {
+  border: none;
+  cursor: pointer;
+  border-radius: 3px;
+  font-size: 11px;
+  padding: 3px 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: background 0.15s;
+}
+
+.update-btn-primary {
+  background: rgba(255, 255, 255, 0.2);
+  color: var(--vscode-statusBar-foreground);
+}
+
+.update-btn-primary:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.update-btn-dismiss {
+  background: transparent;
+  color: var(--vscode-statusBar-foreground);
+  padding: 3px;
+  opacity: 0.7;
+}
+
+.update-btn-dismiss:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.update-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.update-progress-bar {
+  width: 80px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.update-progress-fill {
+  height: 100%;
+  background: var(--vscode-statusBar-foreground);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}

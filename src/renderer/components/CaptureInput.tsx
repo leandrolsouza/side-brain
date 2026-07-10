@@ -71,7 +71,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
   const recognitionRef = useRef<SpeechRecognition | null>(null)
   const baseTextRef = useRef('')
 
-  const speechSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window
+  const speechSupported = false // Speech Recognition não funciona em Electron (requer chave Google embutida no Chrome)
 
   // Load projects and custom fields on mount
   useEffect(() => {

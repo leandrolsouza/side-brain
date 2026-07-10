@@ -21,6 +21,7 @@ import { ErrorCenter } from './components/ErrorCenter'
 import { StatusBarErrorIndicator } from './components/StatusBarErrorIndicator'
 import { CustomFieldsSettings } from './components/CustomFieldsSettings'
 import { ConnectionGraph } from './components/ConnectionGraph'
+import { UpdateNotification } from './components/UpdateNotification'
 
 export type View = 'dashboard' | 'capture' | 'projects' | 'entries' | 'meeting' | 'settings' | 'reports' | 'smart-chat' | 'error-center' | 'custom-fields' | 'connection-graph'
 export type Theme = 'dark' | 'light'
@@ -291,6 +292,7 @@ function AppContent() {
         <div className="status-bar-right">
           <StatusBarErrorIndicator onClick={() => dispatch({ type: 'SET_VIEW', view: 'error-center' })} />
           <NotificationCenter />
+          <UpdateNotification />
           <div className="status-bar-item ai-status-indicator" title={aiStatus === 'processing' ? 'IA processando...' : aiStatus === 'error' ? 'Erro na IA' : 'IA conectada'}>
             <span className={`ai-status-dot ${aiStatus}`} />
             <span>{aiStatus === 'processing' ? 'IA processando...' : 'AI: ' + activeModelLabel}</span>
