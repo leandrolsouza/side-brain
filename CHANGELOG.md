@@ -5,6 +5,13 @@ Todas as mudanças notáveis do SideBrain serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.3.4] - 2025-07-10
+
+### Corrigido
+- `ERR_FAILED (-2)` ao carregar — CSP via meta tag bloqueava scripts/CSS no protocol `file://` dentro do asar
+- CSP agora é aplicado via response headers no main process (compatível com asar e file://)
+- Removido plugin `devCspPlugin` do Vite (desnecessário com CSP via headers)
+
 ## [0.3.3] - 2025-07-10
 
 ### Corrigido
