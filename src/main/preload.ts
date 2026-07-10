@@ -167,7 +167,7 @@ export interface ElectronAPI {
   getConnectionsByEntry: (entryId: string) => Promise<ConnectedEntry[]>
   deleteConnection: (connectionId: string) => Promise<{ success: boolean }>
   searchEntriesForConnection: (query: string, excludeEntryId: string) => Promise<Entry[]>
-  getConnectionGraphData: () => Promise<{ entries: Entry[]; connections: EntryConnection[] }>
+  getConnectionGraphData: (filters?: { projectId?: string; dateFrom?: string; minConnections?: number; connectionType?: string }) => Promise<{ entries: Entry[]; connections: EntryConnection[] }>
   discoverConnections: (projectId?: string) => Promise<{ created: number; suggestions: EntryConnection[] }>
 
   // Theme
@@ -409,8 +409,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('connection:delete', connectionId),
   searchEntriesForConnection: (query: string, excludeEntryId: string) =>
     ipcRenderer.invoke('connection:searchEntries', query, excludeEntryId),
-  getConnectionGraphData: () =>
-    ipcRenderer.invoke('connection:getGraphData'),
+  getConnectionGraphData: (filters?: { projectId?: string; dateFrom?: string; minConnections?: number; connectionType?: string }) =>
+    ipcRenderer.invoke('connection:getGraphData', filters),
   discoverConnections: (projectId?: string) =>
     ipcRenderer.invoke('connection:discover', projectId),
 

@@ -31,8 +31,13 @@ export function registerConnectionHandlers(): void {
     return connectionRepo.searchEntries(query, excludeEntryId)
   })
 
-  safeHandle('connection:getGraphData', async () => {
-    return connectionRepo.getAllForGraph()
+  safeHandle('connection:getGraphData', async (_event, filters?: {
+    projectId?: string
+    dateFrom?: string
+    minConnections?: number
+    connectionType?: string
+  }) => {
+    return connectionRepo.getAllForGraph(filters)
   })
 
   safeHandle('connection:discover', async (_event, projectId?: string) => {

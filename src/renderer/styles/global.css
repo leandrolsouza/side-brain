@@ -7490,6 +7490,140 @@ kbd {
 
 /* === Connection Graph === */
 
+.graph-filter-bar {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--vscode-widget-border, #474747);
+  background: var(--vscode-sideBar-background);
+}
+
+.graph-filter-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.graph-filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.graph-filter-item label {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.graph-filter-item .vscode-select,
+.graph-filter-item .vscode-input {
+  font-size: 12px;
+  padding: 3px 6px;
+}
+
+.graph-filter-actions {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.filter-badge {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--vscode-activityBarBadge-background);
+  margin-left: 4px;
+}
+
+.graph-search-overlay {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--vscode-sideBar-background);
+  border: 1px solid var(--vscode-widget-border, #474747);
+  border-radius: 4px;
+  padding: 4px 8px;
+  min-width: 200px;
+}
+
+.graph-search-input {
+  background: transparent;
+  border: none;
+  color: var(--vscode-editor-foreground);
+  font-size: 12px;
+  outline: none;
+  width: 140px;
+}
+
+.graph-search-input::placeholder {
+  color: var(--vscode-input-placeholderForeground);
+}
+
+.graph-color-toggle {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  background: var(--vscode-sideBar-background);
+  border: 1px solid var(--vscode-widget-border, #474747);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.graph-toggle-btn {
+  background: transparent;
+  border: none;
+  color: var(--vscode-descriptionForeground);
+  font-size: 11px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.graph-toggle-btn:hover {
+  background: var(--vscode-list-hoverBackground, #2a2d2e);
+}
+
+.graph-toggle-btn.active {
+  background: var(--vscode-activityBarBadge-background);
+  color: var(--vscode-activityBarBadge-foreground);
+}
+
+.graph-zoom-controls {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--vscode-sideBar-background);
+  border: 1px solid var(--vscode-widget-border, #474747);
+  border-radius: 6px;
+  padding: 4px;
+}
+
+.graph-zoom-btn {
+  background: transparent;
+  border: none;
+  color: var(--vscode-editor-foreground);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.graph-zoom-btn:hover {
+  background: var(--vscode-list-hoverBackground, #2a2d2e);
+}
+
 .graph-legend {
   position: absolute;
   bottom: 12px;
@@ -7579,4 +7713,16 @@ kbd {
 
 .spin {
   animation: spin 1s linear infinite;
+}
+
+/* === Graph Tooltip Override === */
+
+.graph-tooltip {
+  background: #252526 !important;
+  border: 1px solid #474747 !important;
+  border-radius: 4px !important;
+  padding: 0 !important;
+  color: #cccccc !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important;
+  opacity: 1 !important;
 }
