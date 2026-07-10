@@ -48,6 +48,19 @@ export class UpdaterService {
 
     autoUpdater.on('error', (err: Error) => {
       const errorMessage = err.message || 'Erro desconhecido ao atualizar'
+
+      // 404 is expected when no release is published yet - silently ignore
+      if (errorMessage.includes('404') || errorMessage.includes('Not Found')) {
+        this.updateStatus({ status: 'not-available' })
+        return
+      }
+
+      // Network errors during startup check are also non-critical
+      if (errorMessage.includes('net::ERR_') || errorMessage.includes('ENOTFOUND')) {
+        this.updateStatus({ status: 'not-available' })
+        return
+      }
+
       this.updateStatus({ status: 'error', error: errorMessage })
 
       // Log to error service but don't crash
