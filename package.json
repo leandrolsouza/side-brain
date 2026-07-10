@@ -16,6 +16,9 @@
     "test": "npm run test:rebuild && vitest run --config vitest.config.main.ts",
     "test:watch": "npm run test:rebuild && vitest --config vitest.config.main.ts",
     "test:coverage": "npm run test:rebuild && vitest run --config vitest.config.main.ts --coverage",
+    "test:renderer": "vitest run --config vitest.config.renderer.ts",
+    "test:renderer:watch": "vitest --config vitest.config.renderer.ts",
+    "test:all": "npm run test && npm run test:renderer",
     "test:rebuild": "npm rebuild better-sqlite3",
     "pack": "electron-builder --dir",
     "dist": "electron-builder"
@@ -31,6 +34,9 @@
   },
   "devDependencies": {
     "@electron/rebuild": "3.7.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/better-sqlite3": "7.6.12",
     "@types/react": "19.1.13",
     "@types/react-dom": "19.1.6",
@@ -40,6 +46,7 @@
     "concurrently": "9.2.1",
     "electron": "35.0.0",
     "electron-builder": "26.0.12",
+    "jsdom": "^29.1.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "typescript": "5.8.3",

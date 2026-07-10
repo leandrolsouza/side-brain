@@ -43,6 +43,8 @@ export interface AppSettings {
   dailyDigestSections: string // comma-separated: aiSuggestion,pendingTasks,yesterdayActivity
   // User identity
   userName: string
+  // Onboarding
+  onboardingCompleted: string
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -72,4 +74,5 @@ export const DEFAULT_SETTINGS: AppSettings = {
   dailyDigestEnabled: 'true',
   dailyDigestSections: 'aiSuggestion,pendingTasks,yesterdayActivity',
   userName: '',
+  onboardingCompleted: 'false',
 }

@@ -22,6 +22,7 @@ import { StatusBarErrorIndicator } from './components/StatusBarErrorIndicator'
 import { CustomFieldsSettings } from './components/CustomFieldsSettings'
 import { ConnectionGraph } from './components/ConnectionGraph'
 import { UpdateNotification } from './components/UpdateNotification'
+import { OnboardingFlow } from './components/OnboardingFlow'
 
 export type View = 'dashboard' | 'capture' | 'projects' | 'entries' | 'meeting' | 'settings' | 'reports' | 'smart-chat' | 'error-center' | 'custom-fields' | 'connection-graph'
 export type Theme = 'dark' | 'light'
@@ -51,6 +52,20 @@ function AppContent() {
   const { state, dispatch, navigateToProject, navigateToMeeting, refreshProjects } = useApp()
   const { currentView, selectedProjectId, selectedProjectName, meetingProjectId, projectInitialTab, projectsRefreshKey, isSearchOpen, showDigest, showAbout, activeModelLabel, aiStatus, theme } = state
   const [appVersion, setAppVersion] = useState<string>('')
+  const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null)
+
+  // Check onboarding status on mount
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      try {
+        const settings = await window.electronAPI.getSettings()
+        setShowOnboarding(settings.onboardingCompleted !== 'true')
+      } catch {
+        setShowOnboarding(false)
+      }
+    }
+    checkOnboarding()
+  }, [])
 
   // Load app version
   useEffect(() => {
@@ -241,6 +256,16 @@ function AppContent() {
       case 'connection-graph':
         return <ConnectionGraph />
     }
+  }
+
+  // Show nothing while checking onboarding status
+  if (showOnboarding === null) {
+    return <div className="onboarding-loading" />
+  }
+
+  // Show onboarding flow for first-time users
+  if (showOnboarding) {
+    return <OnboardingFlow onComplete={() => setShowOnboarding(false)} />
   }
 
   return (
