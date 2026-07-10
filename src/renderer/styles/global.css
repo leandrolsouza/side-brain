@@ -8261,3 +8261,77 @@ kbd {
   font-size: 11px;
   color: var(--vscode-editor-foreground);
 }
+
+/* Onboarding: path selection cards */
+.onboarding-paths {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  width: 100%;
+  max-width: 420px;
+  margin-top: 24px;
+}
+
+.onboarding-path-card {
+  background: var(--vscode-sideBar-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 8px;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  text-align: center;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.onboarding-path-card:hover {
+  border-color: var(--vscode-focusBorder);
+  background: var(--vscode-list-hoverBackground);
+}
+
+.onboarding-path-card .onboarding-path-emoji {
+  font-size: 28px;
+  margin-bottom: 4px;
+}
+
+.onboarding-path-card .onboarding-path-icon {
+  color: var(--vscode-button-background);
+  margin-bottom: 4px;
+}
+
+.onboarding-path-card h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--vscode-editor-foreground);
+  margin: 0;
+}
+
+.onboarding-path-card p {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  margin: 0;
+}
+
+/* Onboarding: import status */
+.onboarding-icon-success {
+  color: var(--vscode-testing-iconPassed);
+}
+
+.onboarding-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(244, 135, 113, 0.1);
+  border: 1px solid var(--vscode-errorForeground);
+  border-radius: 4px;
+  color: var(--vscode-errorForeground);
+  font-size: 13px;
+  width: 100%;
+  max-width: 380px;
+}

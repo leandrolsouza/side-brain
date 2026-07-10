@@ -1,11 +1,12 @@
 import React from 'react'
-import { Brain } from 'lucide-react'
+import { Brain, Download } from 'lucide-react'
 
 interface Props {
-  onNext: () => void
+  onNewUser: () => void
+  onImport: () => void
 }
 
-export function OnboardingWelcome({ onNext }: Props) {
+export function OnboardingWelcome({ onNewUser, onImport }: Props) {
   return (
     <div className="onboarding-step">
       <div className="onboarding-icon">
@@ -17,23 +18,22 @@ export function OnboardingWelcome({ onNext }: Props) {
         Capture pensamentos rápidos durante o dia e deixe a IA categorizar,
         reescrever e transformar em ações.
       </p>
-      <div className="onboarding-features">
-        <div className="onboarding-feature-item">
-          <span className="onboarding-feature-emoji">⚡</span>
-          <span>Captura rápida de texto livre</span>
-        </div>
-        <div className="onboarding-feature-item">
-          <span className="onboarding-feature-emoji">🤖</span>
-          <span>Categorização automática por IA</span>
-        </div>
-        <div className="onboarding-feature-item">
-          <span className="onboarding-feature-emoji">📋</span>
-          <span>Tarefas e projetos organizados</span>
-        </div>
+
+      <div className="onboarding-paths">
+        <button className="onboarding-path-card" onClick={onNewUser}>
+          <span className="onboarding-path-emoji">🚀</span>
+          <h3>Começar do zero</h3>
+          <p>Configurar o app pela primeira vez</p>
+        </button>
+
+        <button className="onboarding-path-card" onClick={onImport}>
+          <span className="onboarding-path-icon">
+            <Download size={24} strokeWidth={1.5} />
+          </span>
+          <h3>Já uso o SideBrain</h3>
+          <p>Importar minha base de outra máquina</p>
+        </button>
       </div>
-      <button className="onboarding-btn-primary" onClick={onNext}>
-        Começar
-      </button>
     </div>
   )
 }

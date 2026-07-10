@@ -3,25 +3,46 @@ import { OnboardingWelcome } from './OnboardingWelcome'
 import { OnboardingApiKey } from './OnboardingApiKey'
 import { OnboardingFirstProject } from './OnboardingFirstProject'
 import { OnboardingTips } from './OnboardingTips'
+import { OnboardingImport } from './OnboardingImport'
 
 interface Props {
   onComplete: () => void
 }
 
-type Step = 'welcome' | 'api-key' | 'first-project' | 'tips'
+type Step = 'welcome' | 'import' | 'api-key' | 'first-project' | 'tips'
 
-const STEPS: Step[] = ['welcome', 'api-key', 'first-project', 'tips']
+const NEW_USER_STEPS: Step[] = ['welcome', 'api-key', 'first-project', 'tips']
+const IMPORT_STEPS: Step[] = ['welcome', 'import']
 
 export function OnboardingFlow({ onComplete }: Props) {
   const [currentStep, setCurrentStep] = useState<Step>('welcome')
+  const [flow, setFlow] = useState<'new' | 'import'>('new')
 
-  const currentIndex = STEPS.indexOf(currentStep)
+  const steps = flow === 'new' ? NEW_USER_STEPS : IMPORT_STEPS
+  const currentIndex = steps.indexOf(currentStep)
 
   const goToNext = () => {
     const nextIndex = currentIndex + 1
-    if (nextIndex < STEPS.length) {
-      setCurrentStep(STEPS[nextIndex])
+    if (nextIndex < steps.length) {
+      setCurrentStep(steps[nextIndex])
     }
+  }
+
+  const handleNewUser = () => {
+    setFlow('new')
+    setCurrentStep('api-key')
+  }
+
+  const handleImportPath = () => {
+    setFlow('import')
+    setCurrentStep('import')
+  }
+
+  const handleImportComplete = async () => {
+    try {
+      await window.electronAPI.updateSettings({ onboardingCompleted: 'true' })
+    } catch { /* ignore */ }
+    onComplete()
   }
 
   const handleApiKeySubmit = async (apiKey: string, provider: string) => {
@@ -66,7 +87,7 @@ export function OnboardingFlow({ onComplete }: Props) {
       <div className="onboarding-container">
         {/* Progress indicator */}
         <div className="onboarding-progress">
-          {STEPS.map((step, index) => (
+          {steps.map((step, index) => (
             <div
               key={step}
               className={`onboarding-progress-dot ${index === currentIndex ? 'active' : ''} ${index < currentIndex ? 'completed' : ''}`}
@@ -77,7 +98,10 @@ export function OnboardingFlow({ onComplete }: Props) {
         {/* Step content */}
         <div className="onboarding-content">
           {currentStep === 'welcome' && (
-            <OnboardingWelcome onNext={goToNext} />
+            <OnboardingWelcome onNewUser={handleNewUser} onImport={handleImportPath} />
+          )}
+          {currentStep === 'import' && (
+            <OnboardingImport onComplete={handleImportComplete} onBack={() => setCurrentStep('welcome')} />
           )}
           {currentStep === 'api-key' && (
             <OnboardingApiKey onNext={handleApiKeySubmit} onSkip={handleApiKeySkip} />
