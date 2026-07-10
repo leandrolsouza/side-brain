@@ -1,6 +1,6 @@
 // === Settings ===
 
-export type AIProvider = 'bedrock' | 'local'
+export type AIProvider = 'bedrock' | 'openai' | 'gemini' | 'grok' | 'local'
 
 export interface AppSettings {
   aiProvider: AIProvider
@@ -10,6 +10,15 @@ export interface AppSettings {
   modelId: string
   aiPriceInputPer1k: string
   aiPriceOutputPer1k: string
+  // OpenAI settings
+  openaiApiKey: string
+  openaiModelId: string
+  // Gemini settings
+  geminiApiKey: string
+  geminiModelId: string
+  // Grok settings
+  grokApiKey: string
+  grokModelId: string
   // Local LLM settings (OpenAI-compatible, e.g. LM Studio)
   localEndpoint: string
   localModelId: string
@@ -28,6 +37,12 @@ export const DEFAULT_SETTINGS: AppSettings = {
   modelId: 'us.anthropic.claude-sonnet-4-20250514-v1:0',
   aiPriceInputPer1k: '0.003',
   aiPriceOutputPer1k: '0.015',
+  openaiApiKey: '',
+  openaiModelId: 'gpt-4.1',
+  geminiApiKey: '',
+  geminiModelId: 'gemini-3.5-flash',
+  grokApiKey: '',
+  grokModelId: 'grok-4.3-latest',
   localEndpoint: 'http://localhost:1234',
   localModelId: '',
   localApiKey: '',

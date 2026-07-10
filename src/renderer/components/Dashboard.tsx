@@ -5,6 +5,7 @@ import {
   ListTodo, FolderKanban, TrendingUp, Zap
 } from 'lucide-react'
 import { MarkdownViewer } from './MarkdownViewer'
+import { EntryActivityGraph } from './EntryActivityGraph'
 
 interface Task {
   id: string
@@ -164,15 +165,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
     (t) => t.status === 'done' && new Date(t.updatedAt).toDateString() === yesterdayStr
   )
 
-  // Project progress data
-  const activeProjects = projects.filter((p) => !p.isAutoSuggested)
-  const projectProgress = activeProjects.map((project) => {
-    const projectTasks = tasks.filter((t) => t.projectId === project.id)
-    const totalTasks = projectTasks.length
-    const completedTasks = projectTasks.filter((t) => t.status === 'done').length
-    const percentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
-    return { ...project, totalTasks, completedTasks, percentage }
-  }).filter((p) => p.totalTasks > 0).sort((a, b) => b.totalTasks - a.totalTasks).slice(0, 5)
+  // Project progress data (removed — replaced by activity graph)
 
   const handleGlobalSummary = async () => {
     setIsLoadingSummary(true)
@@ -589,38 +582,8 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
             )}
           </div>
 
-          {/* Project progress */}
-          {projectProgress.length > 0 && (
-            <div className="dashboard-card">
-              <h3 className="dashboard-card-title">
-                <FolderKanban size={14} />
-                Progresso dos Projetos
-              </h3>
-              <div className="project-progress-list">
-                {projectProgress.map((project) => (
-                  <div
-                    key={project.id}
-                    className="project-progress-item"
-                    onClick={() => onNavigateToProject(project.id, project.name)}
-                  >
-                    <div className="project-progress-header">
-                      <span className="project-progress-name">{project.name}</span>
-                      <span className="project-progress-stats">
-                        {project.completedTasks}/{project.totalTasks}
-                      </span>
-                    </div>
-                    <div className="project-progress-bar-track">
-                      <div
-                        className="project-progress-bar-fill"
-                        style={{ width: `${project.percentage}%` }}
-                      />
-                    </div>
-                    <span className="project-progress-percent">{project.percentage}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Entry Activity Graph */}
+          <EntryActivityGraph />
 
           {/* AI Insights */}
           <div className="dashboard-card">

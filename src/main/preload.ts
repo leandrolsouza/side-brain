@@ -47,6 +47,7 @@ export interface ElectronAPI {
   getEntries: (projectId?: string) => Promise<Entry[]>
   updateEntry: (id: string, updates: Record<string, any>) => Promise<Entry | null>
   deleteEntry: (id: string) => Promise<void>
+  getEntryActivityHeatmap: (weeks?: number) => Promise<{ date: string; count: number }[]>
 
   // Projects
   getProjects: (includeInactive?: boolean) => Promise<Project[]>
@@ -204,6 +205,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('entry:update', id, updates),
   deleteEntry: (id: string) =>
     ipcRenderer.invoke('entry:delete', id),
+  getEntryActivityHeatmap: (weeks?: number) =>
+    ipcRenderer.invoke('entry:getActivityHeatmap', weeks),
 
   // Projects
   getProjects: (includeInactive?: boolean) =>

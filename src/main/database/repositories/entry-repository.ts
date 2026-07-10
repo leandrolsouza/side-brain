@@ -118,6 +118,23 @@ export class EntryRepository {
     return db.prepare(sql).all(...params) as Entry[]
   }
 
+  getActivityHeatmap(weeks: number = 20): { date: string; count: number }[] {
+    const db = getDatabase()
+    const startDate = new Date()
+    startDate.setDate(startDate.getDate() - (weeks * 7))
+    const startStr = startDate.toISOString()
+
+    const rows = db.prepare(`
+      SELECT SUBSTR(created_at, 1, 10) as date, COUNT(*) as count
+      FROM entries
+      WHERE created_at >= ?
+      GROUP BY SUBSTR(created_at, 1, 10)
+      ORDER BY date ASC
+    `).all(startStr) as { date: string; count: number }[]
+
+    return rows
+  }
+
   delete(id: string): void {
     const db = getDatabase()
     db.prepare('DELETE FROM entries WHERE id = ?').run(id)

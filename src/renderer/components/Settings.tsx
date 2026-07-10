@@ -6,13 +6,19 @@ import { useToast } from './ToastContext'
 interface SettingsProps {
 }
 
-type AIProvider = 'bedrock' | 'local'
+type AIProvider = 'bedrock' | 'openai' | 'gemini' | 'grok' | 'local'
 
 interface AppSettings {
   aiProvider: AIProvider
   awsRegion: string
   bedrockApiKey: string
   modelId: string
+  openaiApiKey: string
+  openaiModelId: string
+  geminiApiKey: string
+  geminiModelId: string
+  grokApiKey: string
+  grokModelId: string
   localEndpoint: string
   localModelId: string
   localApiKey: string
@@ -29,6 +35,32 @@ const AVAILABLE_MODELS = [
   { id: 'us.amazon.nova-pro-v1:0', label: 'Nova Pro (equilibrado)', category: 'Nova' },
   { id: 'us.amazon.nova-lite-v1:0', label: 'Nova Lite (baixo custo)', category: 'Nova' },
   { id: 'us.amazon.nova-micro-v1:0', label: 'Nova Micro (mais rápido, só texto)', category: 'Nova' },
+]
+
+const OPENAI_MODELS = [
+  { id: 'gpt-4.1', label: 'GPT-4.1 (mais capaz, 1M ctx)' },
+  { id: 'gpt-4.1-mini', label: 'GPT-4.1 Mini (equilíbrio)' },
+  { id: 'gpt-4.1-nano', label: 'GPT-4.1 Nano (rápido + barato)' },
+  { id: 'o3', label: 'o3 (raciocínio avançado)' },
+  { id: 'o4-mini', label: 'o4-mini (raciocínio, barato)' },
+  { id: 'gpt-4o', label: 'GPT-4o (multimodal)' },
+  { id: 'gpt-4o-mini', label: 'GPT-4o Mini (legado, barato)' },
+]
+
+const GEMINI_MODELS = [
+  { id: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash (mais capaz, agentic)' },
+  { id: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash-Lite (frontier, baixo custo)' },
+  { id: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro (avançado, preview)' },
+  { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro (raciocínio complexo)' },
+  { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (preço/performance)' },
+  { id: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash-Lite (mais rápido)' },
+]
+
+const GROK_MODELS = [
+  { id: 'grok-4.3-latest', label: 'Grok 4.3 (mais capaz)' },
+  { id: 'grok-420-reasoning', label: 'Grok 420 Reasoning (raciocínio, 256K ctx)' },
+  { id: 'grok-3', label: 'Grok 3 (equilibrado)' },
+  { id: 'grok-3-mini', label: 'Grok 3 Mini (rápido + barato)' },
 ]
 
 const AWS_REGIONS = [
@@ -62,6 +94,12 @@ export function Settings({ }: SettingsProps) {
     awsRegion: 'us-east-1',
     bedrockApiKey: '',
     modelId: 'us.anthropic.claude-sonnet-4-20250514-v1:0',
+    openaiApiKey: '',
+    openaiModelId: 'gpt-4.1',
+    geminiApiKey: '',
+    geminiModelId: 'gemini-3.5-flash',
+    grokApiKey: '',
+    grokModelId: 'grok-4.3-latest',
     localEndpoint: 'http://localhost:1234',
     localModelId: '',
     localApiKey: '',
@@ -346,9 +384,9 @@ export function Settings({ }: SettingsProps) {
         <div className="settings-item">
           <div className="settings-item-label">Provedor de IA</div>
           <div className="settings-item-description">
-            Escolha entre AWS Bedrock (nuvem) ou um LLM local (LM Studio, Ollama, etc).
+            Escolha o provedor de IA para categorização e resumos.
           </div>
-          <div className="provider-toggle" style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+          <div className="provider-toggle" style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
             <button
               className={`vscode-button ${settings.aiProvider === 'bedrock' ? '' : 'secondary'}`}
               onClick={() => setSettings({ ...settings, aiProvider: 'bedrock' })}
@@ -356,6 +394,30 @@ export function Settings({ }: SettingsProps) {
             >
               <Cloud size={14} />
               AWS Bedrock
+            </button>
+            <button
+              className={`vscode-button ${settings.aiProvider === 'openai' ? '' : 'secondary'}`}
+              onClick={() => setSettings({ ...settings, aiProvider: 'openai' })}
+              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              <Cpu size={14} />
+              OpenAI
+            </button>
+            <button
+              className={`vscode-button ${settings.aiProvider === 'gemini' ? '' : 'secondary'}`}
+              onClick={() => setSettings({ ...settings, aiProvider: 'gemini' })}
+              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              <Cpu size={14} />
+              Gemini
+            </button>
+            <button
+              className={`vscode-button ${settings.aiProvider === 'grok' ? '' : 'secondary'}`}
+              onClick={() => setSettings({ ...settings, aiProvider: 'grok' })}
+              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              <Cpu size={14} />
+              Grok
             </button>
             <button
               className={`vscode-button ${settings.aiProvider === 'local' ? '' : 'secondary'}`}
@@ -423,6 +485,114 @@ export function Settings({ }: SettingsProps) {
                   <option key={model.id} value={model.id}>{model.label}</option>
                 ))}
               </optgroup>
+            </select>
+          </div>
+        </div>
+      )}
+
+      {/* OpenAI Settings */}
+      {settings.aiProvider === 'openai' && (
+        <div className="settings-group">
+          <div className="settings-item">
+            <div className="settings-item-label">API Key (OpenAI)</div>
+            <div className="settings-item-description">
+              Gere em: <code>platform.openai.com/api-keys</code>
+            </div>
+            <input
+              type="password"
+              className="vscode-input"
+              value={settings.openaiApiKey}
+              onChange={(e) => setSettings({ ...settings, openaiApiKey: e.target.value })}
+              placeholder="sk-..."
+              style={{ maxWidth: 400 }}
+            />
+          </div>
+
+          <div className="settings-item">
+            <div className="settings-item-label">Modelo</div>
+            <div className="settings-item-description">
+              Modelo OpenAI para categorização e resumos.
+            </div>
+            <select
+              className="vscode-select"
+              value={settings.openaiModelId}
+              onChange={(e) => setSettings({ ...settings, openaiModelId: e.target.value })}
+            >
+              {OPENAI_MODELS.map((model) => (
+                <option key={model.id} value={model.id}>{model.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
+      {/* Gemini Settings */}
+      {settings.aiProvider === 'gemini' && (
+        <div className="settings-group">
+          <div className="settings-item">
+            <div className="settings-item-label">API Key (Gemini)</div>
+            <div className="settings-item-description">
+              Gere em: <code>aistudio.google.com/apikey</code>
+            </div>
+            <input
+              type="password"
+              className="vscode-input"
+              value={settings.geminiApiKey}
+              onChange={(e) => setSettings({ ...settings, geminiApiKey: e.target.value })}
+              placeholder="Cole aqui sua API Key..."
+              style={{ maxWidth: 400 }}
+            />
+          </div>
+
+          <div className="settings-item">
+            <div className="settings-item-label">Modelo</div>
+            <div className="settings-item-description">
+              Modelo Gemini para categorização e resumos.
+            </div>
+            <select
+              className="vscode-select"
+              value={settings.geminiModelId}
+              onChange={(e) => setSettings({ ...settings, geminiModelId: e.target.value })}
+            >
+              {GEMINI_MODELS.map((model) => (
+                <option key={model.id} value={model.id}>{model.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
+      {/* Grok Settings */}
+      {settings.aiProvider === 'grok' && (
+        <div className="settings-group">
+          <div className="settings-item">
+            <div className="settings-item-label">API Key (Grok)</div>
+            <div className="settings-item-description">
+              Gere em: <code>console.x.ai</code>
+            </div>
+            <input
+              type="password"
+              className="vscode-input"
+              value={settings.grokApiKey}
+              onChange={(e) => setSettings({ ...settings, grokApiKey: e.target.value })}
+              placeholder="xai-..."
+              style={{ maxWidth: 400 }}
+            />
+          </div>
+
+          <div className="settings-item">
+            <div className="settings-item-label">Modelo</div>
+            <div className="settings-item-description">
+              Modelo Grok para categorização e resumos.
+            </div>
+            <select
+              className="vscode-select"
+              value={settings.grokModelId}
+              onChange={(e) => setSettings({ ...settings, grokModelId: e.target.value })}
+            >
+              {GROK_MODELS.map((model) => (
+                <option key={model.id} value={model.id}>{model.label}</option>
+              ))}
             </select>
           </div>
         </div>

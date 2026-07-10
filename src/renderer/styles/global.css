@@ -462,6 +462,7 @@ body {
 .editor-content {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 20px 32px;
   background: var(--vscode-editor-background);
   font-family: var(--content-font-family);
@@ -1500,6 +1501,7 @@ kbd {
   gap: 20px;
   height: 100%;
   overflow-y: auto;
+  overflow-x: hidden;
   padding-right: 12px;
 }
 
@@ -1630,6 +1632,7 @@ kbd {
   gap: 16px;
   flex: 1;
   min-height: 0;
+  min-width: 0;
 }
 
 .dashboard-col-left,
@@ -1637,6 +1640,7 @@ kbd {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-width: 0;
 }
 
 /* Dashboard Card (replaces dashboard-section) */
@@ -1695,66 +1699,183 @@ kbd {
   margin-bottom: 0;
 }
 
-/* Project Progress */
-.project-progress-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+/* Entry Activity Graph */
+.activity-graph-loading {
+  padding: 20px;
+  text-align: center;
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
 }
 
-.project-progress-item {
+.activity-graph-stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.activity-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.activity-stat-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+.activity-stat-label {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.activity-graph-container {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  cursor: pointer;
-  padding: 6px 8px;
-  border-radius: 6px;
-  transition: background 0.15s;
+  overflow-x: auto;
 }
 
-.project-progress-item:hover {
-  background: var(--vscode-list-hoverBackground, rgba(255, 255, 255, 0.05));
-}
-
-.project-progress-header {
+.activity-graph-months {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  position: relative;
+  height: 16px;
+  margin-left: 28px;
+  margin-bottom: 2px;
 }
 
-.project-progress-name {
-  font-size: 12px;
-  color: var(--vscode-foreground);
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.project-progress-stats {
+.activity-graph-month {
   font-size: 10px;
   color: var(--vscode-descriptionForeground);
+  position: absolute;
+  white-space: nowrap;
+}
+
+.activity-graph-day-label-spacer {
+  width: 28px;
   flex-shrink: 0;
 }
 
-.project-progress-bar-track {
-  height: 6px;
-  background: var(--vscode-editor-background, #1e1e1e);
-  border-radius: 3px;
-  overflow: hidden;
+.activity-graph-body {
+  display: flex;
+  gap: 4px;
 }
 
-.project-progress-bar-fill {
-  height: 100%;
-  border-radius: 3px;
-  background: linear-gradient(90deg, #007fd4, #75beff);
-  transition: width 0.4s ease;
+.activity-graph-day-labels {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 24px;
+  flex-shrink: 0;
 }
 
-.project-progress-percent {
+.activity-graph-day-label {
+  font-size: 9px;
+  color: var(--vscode-descriptionForeground);
+  height: 11px;
+  line-height: 11px;
+  text-align: right;
+  padding-right: 4px;
+}
+
+.activity-graph-grid {
+  display: flex;
+  gap: 2px;
+  position: relative;
+}
+
+.activity-graph-week {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.activity-graph-cell {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  transition: outline 0.1s;
+}
+
+.activity-graph-cell:hover {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+
+.activity-graph-cell.empty {
+  visibility: hidden;
+}
+
+.activity-graph-cell.level-0 {
+  background: var(--vscode-editor-background, #161b22);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.activity-graph-cell.level-1 {
+  background: #0e4429;
+}
+
+.activity-graph-cell.level-2 {
+  background: #006d32;
+}
+
+.activity-graph-cell.level-3 {
+  background: #26a641;
+}
+
+.activity-graph-cell.level-4 {
+  background: #39d353;
+}
+
+.activity-graph-tooltip {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  background: var(--vscode-editorHoverWidget-background, #252526);
+  border: 1px solid var(--vscode-editorHoverWidget-border, #454545);
+  border-radius: 6px;
+  padding: 6px 10px;
+  pointer-events: none;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.activity-graph-tooltip strong {
+  font-size: 11px;
+  color: var(--vscode-foreground);
+}
+
+.activity-graph-tooltip span {
   font-size: 10px;
   color: var(--vscode-descriptionForeground);
-  font-weight: 600;
+}
+
+.activity-graph-legend {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.activity-graph-legend .activity-graph-cell {
+  width: 10px;
+  height: 10px;
+}
+
+.activity-graph-legend .activity-graph-cell:hover {
+  outline: none;
+}
+
+.activity-graph-legend-label {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  margin: 0 4px;
 }
 
 .stat-chip {

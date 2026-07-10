@@ -3,7 +3,7 @@ import { getContainer } from '../services/container'
 import type { EntryConfirmRequest } from '../../shared/types'
 
 export function registerEntryHandlers(): void {
-  const { entryService } = getContainer()
+  const { entryService, entryRepo } = getContainer()
 
   safeHandle('entry:create', async (_event, rawText: string) => {
     return entryService.createEntry(rawText)
@@ -27,5 +27,9 @@ export function registerEntryHandlers(): void {
 
   safeHandle('entry:delete', async (_event, id: string) => {
     return entryService.deleteEntry(id)
+  })
+
+  safeHandle('entry:getActivityHeatmap', async (_event, weeks?: number) => {
+    return entryRepo.getActivityHeatmap(weeks)
   })
 }
