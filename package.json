@@ -64,7 +64,8 @@
     "win": {
       "target": [
         "nsis",
-        "msi"
+        "msi",
+        "portable"
       ]
     },
     "nsis": {
