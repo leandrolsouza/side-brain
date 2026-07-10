@@ -1,5 +1,16 @@
-import { app, BrowserWindow, globalShortcut, nativeTheme, Tray, Menu, nativeImage, session } from 'electron'
+import { app, BrowserWindow, globalShortcut, nativeTheme, Tray, Menu, nativeImage, session, dialog } from 'electron'
 import path from 'path'
+import fs from 'fs'
+
+// Catch any uncaught errors during module loading
+const startupLogPath = path.join(app.getPath('userData'), 'startup-error.log')
+process.on('uncaughtException', (error) => {
+  const msg = `[${new Date().toISOString()}] Uncaught Exception:\n${error.stack || error.message}\n\n`
+  try { fs.appendFileSync(startupLogPath, msg) } catch { /* ignore */ }
+  dialog.showErrorBox('SideBrain - Erro Fatal', error.stack || error.message || String(error))
+  app.exit(1)
+})
+
 import { registerIpcHandlers } from './ipc/handlers'
 import { closeDatabase } from './database/schema'
 import { NotificationService } from './services/notification-service'
@@ -12,6 +23,22 @@ let mainWindow: BrowserWindow | null = null
 let notificationService: NotificationService | null = null
 let lockRenewalInterval: ReturnType<typeof setInterval> | null = null
 let tray: Tray | null = null
+
+// Single instance lock - prevent multiple instances
+const gotTheLock = app.requestSingleInstanceLock()
+
+if (!gotTheLock) {
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    // Someone tried to run a second instance, focus our window
+    if (mainWindow) {
+      if (!mainWindow.isVisible()) mainWindow.show()
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.focus()
+    }
+  })
+}
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -35,7 +62,14 @@ function createWindow(): void {
   })
 
   // Show maximized once ready
+  const showTimeout = setTimeout(() => {
+    if (mainWindow && !mainWindow.isVisible()) {
+      mainWindow.show()
+    }
+  }, 10000)
+
   mainWindow.once('ready-to-show', () => {
+    clearTimeout(showTimeout)
     mainWindow!.maximize()
     mainWindow!.show()
   })
@@ -45,7 +79,12 @@ function createWindow(): void {
     mainWindow.loadURL('http://localhost:5173')
     mainWindow.webContents.openDevTools()
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../../renderer/index.html'))
+    const indexPath = path.join(__dirname, '../../renderer/index.html')
+    mainWindow.loadFile(indexPath).catch((err) => {
+      const msg = `Failed to load: ${indexPath}\n${err.message}`
+      fs.appendFileSync(startupLogPath, `[${new Date().toISOString()}] ${msg}\n`)
+      dialog.showErrorBox('SideBrain - Erro ao carregar', msg)
+    })
   }
 
   // Minimize to tray instead of closing
@@ -118,67 +157,73 @@ function createTray(): void {
 }
 
 app.whenReady().then(() => {
-  // Forçar tema escuro nos controles nativos (select dropdown, scrollbar, etc)
-  nativeTheme.themeSource = 'dark'
+  try {
+    // Forçar tema escuro nos controles nativos (select dropdown, scrollbar, etc)
+    nativeTheme.themeSource = 'dark'
 
-  // Auto backup antes de abrir a database
-  const backupService = new BackupService()
-  backupService.createAutoBackup()
+    // Auto backup antes de abrir a database
+    const backupService = new BackupService()
+    backupService.createAutoBackup()
 
-  // Adquirir lock file da database
-  const configService = getConfigService()
-  const lockResult = configService.acquireLock()
-  if (!lockResult.acquired) {
-    console.warn(`[Lock] Database pode estar em uso por: ${lockResult.owner}`)
-  }
-
-  // Renovar lock a cada 2 minutos
-  lockRenewalInterval = setInterval(() => {
-    configService.renewLock()
-  }, 2 * 60 * 1000)
-
-  registerIpcHandlers()
-
-  // Grant microphone permission for speech recognition
-  session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
-    const allowedPermissions = ['media', 'audioCapture', 'microphone']
-    callback(allowedPermissions.includes(permission))
-  })
-
-  // Also handle permission checks (Chromium may check before requesting)
-  session.defaultSession.setPermissionCheckHandler((_webContents, permission) => {
-    const allowedPermissions = ['media', 'audioCapture', 'microphone']
-    return allowedPermissions.includes(permission)
-  })
-  createWindow()
-  createTray()
-  registerGlobalShortcut()
-
-  // Initialize auto-updater (only in production)
-  if (process.env.NODE_ENV !== 'development') {
-    const updaterService = getUpdaterService()
-    updaterService.setMainWindow(mainWindow)
-    // Check for updates after a short delay to not block startup
-    setTimeout(() => {
-      updaterService.checkForUpdates()
-    }, 5000)
-  }
-
-  // Setup global error handlers for observability
-  const errorService = getErrorService()
-  errorService.setupGlobalHandlers()
-  // Clean old resolved errors on startup
-  errorService.cleanOldLogs()
-
-  // Start notification service for deadline reminders
-  notificationService = new NotificationService()
-  notificationService.start()
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow()
+    // Adquirir lock file da database
+    const configService = getConfigService()
+    const lockResult = configService.acquireLock()
+    if (!lockResult.acquired) {
+      console.warn(`[Lock] Database pode estar em uso por: ${lockResult.owner}`)
     }
-  })
+
+    // Renovar lock a cada 2 minutos
+    lockRenewalInterval = setInterval(() => {
+      configService.renewLock()
+    }, 2 * 60 * 1000)
+
+    registerIpcHandlers()
+
+    // Grant microphone permission for speech recognition
+    session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
+      const allowedPermissions = ['media', 'audioCapture', 'microphone']
+      callback(allowedPermissions.includes(permission))
+    })
+
+    // Also handle permission checks (Chromium may check before requesting)
+    session.defaultSession.setPermissionCheckHandler((_webContents, permission) => {
+      const allowedPermissions = ['media', 'audioCapture', 'microphone']
+      return allowedPermissions.includes(permission)
+    })
+    createWindow()
+    createTray()
+    registerGlobalShortcut()
+
+    // Initialize auto-updater (only in production)
+    if (process.env.NODE_ENV !== 'development') {
+      const updaterService = getUpdaterService()
+      updaterService.setMainWindow(mainWindow)
+      // Check for updates after a short delay to not block startup
+      setTimeout(() => {
+        updaterService.checkForUpdates()
+      }, 5000)
+    }
+
+    // Setup global error handlers for observability
+    const errorService = getErrorService()
+    errorService.setupGlobalHandlers()
+    // Clean old resolved errors on startup
+    errorService.cleanOldLogs()
+
+    // Start notification service for deadline reminders
+    notificationService = new NotificationService()
+    notificationService.start()
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow()
+      }
+    })
+  } catch (error: any) {
+    const { dialog: dlg } = require('electron')
+    dlg.showErrorBox('SideBrain - Erro ao iniciar', error?.stack || error?.message || String(error))
+    app.quit()
+  }
 })
 
 app.on('window-all-closed', () => {

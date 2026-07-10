@@ -5,6 +5,15 @@ Todas as mudanças notáveis do SideBrain serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.3.2] - 2025-07-10
+
+### Corrigido
+- App não aparecia em máquinas novas (janela nunca se tornava visível)
+- Adicionado single instance lock para evitar múltiplas instâncias conflitantes
+- Failsafe de exibição: janela aparece em até 10s mesmo se `ready-to-show` não disparar
+- Erros de carregamento do HTML agora são logados e exibidos ao usuário
+- Handler global de exceções não capturadas para diagnóstico
+
 ## [0.3.1] - 2025-07-10
 
 ### Corrigido
