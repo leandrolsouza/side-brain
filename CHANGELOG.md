@@ -5,6 +5,18 @@ Todas as mudanças notáveis do SideBrain serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.3.5] - 2025-07-10
+
+### Adicionado
+- Fluxo de onboarding na primeira execução com 4 etapas guiadas:
+  - Tela de boas-vindas com visão geral do app
+  - Configuração do provedor de IA (Bedrock, OpenAI, Gemini, Grok, Local)
+  - Criação do primeiro projeto
+  - Dicas rápidas de atalhos (Ctrl+Shift+Space, Ctrl+K)
+- Progress dots visuais indicando etapa atual
+- Todas as etapas são opcionais (usuário pode pular)
+- Flag `onboardingCompleted` nas settings para controlar exibição
+
 ## [0.3.4] - 2025-07-10
 
 ### Corrigido
