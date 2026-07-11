@@ -9,6 +9,7 @@
   "voice_start": "Voice input",
   "send_analyzing": "Analyzing...",
   "send_button": "Send",
+  "send_button_batch": "Send {{count}} entries",
   "hint_enter": "send",
   "hint_shift_enter": "new line",
   "hint_ctrl_n": "focus here",
@@ -30,5 +31,8 @@
   "preview_confirming": "Saving...",
   "preview_back": "Go back and edit",
   "preview_warning_project": "Select a project to confirm",
-  "confirm_success": "Registered successfully!"
+  "confirm_success": "Registered successfully!",
+  "batch_preview_header": "{{count}} entries detected",
+  "batch_confirm_button": "Confirm {{count}} entries",
+  "batch_confirm_success": "{{count}} entries registered successfully!"
 }

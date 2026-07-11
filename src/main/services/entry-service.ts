@@ -3,6 +3,7 @@ import { EntryRepository } from '../database/repositories/entry-repository'
 import { ProjectRepository } from '../database/repositories/project-repository'
 import { TaskRepository } from '../database/repositories/task-repository'
 import { SettingsRepository } from '../database/repositories/settings-repository'
+import { CategorizationFeedbackRepository } from '../database/repositories/categorization-feedback-repository'
 import { AIService } from './ai-service'
 import { EmbeddingsService } from './embeddings-service'
 
@@ -13,7 +14,8 @@ export class EntryService {
     private taskRepo: TaskRepository,
     private settingsRepo: SettingsRepository,
     private aiService: AIService,
-    private embeddingsService?: EmbeddingsService
+    private embeddingsService?: EmbeddingsService,
+    private feedbackRepo?: CategorizationFeedbackRepository
   ) { }
 
   async createEntry(rawText: string): Promise<Entry & { autoSuggestedProject?: { id: string; name: string } }> {
@@ -176,11 +178,41 @@ export class EntryService {
     // Generate embedding for the new entry in background
     this.indexInBackground('entry', entry.id)
 
+    // Record feedback if user corrected the AI prediction
+    this.recordFeedbackIfCorrected(data)
+
     return { ...entry, autoSuggestedProject }
   }
 
   getEntries(projectId?: string): Entry[] {
     return this.entryRepo.getAll(projectId)
+  }
+
+  /**
+   * Preview multiple entries at once (batch mode).
+   * Text is split by paragraphs and each is categorized.
+   */
+  async previewBatch(rawText: string): Promise<EntryPreviewResult[]> {
+    const settings = this.settingsRepo.get()
+    const projects = this.projectRepo.getAll()
+
+    const results = await this.aiService.categorizeBatch(rawText, projects, settings)
+
+    // Split paragraphs to match with results
+    const paragraphs = rawText
+      .split(/\n\s*\n/)
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0)
+
+    return results.map((result, i) => ({
+      rawText: paragraphs[i] || rawText,
+      improvedText: result.improvedText,
+      project: result.project,
+      type: result.type,
+      action: result.action,
+      reasoning: result.reasoning,
+      suggestedTask: result.suggestedTask,
+    }))
   }
 
   getEntriesPaginated(params: PaginationParams & { projectId?: string }): PaginatedResult<Entry> {
@@ -260,6 +292,42 @@ export class EntryService {
       this.embeddingsService.indexTask(entityId).catch((err) => {
         console.error(`Background embedding failed for task ${entityId}:`, err.message)
       })
+    }
+  }
+
+  /**
+   * Detects if the user corrected the AI's categorization and records feedback.
+   * Feedback is used as few-shot examples in future categorization calls.
+   */
+  private recordFeedbackIfCorrected(data: EntryConfirmRequest): void {
+    if (!this.feedbackRepo) return
+
+    // Only record if we have original AI predictions to compare against
+    if (!data.aiOriginalType && !data.aiOriginalAction && data.aiOriginalProjectId === undefined) {
+      return
+    }
+
+    const typeChanged = data.aiOriginalType && data.aiOriginalType !== data.type
+    const actionChanged = data.aiOriginalAction && data.aiOriginalAction !== data.action
+    const projectChanged = data.aiOriginalProjectId !== undefined &&
+      (data.aiOriginalProjectId !== data.projectId)
+
+    // Only record if something was actually corrected
+    if (!typeChanged && !actionChanged && !projectChanged) return
+
+    try {
+      this.feedbackRepo.add({
+        rawText: data.rawText,
+        aiType: data.aiOriginalType || data.type,
+        aiAction: data.aiOriginalAction || data.action,
+        aiProjectId: data.aiOriginalProjectId ?? null,
+        correctedType: data.type,
+        correctedAction: data.action,
+        correctedProjectId: data.projectId,
+        correctedProjectName: data.newProjectName,
+      })
+    } catch (err) {
+      console.error('Failed to record categorization feedback:', err)
     }
   }
 }

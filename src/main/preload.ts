@@ -47,6 +47,7 @@ export interface ElectronAPI {
   // Entries
   createEntry: (rawText: string) => Promise<Entry & { autoSuggestedProject?: { id: string; name: string } }>
   previewEntry: (rawText: string, projectIdHint?: string) => Promise<EntryPreviewResult>
+  previewBatchEntries: (rawText: string) => Promise<EntryPreviewResult[]>
   confirmEntry: (data: EntryConfirmRequest) => Promise<Entry & { autoSuggestedProject?: { id: string; name: string } }>
   getEntries: (projectId?: string) => Promise<Entry[]>
   getEntriesPaginated: (params: PaginationParams & { projectId?: string }) => Promise<PaginatedResult<Entry>>
@@ -233,6 +234,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('entry:create', rawText),
   previewEntry: (rawText: string, projectIdHint?: string) =>
     ipcRenderer.invoke('entry:preview', rawText, projectIdHint),
+  previewBatchEntries: (rawText: string) =>
+    ipcRenderer.invoke('entry:previewBatch', rawText),
   confirmEntry: (data: EntryConfirmRequest) =>
     ipcRenderer.invoke('entry:confirm', data),
   getEntries: (projectId?: string) =>

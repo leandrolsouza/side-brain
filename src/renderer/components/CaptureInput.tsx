@@ -47,6 +47,8 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
   // Flow state
   const [captureState, setCaptureState] = useState<CaptureState>('idle')
   const [preview, setPreview] = useState<EntryPreviewResult | null>(null)
+  const [batchPreviews, setBatchPreviews] = useState<EntryPreviewResult[]>([])
+  const [isBatchMode, setIsBatchMode] = useState(false)
 
   // Dynamic custom fields
   const [captureTemplates, setCaptureTemplates] = useState<CaptureTemplate[]>([])
@@ -208,11 +210,22 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
     setCaptureState('processing')
     window.dispatchEvent(new Event('ai:start'))
     try {
+      if (isBatchMode) {
+        // Batch mode: categorize multiple paragraphs
+        const results = await window.electronAPI.previewBatchEntries(trimmed)
+        setBatchPreviews(results)
+        setPreview(null)
+        setCaptureState('previewing')
+        window.dispatchEvent(new Event('ai:end'))
+        return
+      }
+
       const result = await window.electronAPI.previewEntry(
         trimmed,
         selectedProjectId || undefined
       )
       setPreview(result)
+      setBatchPreviews([])
 
       // Populate editable fields from preview
       setEditedImprovedText(result.improvedText)
@@ -262,6 +275,10 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
         type: editedType,
         action: editedAction,
         suggestedTask: includeSuggestedTask ? preview.suggestedTask : null,
+        // Original AI predictions for feedback learning
+        aiOriginalType: preview.type,
+        aiOriginalAction: preview.action,
+        aiOriginalProjectId: preview.project.id,
       })
 
       resetForm()
@@ -280,6 +297,41 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
     // Go back to idle with text preserved
     setCaptureState('idle')
     setPreview(null)
+    setBatchPreviews([])
+  }
+
+  /**
+   * Confirm all batch entries at once.
+   */
+  const handleBatchConfirm = async () => {
+    if (batchPreviews.length === 0) return
+
+    setCaptureState('confirming')
+    try {
+      let confirmed = 0
+      for (const batchItem of batchPreviews) {
+        await window.electronAPI.confirmEntry({
+          rawText: batchItem.rawText,
+          improvedText: batchItem.improvedText,
+          projectId: batchItem.project.id,
+          newProjectName: batchItem.project.id ? null : batchItem.project.suggestedName,
+          type: batchItem.type,
+          action: batchItem.action,
+          suggestedTask: batchItem.suggestedTask,
+        })
+        confirmed++
+      }
+
+      resetForm()
+      onProjectsChanged?.()
+      await loadProjects()
+
+      addToast(t('batch_confirm_success', { count: confirmed }), 'success')
+    } catch (error) {
+      console.error('Failed to confirm batch entries:', error)
+    } finally {
+      setCaptureState('idle')
+    }
   }
 
   const resetForm = () => {
@@ -287,6 +339,8 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
     setSelectedProjectId('')
     setActiveTemplate(null)
     setPreview(null)
+    setBatchPreviews([])
+    setIsBatchMode(false)
     setCaptureState('idle')
     setIsCreatingProject(false)
     setNewProjectName('')
@@ -350,7 +404,13 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
             ref={inputRef}
             className="vscode-textarea capture-textarea"
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value
+              setText(val)
+              // Detect batch mode: multiple paragraphs separated by blank lines
+              const paragraphs = val.split(/\n\s*\n/).filter((p) => p.trim().length > 0)
+              setIsBatchMode(paragraphs.length > 1)
+            }}
             onKeyDown={handleKeyDown}
             placeholder={activeTemplate
               ? `${activeTemplate.prefix}${activeTemplate.placeholder}`
@@ -406,7 +466,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
               ) : (
                 <>
                   <Send size={14} />
-                  <span>{t('send_button')}</span>
+                  <span>{isBatchMode ? t('send_button_batch', { count: text.split(/\n\s*\n/).filter((p) => p.trim()).length }) : t('send_button')}</span>
                 </>
               )}
             </button>
@@ -589,6 +649,55 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
                 {t('preview_warning_project')}
               </span>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Batch Preview */}
+      {isPreviewing && batchPreviews.length > 0 && (
+        <div className="capture-preview-card">
+          <div className="capture-preview-header">
+            <Sparkles size={14} />
+            <span>{t('batch_preview_header', { count: batchPreviews.length })}</span>
+            <button className="capture-preview-close" onClick={handleCancel} title={t('preview_cancel_title')}>
+              <X size={14} />
+            </button>
+          </div>
+
+          <div className="capture-batch-list">
+            {batchPreviews.map((item, index) => (
+              <div key={index} className="capture-batch-item">
+                <div className="capture-batch-item-header">
+                  <span className="capture-batch-item-number">{index + 1}</span>
+                  <span className="capture-batch-item-type">{TYPE_LABELS[item.type] || item.type}</span>
+                  <span className="capture-batch-item-action">{ACTION_LABELS[item.action] || item.action}</span>
+                  {(item.project.id || item.project.suggestedName) && (
+                    <span className="capture-batch-item-project">
+                      {item.project.suggestedName || projects.find((p) => p.id === item.project.id)?.name || ''}
+                    </span>
+                  )}
+                </div>
+                <p className="capture-batch-item-text">{item.improvedText}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="capture-preview-actions">
+            <button
+              className="vscode-button"
+              onClick={handleBatchConfirm}
+              disabled={captureState === 'confirming'}
+            >
+              <CheckCircle2 size={14} />
+              {captureState === 'confirming' ? t('preview_confirming') : t('batch_confirm_button', { count: batchPreviews.length })}
+            </button>
+            <button
+              className="vscode-button secondary"
+              onClick={handleCancel}
+              disabled={captureState === 'confirming'}
+            >
+              {t('preview_back')}
+            </button>
           </div>
         </div>
       )}

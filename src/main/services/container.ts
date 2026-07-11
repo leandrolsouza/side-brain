@@ -13,6 +13,7 @@ import { CustomFieldsRepository } from '../database/repositories/custom-fields-r
 import { ConnectionRepository } from '../database/repositories/connection-repository'
 import { ChatHistoryRepository } from '../database/repositories/chat-history-repository'
 import { EmbeddingsRepository } from '../database/repositories/embeddings-repository'
+import { CategorizationFeedbackRepository } from '../database/repositories/categorization-feedback-repository'
 
 import { AIProvider } from './ai-provider'
 import { AIService } from './ai-service'
@@ -40,6 +41,7 @@ export interface AppContainer {
   connectionRepo: ConnectionRepository
   chatHistoryRepo: ChatHistoryRepository
   embeddingsRepo: EmbeddingsRepository
+  feedbackRepo: CategorizationFeedbackRepository
 
   // Services
   aiProvider: AIProvider
@@ -72,6 +74,7 @@ export function getContainer(): AppContainer {
   const connectionRepo = new ConnectionRepository()
   const chatHistoryRepo = new ChatHistoryRepository()
   const embeddingsRepo = new EmbeddingsRepository()
+  const feedbackRepo = new CategorizationFeedbackRepository()
 
   // Initialize main process i18n from persisted settings
   const settings = settingsRepo.get()
@@ -79,11 +82,11 @@ export function getContainer(): AppContainer {
 
   // AI layer
   const aiProvider = new AIProvider(aiUsageRepo, settingsRepo)
-  const aiService = new AIService(aiProvider, customFieldsRepo)
+  const aiService = new AIService(aiProvider, customFieldsRepo, feedbackRepo, entryRepo)
   const embeddingsService = new EmbeddingsService(embeddingsRepo, entryRepo, taskRepo, settingsRepo, aiUsageRepo)
 
   // Services (receive dependencies via constructor)
-  const entryService = new EntryService(entryRepo, projectRepo, taskRepo, settingsRepo, aiService, embeddingsService)
+  const entryService = new EntryService(entryRepo, projectRepo, taskRepo, settingsRepo, aiService, embeddingsService, feedbackRepo)
   const digestService = new DigestService(entryRepo, taskRepo, projectRepo, settingsRepo, aiService)
   const smartChatService = new SmartChatService(entryRepo, projectRepo, taskRepo, settingsRepo, aiService, chatHistoryRepo, embeddingsService)
   const insightsService = new InsightsService(entryRepo, projectRepo, taskRepo, settingsRepo, aiService)
@@ -104,6 +107,7 @@ export function getContainer(): AppContainer {
     connectionRepo,
     chatHistoryRepo,
     embeddingsRepo,
+    feedbackRepo,
     aiProvider,
     aiService,
     entryService,

@@ -137,6 +137,10 @@ export interface EntryConfirmRequest {
     title: string
     description?: string
   } | null
+  // Original AI predictions (for feedback learning)
+  aiOriginalType?: EntryType
+  aiOriginalAction?: ActionStatus
+  aiOriginalProjectId?: string | null
 }
 
 // === Daily Digest Types ===

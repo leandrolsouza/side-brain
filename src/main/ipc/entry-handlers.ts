@@ -13,6 +13,10 @@ export function registerEntryHandlers(): void {
     return entryService.previewEntry(rawText, projectIdHint)
   })
 
+  safeHandle('entry:previewBatch', async (_event, rawText: string) => {
+    return entryService.previewBatch(rawText)
+  })
+
   safeHandle('entry:confirm', async (_event, data: EntryConfirmRequest) => {
     return entryService.confirmEntry(data)
   })

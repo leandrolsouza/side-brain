@@ -1,5 +1,7 @@
 import { AICategorizationResult, AIOperationType, AppSettings, MeetingProcessResult, Project, CustomEntryType, CustomActionStatus } from '../../shared/types'
 import { CustomFieldsRepository } from '../database/repositories/custom-fields-repository'
+import { CategorizationFeedbackRepository } from '../database/repositories/categorization-feedback-repository'
+import { EntryRepository } from '../database/repositories/entry-repository'
 import { AIProvider } from './ai-provider'
 import { t, getLocale } from '../i18n'
 
@@ -22,7 +24,9 @@ function buildCategorizationPrompt(entryTypes: CustomEntryType[], actionStatuses
 export class AIService {
   constructor(
     private provider: AIProvider,
-    private customFieldsRepo: CustomFieldsRepository
+    private customFieldsRepo: CustomFieldsRepository,
+    private feedbackRepo?: CategorizationFeedbackRepository,
+    private entryRepo?: EntryRepository
   ) { }
 
   async categorize(
@@ -39,7 +43,21 @@ export class AIService {
     const actionStatuses = this.customFieldsRepo.getActionStatuses()
     const categorizationPrompt = buildCategorizationPrompt(entryTypes, actionStatuses)
 
-    const userMessage = t('prompts.categorization.user_message', {
+    // Build user message with few-shot examples and temporal context
+    const fewShotSection = this.buildFewShotSection()
+    const temporalSection = this.buildTemporalContext()
+
+    let userMessage = ''
+
+    if (fewShotSection) {
+      userMessage += fewShotSection + '\n\n'
+    }
+
+    if (temporalSection) {
+      userMessage += temporalSection + '\n\n'
+    }
+
+    userMessage += t('prompts.categorization.user_message', {
       projectList: projectList || t('prompts.categorization.no_projects'),
       rawText,
     })
@@ -58,6 +76,116 @@ export class AIService {
     }
 
     return JSON.parse(jsonMatch[0]) as AICategorizationResult
+  }
+
+  /**
+   * Builds a few-shot section from recent user corrections.
+   * These teach the AI the user's preferences for categorization.
+   */
+  private buildFewShotSection(): string {
+    if (!this.feedbackRepo) return ''
+
+    const examples = this.feedbackRepo.getRecentExamples(5)
+    if (examples.length === 0) return ''
+
+    const lines = examples.map((ex) => {
+      const projectInfo = ex.correctedProjectName || ex.correctedProjectId || '?'
+      return `- "${ex.rawText.slice(0, 80)}" → type: ${ex.correctedType}, action: ${ex.correctedAction}, project: ${projectInfo}`
+    })
+
+    return `## Exemplos de classificações anteriores (preferências do usuário):\n${lines.join('\n')}`
+  }
+
+  /**
+   * Builds temporal context from the user's most recent entries.
+   * Helps the AI understand what the user is currently working on.
+   */
+  private buildTemporalContext(): string {
+    if (!this.entryRepo) return ''
+
+    const recentEntries = this.entryRepo.getAll().slice(0, 5)
+    if (recentEntries.length === 0) return ''
+
+    const lines = recentEntries.map((e) => {
+      return `- [${e.type}] ${e.improvedText.slice(0, 80)}`
+    })
+
+    return `## Contexto recente (últimas entradas do usuário):\n${lines.join('\n')}`
+  }
+
+  /**
+   * Categorizes multiple entries in a single AI call.
+   * Splits text by paragraph breaks and categorizes each separately.
+   */
+  async categorizeBatch(
+    rawText: string,
+    projects: Project[],
+    settings: AppSettings
+  ): Promise<AICategorizationResult[]> {
+    // Split by double newlines (paragraph separator)
+    const paragraphs = rawText
+      .split(/\n\s*\n/)
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0)
+
+    if (paragraphs.length <= 1) {
+      // Single entry — use normal categorize
+      const result = await this.categorize(rawText, projects, settings)
+      return [result]
+    }
+
+    const projectList = projects
+      .map((p) => `- ${p.id}: ${p.name}${p.description ? ` (${p.description})` : ''}`)
+      .join('\n')
+
+    const entryTypes = this.customFieldsRepo.getEntryTypes()
+    const actionStatuses = this.customFieldsRepo.getActionStatuses()
+    const categorizationPrompt = buildCategorizationPrompt(entryTypes, actionStatuses)
+
+    // Build batch prompt
+    const numberedTexts = paragraphs.map((p, i) => `[${i + 1}] "${p}"`).join('\n\n')
+
+    const batchSystemPrompt = categorizationPrompt + `\n\nIMPORTANTE: Você receberá MÚLTIPLOS textos numerados. Retorne um ARRAY JSON com um objeto para cada texto, na mesma ordem. O formato de cada objeto é o mesmo descrito acima.`
+
+    const userMessage = `Projetos existentes:\n${projectList || '(nenhum projeto cadastrado)'}\n\nTextos para categorizar:\n${numberedTexts}`
+
+    const responseText = await this.provider.invoke(
+      batchSystemPrompt,
+      userMessage,
+      settings,
+      'categorization'
+    )
+
+    // Extract JSON array from response
+    const jsonMatch = responseText.match(/\[[\s\S]*\]/)
+    if (jsonMatch) {
+      try {
+        const results = JSON.parse(jsonMatch[0]) as AICategorizationResult[]
+        if (Array.isArray(results) && results.length > 0) {
+          return results
+        }
+      } catch { /* fallback below */ }
+    }
+
+    // Fallback: try to find individual JSON objects
+    const objectMatches = responseText.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g)
+    if (objectMatches && objectMatches.length > 0) {
+      const results: AICategorizationResult[] = []
+      for (const match of objectMatches) {
+        try {
+          results.push(JSON.parse(match) as AICategorizationResult)
+        } catch { /* skip malformed */ }
+      }
+      if (results.length > 0) return results
+    }
+
+    // Ultimate fallback: categorize each individually
+    const results: AICategorizationResult[] = []
+    for (const paragraph of paragraphs) {
+      const result = await this.categorize(paragraph, projects, settings)
+      results.push(result)
+    }
+    return results
   }
 
   async generateSummary(

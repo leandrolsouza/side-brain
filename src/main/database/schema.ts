@@ -297,6 +297,30 @@ const migrations: Migration[] = [
       `)
     },
   },
+  {
+    version: 12,
+    name: 'add_categorization_feedback',
+    up: (database) => {
+      database.exec(`
+        -- Stores user corrections to AI categorization for few-shot learning
+        CREATE TABLE IF NOT EXISTS categorization_feedback (
+          id TEXT PRIMARY KEY,
+          raw_text TEXT NOT NULL,
+          ai_type TEXT NOT NULL,
+          ai_action TEXT NOT NULL,
+          ai_project_id TEXT,
+          corrected_type TEXT NOT NULL,
+          corrected_action TEXT NOT NULL,
+          corrected_project_id TEXT,
+          corrected_project_name TEXT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        -- Index for recent feedback retrieval
+        CREATE INDEX IF NOT EXISTS idx_feedback_created ON categorization_feedback(created_at DESC);
+      `)
+    },
+  },
 ]
 
 function runMigrations(database: Database.Database): void {

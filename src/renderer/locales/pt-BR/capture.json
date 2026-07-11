@@ -9,6 +9,7 @@
   "voice_start": "Entrada por voz",
   "send_analyzing": "Analisando...",
   "send_button": "Enviar",
+  "send_button_batch": "Enviar {{count}} entradas",
   "hint_enter": "enviar",
   "hint_shift_enter": "nova linha",
   "hint_ctrl_n": "foco aqui",
@@ -30,5 +31,8 @@
   "preview_confirming": "Salvando...",
   "preview_back": "Voltar e editar",
   "preview_warning_project": "Selecione um projeto para confirmar",
-  "confirm_success": "Registrado com sucesso!"
+  "confirm_success": "Registrado com sucesso!",
+  "batch_preview_header": "{{count}} entradas detectadas",
+  "batch_confirm_button": "Confirmar {{count}} entradas",
+  "batch_confirm_success": "{{count}} entradas registradas com sucesso!"
 }
