@@ -20,6 +20,7 @@ function removeCrossOrigin(): Plugin {
 export default defineConfig({
   plugins: [react(), removeCrossOrigin()],
   root: 'src/renderer',
+  publicDir: '../../assets',
   base: './',
   build: {
     outDir: '../../dist/renderer',

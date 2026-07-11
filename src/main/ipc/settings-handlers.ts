@@ -2,6 +2,7 @@ import { ipcMain, nativeTheme, shell, app } from 'electron'
 import path from 'path'
 import { safeHandle } from './safe-handle'
 import { getContainer } from '../services/container'
+import { enableTray, disableTray } from '../index'
 
 export function registerSettingsHandlers(): void {
   const { settingsRepo } = getContainer()
@@ -12,6 +13,15 @@ export function registerSettingsHandlers(): void {
 
   safeHandle('settings:update', async (_event, settings: Record<string, any>) => {
     return settingsRepo.update(settings)
+  })
+
+  // Tray toggle — cria ou destrói o tray icon
+  safeHandle('tray:toggle', async (_event, enabled: boolean) => {
+    if (enabled) {
+      enableTray()
+    } else {
+      disableTray()
+    }
   })
 
   // Theme handler — sincroniza controles nativos (select dropdown) com o tema do app

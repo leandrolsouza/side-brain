@@ -18,11 +18,26 @@ import { BackupService } from './services/backup-service'
 import { getConfigService } from './services/config-service'
 import { getErrorService } from './services/error-service'
 import { getUpdaterService } from './services/updater-service'
+import { getContainer } from './services/container'
 
 let mainWindow: BrowserWindow | null = null
 let notificationService: NotificationService | null = null
 let lockRenewalInterval: ReturnType<typeof setInterval> | null = null
 let tray: Tray | null = null
+let trayEnabled = true
+
+/**
+ * Returns the correct path to an asset file, handling both dev and packaged (asar) builds.
+ * In production with asarUnpack, files are at app.asar.unpacked/assets/
+ */
+function getAssetPath(filename: string): string {
+  if (app.isPackaged) {
+    // When packaged, asarUnpack extracts files to app.asar.unpacked/
+    return path.join(app.getAppPath() + '.unpacked', 'assets', filename)
+  }
+  // In development, __dirname is dist/main/main/, go up 3 levels to project root
+  return path.join(__dirname, '..', '..', '..', 'assets', filename)
+}
 
 // Single instance lock - prevent multiple instances
 const gotTheLock = app.requestSingleInstanceLock()
@@ -48,6 +63,7 @@ function createWindow(): void {
     minHeight: 400,
     show: false,
     title: 'SideBrain',
+    icon: getAssetPath('icon.ico'),
     titleBarStyle: 'hidden',
     titleBarOverlay: {
       color: '#1e1e1e',
@@ -106,9 +122,9 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
-  // Minimize to tray instead of closing
+  // Minimize to tray instead of closing (only when tray is enabled)
   mainWindow.on('close', (event) => {
-    if (mainWindow && !(app as any).isQuitting) {
+    if (mainWindow && !(app as any).isQuitting && trayEnabled && tray) {
       event.preventDefault()
       mainWindow.hide()
     }
@@ -132,24 +148,47 @@ function registerGlobalShortcut(): void {
 }
 
 function createTray(): void {
-  // Create a simple 16x16 tray icon programmatically (brain emoji style - blue dot)
-  const icon = nativeImage.createFromDataURL(
-    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA' +
-    'mElEQVQ4T2NkoBAwUqifgWoGMDIyNjAwMLxnYGD4T8gFjMgCYIPABjAx/GdgYPzP' +
-    'wMDwn+E/E8P//0wMTP+ZGP7/Z2L8/5+R4T8jIwMDIyMjw38mJiYGRiYmBkYmZoZ/' +
-    'TIwM/xgZGf8zMjH+Z2Ri/M/IxPifkYnxHyMT439GRkaG/4yMDP8ZGBj+MzAw/Gdg' +
-    'YGCg2AAA0FkkEWuLLJEAAAAASUVORK5CYII='
-  )
+  // Use the app icon file for the tray
+  const iconPath = getAssetPath('icon.ico')
+  let icon = nativeImage.createFromPath(iconPath)
+
+  // Fallback to PNG if ICO fails to load
+  if (icon.isEmpty()) {
+    const pngPath = getAssetPath('icon.png')
+    icon = nativeImage.createFromPath(pngPath)
+  }
+
+  icon = icon.resize({ width: 16, height: 16 })
 
   tray = new Tray(icon)
   tray.setToolTip('SideBrain')
 
+  const version = app.getVersion()
+
   const contextMenu = Menu.buildFromTemplate([
+    {
+      label: `SideBrain v${version}`,
+      enabled: false,
+    },
+    { type: 'separator' },
+    {
+      label: 'Captura Rápida',
+      accelerator: 'CommandOrControl+Shift+Space',
+      click: () => {
+        if (mainWindow) {
+          if (!mainWindow.isVisible()) mainWindow.show()
+          if (mainWindow.isMinimized()) mainWindow.restore()
+          mainWindow.focus()
+          mainWindow.webContents.send('focus-capture-input')
+        }
+      },
+    },
     {
       label: 'Abrir SideBrain',
       click: () => {
         if (mainWindow) {
-          mainWindow.show()
+          if (!mainWindow.isVisible()) mainWindow.show()
+          if (mainWindow.isMinimized()) mainWindow.restore()
           mainWindow.focus()
         }
       },
@@ -169,10 +208,30 @@ function createTray(): void {
   // Double-click on tray icon restores the window
   tray.on('double-click', () => {
     if (mainWindow) {
-      mainWindow.show()
+      if (!mainWindow.isVisible()) mainWindow.show()
+      if (mainWindow.isMinimized()) mainWindow.restore()
       mainWindow.focus()
     }
   })
+}
+
+export function enableTray(): void {
+  trayEnabled = true
+  if (!tray) {
+    createTray()
+  }
+}
+
+export function disableTray(): void {
+  trayEnabled = false
+  if (tray) {
+    tray.destroy()
+    tray = null
+  }
+}
+
+export function isTrayEnabled(): boolean {
+  return trayEnabled
 }
 
 app.whenReady().then(() => {
@@ -223,7 +282,15 @@ app.whenReady().then(() => {
       })
     })
     createWindow()
-    createTray()
+
+    // Read tray setting and conditionally create tray
+    const { settingsRepo } = getContainer()
+    const currentSettings = settingsRepo.get()
+    trayEnabled = currentSettings.trayEnabled !== 'false'
+    if (trayEnabled) {
+      createTray()
+    }
+
     registerGlobalShortcut()
 
     // Initialize auto-updater (only in production)

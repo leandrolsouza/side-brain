@@ -75,6 +75,7 @@ export interface ElectronAPI {
   // Settings
   getSettings: () => Promise<AppSettings>
   updateSettings: (settings: Partial<AppSettings>) => Promise<void>
+  toggleTray: (enabled: boolean) => Promise<void>
 
   // Global Search
   globalSearch: (query: string, filters?: { type?: string; projectId?: string; dateFrom?: string; dateTo?: string }) => Promise<{ entries: Entry[]; tasks: Task[]; projects: Project[] }>
@@ -267,6 +268,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('settings:get'),
   updateSettings: (settings: Record<string, any>) =>
     ipcRenderer.invoke('settings:update', settings),
+  toggleTray: (enabled: boolean) =>
+    ipcRenderer.invoke('tray:toggle', enabled),
 
   // Global Search
   globalSearch: (query: string, filters?: { type?: string; projectId?: string; dateFrom?: string; dateTo?: string }) =>

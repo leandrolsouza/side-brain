@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { CheckCircle2, Download, Upload, Trash2, RotateCcw, HardDrive, AlertTriangle, FolderOpen, Database, Settings as SettingsIcon, Cpu, Cloud, Monitor, Type, Bell, Clock, Keyboard, FileText, Sunrise, Eye, EyeOff } from 'lucide-react'
 import { ConfirmModal } from './ConfirmModal'
 import { useToast } from './ToastContext'
+import { useApp } from './AppContext'
 
 interface SettingsProps {
 }
@@ -37,6 +38,7 @@ interface AppSettings {
   dailyDigestEnabled: string
   dailyDigestSections: string
   userName: string
+  trayEnabled: string
 }
 
 const AVAILABLE_MODELS = [
@@ -100,6 +102,7 @@ type SettingsTab = 'geral' | 'aparencia' | 'dados' | 'avancado'
 
 export function Settings({ }: SettingsProps) {
   const { addToast } = useToast()
+  const { dispatch } = useApp()
   const [activeTab, setActiveTab] = useState<SettingsTab>('geral')
   const [settings, setSettings] = useState<AppSettings>({
     aiProvider: 'bedrock',
@@ -126,6 +129,7 @@ export function Settings({ }: SettingsProps) {
     dailyDigestEnabled: 'true',
     dailyDigestSections: 'aiSuggestion,pendingTasks,yesterdayActivity',
     userName: '',
+    trayEnabled: 'true',
   })
   const [isSaving, setIsSaving] = useState(false)
   const [showApiKey, setShowApiKey] = useState(false)
@@ -396,7 +400,32 @@ export function Settings({ }: SettingsProps) {
     setIsSaving(true)
     try {
       await window.electronAPI.updateSettings(settings)
+      await window.electronAPI.toggleTray(settings.trayEnabled === 'true')
       addToast('Configurações salvas com sucesso', 'success')
+
+      // Update status bar model label
+      const providerLabels: Record<string, string> = {
+        bedrock: 'Bedrock',
+        openai: 'OpenAI',
+        gemini: 'Gemini',
+        grok: 'Grok',
+        local: 'Local',
+      }
+      const provider = providerLabels[settings.aiProvider] || 'Bedrock'
+      let modelName = ''
+      if (settings.aiProvider === 'local') {
+        modelName = settings.localModelId || 'LLM Local'
+      } else if (settings.aiProvider === 'openai') {
+        modelName = settings.openaiModelId || 'gpt-4.1'
+      } else if (settings.aiProvider === 'gemini') {
+        modelName = settings.geminiModelId || 'gemini-3.5-flash'
+      } else if (settings.aiProvider === 'grok') {
+        modelName = settings.grokModelId || 'grok-4.3-latest'
+      } else {
+        const bedrockModel = AVAILABLE_MODELS.find(m => m.id === settings.modelId)
+        modelName = bedrockModel ? bedrockModel.label.split(' (')[0] : settings.modelId
+      }
+      dispatch({ type: 'SET_MODEL_LABEL', label: `${provider} · ${modelName}` })
     } finally {
       setIsSaving(false)
     }
@@ -1140,11 +1169,26 @@ export function Settings({ }: SettingsProps) {
 
   const renderAvancadoTab = () => (
     <div className="settings-tab-content">
-      {/* Notifications */}
+      {/* Comportamento do App */}
       <div className="settings-group">
         <div className="settings-section-title">
-          <Bell size={16} />
-          <span>Notificações</span>
+          <SettingsIcon size={16} />
+          <span>Comportamento</span>
+        </div>
+
+        <div className="settings-item">
+          <div className="settings-item-label">Ícone na Bandeja do Sistema (Tray)</div>
+          <div className="settings-item-description">
+            Mantém o app rodando em segundo plano ao fechar a janela. Quando desativado, fechar a janela encerra o app.
+          </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={settings.trayEnabled === 'true'}
+              onChange={(e) => setSettings({ ...settings, trayEnabled: e.target.checked ? 'true' : 'false' })}
+            />
+            <span style={{ fontSize: 13 }}>Ativar ícone na bandeja do sistema</span>
+          </label>
         </div>
 
         <div className="settings-item">

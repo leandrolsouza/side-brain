@@ -46,15 +46,23 @@ export function encryptValue(plainText: string): string {
  * Decrypts a value that was previously encrypted with encryptValue().
  * If the value doesn't have the encrypted prefix, it's treated as plain-text
  * (backward compatibility for existing unencrypted settings).
+ *
+ * If decryption fails (e.g. OS keychain changed, corrupted data), returns empty
+ * string so the user can re-enter the credential without crashing the app.
  */
 export function decryptValue(storedValue: string): string {
   if (!storedValue) return storedValue
   if (!storedValue.startsWith(ENCRYPTED_PREFIX)) return storedValue
   if (!isSafeStorageAvailable()) return ''
 
-  const base64 = storedValue.slice(ENCRYPTED_PREFIX.length)
-  const buffer = Buffer.from(base64, 'base64')
-  return safeStorage.decryptString(buffer)
+  try {
+    const base64 = storedValue.slice(ENCRYPTED_PREFIX.length)
+    const buffer = Buffer.from(base64, 'base64')
+    return safeStorage.decryptString(buffer)
+  } catch (error) {
+    console.warn('[SafeStorage] Failed to decrypt value — credential may need to be re-entered:', error)
+    return ''
+  }
 }
 
 /**

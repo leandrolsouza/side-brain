@@ -43,6 +43,8 @@ export interface AppSettings {
   dailyDigestSections: string // comma-separated: aiSuggestion,pendingTasks,yesterdayActivity
   // User identity
   userName: string
+  // System Tray
+  trayEnabled: string
   // Onboarding
   onboardingCompleted: string
 }
@@ -74,5 +76,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   dailyDigestEnabled: 'true',
   dailyDigestSections: 'aiSuggestion,pendingTasks,yesterdayActivity',
   userName: '',
+  trayEnabled: 'true',
   onboardingCompleted: 'false',
 }
