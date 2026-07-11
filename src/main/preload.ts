@@ -15,6 +15,7 @@ import type {
   AIUsageRecord,
   Workspace,
   SmartChatMessage,
+  ChatConversation,
   ProactiveInsight,
   AppNotification,
   ErrorLog,
@@ -124,7 +125,13 @@ export interface ElectronAPI {
   getAIUsageHistory: (limit?: number, offset?: number) => Promise<AIUsageRecord[]>
 
   // Smart Chat
-  smartChatSend: (message: string) => Promise<SmartChatMessage>
+  smartChatSend: (message: string, conversationId?: string) => Promise<SmartChatMessage & { conversationId: string }>
+  smartChatGetConversations: () => Promise<ChatConversation[]>
+  smartChatGetMessages: (conversationId: string) => Promise<SmartChatMessage[]>
+  smartChatCreateConversation: (title?: string) => Promise<ChatConversation>
+  smartChatRenameConversation: (id: string, title: string) => Promise<void>
+  smartChatDeleteConversation: (id: string) => Promise<void>
+  smartChatClearAll: () => Promise<void>
 
   // Proactive Insights
   generateInsights: (forceRefresh?: boolean) => Promise<ProactiveInsight[]>
@@ -351,8 +358,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('ai-usage:getHistory', limit, offset),
 
   // Smart Chat
-  smartChatSend: (message: string) =>
-    ipcRenderer.invoke('smart-chat:send', message),
+  smartChatSend: (message: string, conversationId?: string) =>
+    ipcRenderer.invoke('smart-chat:send', message, conversationId),
+  smartChatGetConversations: () =>
+    ipcRenderer.invoke('smart-chat:getConversations'),
+  smartChatGetMessages: (conversationId: string) =>
+    ipcRenderer.invoke('smart-chat:getMessages', conversationId),
+  smartChatCreateConversation: (title?: string) =>
+    ipcRenderer.invoke('smart-chat:createConversation', title),
+  smartChatRenameConversation: (id: string, title: string) =>
+    ipcRenderer.invoke('smart-chat:renameConversation', id, title),
+  smartChatDeleteConversation: (id: string) =>
+    ipcRenderer.invoke('smart-chat:deleteConversation', id),
+  smartChatClearAll: () =>
+    ipcRenderer.invoke('smart-chat:clearAll'),
 
   // Proactive Insights
   generateInsights: (forceRefresh?: boolean) =>

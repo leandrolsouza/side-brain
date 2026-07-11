@@ -12,5 +12,12 @@
   "sendMessage": "Send message",
   "typing": "Searching and analyzing...",
   "sources": "Sources:",
-  "errorMessage": "Sorry, an error occurred while processing your question. Check if AI is configured in the settings."
+  "errorMessage": "Sorry, an error occurred while processing your question. Check if AI is configured in the settings.",
+  "newConversation": "New conversation",
+  "toggleHistory": "Conversation history",
+  "conversations": "Conversations",
+  "rename": "Rename",
+  "delete": "Delete",
+  "clearAll": "Clear all",
+  "noConversations": "No conversations yet"
 }

@@ -19,8 +19,32 @@ export function registerAIHandlers(): void {
   })
 
   // Smart Chat handlers
-  safeHandle('smart-chat:send', async (_event, message: string) => {
-    return smartChatService.chat(message)
+  safeHandle('smart-chat:send', async (_event, message: string, conversationId?: string) => {
+    return smartChatService.chat(message, conversationId)
+  })
+
+  safeHandle('smart-chat:getConversations', async () => {
+    return smartChatService.getConversations()
+  })
+
+  safeHandle('smart-chat:getMessages', async (_event, conversationId: string) => {
+    return smartChatService.getMessages(conversationId)
+  })
+
+  safeHandle('smart-chat:createConversation', async (_event, title?: string) => {
+    return smartChatService.createConversation(title)
+  })
+
+  safeHandle('smart-chat:renameConversation', async (_event, id: string, title: string) => {
+    return smartChatService.renameConversation(id, title)
+  })
+
+  safeHandle('smart-chat:deleteConversation', async (_event, id: string) => {
+    return smartChatService.deleteConversation(id)
+  })
+
+  safeHandle('smart-chat:clearAll', async () => {
+    return smartChatService.clearAllConversations()
   })
 
   // Proactive Insights handlers

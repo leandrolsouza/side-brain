@@ -11,6 +11,7 @@ import { MeetingRepository } from '../database/repositories/meeting-repository'
 import { NotificationRepository } from '../database/repositories/notification-repository'
 import { CustomFieldsRepository } from '../database/repositories/custom-fields-repository'
 import { ConnectionRepository } from '../database/repositories/connection-repository'
+import { ChatHistoryRepository } from '../database/repositories/chat-history-repository'
 
 import { AIProvider } from './ai-provider'
 import { AIService } from './ai-service'
@@ -35,6 +36,7 @@ export interface AppContainer {
   notificationRepo: NotificationRepository
   customFieldsRepo: CustomFieldsRepository
   connectionRepo: ConnectionRepository
+  chatHistoryRepo: ChatHistoryRepository
 
   // Services
   aiProvider: AIProvider
@@ -64,6 +66,7 @@ export function getContainer(): AppContainer {
   const notificationRepo = new NotificationRepository()
   const customFieldsRepo = new CustomFieldsRepository()
   const connectionRepo = new ConnectionRepository()
+  const chatHistoryRepo = new ChatHistoryRepository()
 
   // Initialize main process i18n from persisted settings
   const settings = settingsRepo.get()
@@ -76,7 +79,7 @@ export function getContainer(): AppContainer {
   // Services (receive dependencies via constructor)
   const entryService = new EntryService(entryRepo, projectRepo, taskRepo, settingsRepo, aiService)
   const digestService = new DigestService(entryRepo, taskRepo, projectRepo, settingsRepo, aiService)
-  const smartChatService = new SmartChatService(entryRepo, projectRepo, taskRepo, settingsRepo, aiService)
+  const smartChatService = new SmartChatService(entryRepo, projectRepo, taskRepo, settingsRepo, aiService, chatHistoryRepo)
   const insightsService = new InsightsService(entryRepo, projectRepo, taskRepo, settingsRepo, aiService)
   const meetingService = new MeetingService(meetingRepo, entryRepo, projectRepo, taskRepo, settingsRepo, notificationRepo, aiService)
   const reportsService = new ReportsService()
@@ -93,6 +96,7 @@ export function getContainer(): AppContainer {
     notificationRepo,
     customFieldsRepo,
     connectionRepo,
+    chatHistoryRepo,
     aiProvider,
     aiService,
     entryService,

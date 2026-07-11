@@ -1,11 +1,19 @@
-import { SmartChatMessage, SmartChatSource } from '../../shared/types'
+import { SmartChatMessage, SmartChatSource, ChatConversation } from '../../shared/types'
 import { EntryRepository } from '../database/repositories/entry-repository'
 import { ProjectRepository } from '../database/repositories/project-repository'
 import { TaskRepository } from '../database/repositories/task-repository'
 import { SettingsRepository } from '../database/repositories/settings-repository'
+import { ChatHistoryRepository } from '../database/repositories/chat-history-repository'
 import { AIService } from './ai-service'
 import { t } from '../i18n'
 import { v4 as uuid } from 'uuid'
+
+/** Maximum number of recent messages to include in context */
+const MAX_HISTORY_MESSAGES = 20
+/** Approximate character limit for conversation history in prompt (to avoid token overflow) */
+const HISTORY_CHAR_LIMIT = 6000
+/** If history exceeds this many messages, summarize older ones */
+const SUMMARIZE_THRESHOLD = 30
 
 export class SmartChatService {
   constructor(
@@ -13,16 +21,48 @@ export class SmartChatService {
     private projectRepo: ProjectRepository,
     private taskRepo: TaskRepository,
     private settingsRepo: SettingsRepository,
-    private aiService: AIService
+    private aiService: AIService,
+    private chatHistoryRepo: ChatHistoryRepository
   ) { }
 
-  async chat(userMessage: string): Promise<SmartChatMessage> {
+  /**
+   * Send a message within a conversation. If no conversationId is provided,
+   * creates a new conversation. Persists both user and assistant messages.
+   */
+  async chat(userMessage: string, conversationId?: string): Promise<SmartChatMessage & { conversationId: string }> {
     const settings = this.settingsRepo.get()
 
-    // Search for relevant context based on the user's question
-    const context = this.gatherContext(userMessage)
+    // Resolve or create conversation
+    let conversation: ChatConversation
+    if (conversationId) {
+      const existing = this.chatHistoryRepo.getConversationById(conversationId)
+      if (existing) {
+        conversation = existing
+      } else {
+        conversation = this.chatHistoryRepo.createConversation(this.generateTitle(userMessage))
+      }
+    } else {
+      conversation = this.chatHistoryRepo.createConversation(this.generateTitle(userMessage))
+    }
 
-    const fullUserMessage = t('prompts.smart_chat.user_wrapper', { context, userMessage })
+    // Persist user message
+    const userMsg: SmartChatMessage = {
+      id: uuid(),
+      conversationId: conversation.id,
+      role: 'user',
+      content: userMessage,
+      createdAt: new Date().toISOString(),
+    }
+    this.chatHistoryRepo.addMessage(conversation.id, userMsg)
+
+    // Build conversation history for context
+    const historyContext = this.buildHistoryContext(conversation.id)
+
+    // Search for relevant data context based on the user's question
+    const dataContext = this.gatherContext(userMessage)
+
+    // Build the full user message with history + data context
+    const fullUserMessage = this.buildFullMessage(userMessage, historyContext, dataContext)
 
     const systemPrompt = t('prompts.smart_chat.system')
 
@@ -36,13 +76,137 @@ export class SmartChatService {
     // Extract sources from the context that was used
     const sources = this.extractSources(userMessage)
 
-    return {
+    // Persist assistant message
+    const assistantMsg: SmartChatMessage = {
       id: uuid(),
+      conversationId: conversation.id,
       role: 'assistant',
       content: responseText,
       sources,
       createdAt: new Date().toISOString(),
     }
+    this.chatHistoryRepo.addMessage(conversation.id, assistantMsg)
+
+    // Check if we should summarize old messages
+    this.maybeSummarizeHistory(conversation.id)
+
+    return { ...assistantMsg, conversationId: conversation.id }
+  }
+
+  /**
+   * Get all conversations (for sidebar listing).
+   */
+  getConversations(): ChatConversation[] {
+    return this.chatHistoryRepo.getConversations()
+  }
+
+  /**
+   * Get all messages for a conversation.
+   */
+  getMessages(conversationId: string): SmartChatMessage[] {
+    return this.chatHistoryRepo.getMessages(conversationId)
+  }
+
+  /**
+   * Create a new empty conversation.
+   */
+  createConversation(title?: string): ChatConversation {
+    return this.chatHistoryRepo.createConversation(title || t('prompts.smart_chat.new_conversation'))
+  }
+
+  /**
+   * Rename a conversation.
+   */
+  renameConversation(id: string, title: string): void {
+    this.chatHistoryRepo.updateConversationTitle(id, title)
+  }
+
+  /**
+   * Delete a conversation and all its messages.
+   */
+  deleteConversation(id: string): void {
+    this.chatHistoryRepo.deleteConversation(id)
+  }
+
+  /**
+   * Clear all conversations.
+   */
+  clearAllConversations(): void {
+    this.chatHistoryRepo.clearAllConversations()
+  }
+
+  // === Private methods ===
+
+  /**
+   * Builds conversation history string from recent messages.
+   * Respects character limits to avoid exceeding token budgets.
+   */
+  private buildHistoryContext(conversationId: string): string {
+    const messages = this.chatHistoryRepo.getRecentMessages(conversationId, MAX_HISTORY_MESSAGES)
+
+    // Exclude the last message (which is the current user message we just saved)
+    const historyMessages = messages.slice(0, -1)
+
+    if (historyMessages.length === 0) return ''
+
+    let historyText = ''
+    // Build from most recent backwards, respecting char limit
+    for (let i = historyMessages.length - 1; i >= 0; i--) {
+      const msg = historyMessages[i]
+      const line = `${msg.role === 'user' ? 'Usuário' : 'Assistente'}: ${msg.content}\n`
+
+      if (historyText.length + line.length > HISTORY_CHAR_LIMIT) {
+        break
+      }
+      historyText = line + historyText
+    }
+
+    return historyText.trim()
+  }
+
+  /**
+   * Combines history, data context, and user message into a single prompt.
+   */
+  private buildFullMessage(userMessage: string, historyContext: string, dataContext: string): string {
+    const parts: string[] = []
+
+    if (historyContext) {
+      parts.push(`## Histórico da conversa:\n${historyContext}`)
+    }
+
+    if (dataContext) {
+      parts.push(dataContext)
+    }
+
+    parts.push(`---\n${t('prompts.smart_chat.user_question_label', { defaultValue: 'Pergunta do usuário' })}: "${userMessage}"`)
+
+    return parts.join('\n\n')
+  }
+
+  /**
+   * Generates a short title from the first user message.
+   */
+  private generateTitle(message: string): string {
+    // Take first 50 chars, trim at last space
+    const maxLen = 50
+    if (message.length <= maxLen) return message
+    const truncated = message.slice(0, maxLen)
+    const lastSpace = truncated.lastIndexOf(' ')
+    return (lastSpace > 20 ? truncated.slice(0, lastSpace) : truncated) + '...'
+  }
+
+  /**
+   * If conversation has too many messages, summarize the older ones
+   * by replacing them with a summary message. This keeps context manageable.
+   */
+  private maybeSummarizeHistory(conversationId: string): void {
+    const count = this.chatHistoryRepo.getMessageCount(conversationId)
+    if (count <= SUMMARIZE_THRESHOLD) return
+
+    // For now, we rely on the character limit in buildHistoryContext
+    // to naturally trim old messages. A future enhancement could
+    // call the AI to generate a summary and store it as a special message.
+    // This is a no-op placeholder for the summarization logic.
   }
 
   private gatherContext(query: string): string {

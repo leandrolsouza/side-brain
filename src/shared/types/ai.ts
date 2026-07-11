@@ -89,8 +89,16 @@ export interface AIUsageDailyPoint {
 
 // === Smart Chat Types ===
 
+export interface ChatConversation {
+  id: string
+  title: string
+  createdAt: string
+  updatedAt: string
+}
+
 export interface SmartChatMessage {
   id: string
+  conversationId?: string
   role: 'user' | 'assistant'
   content: string
   sources?: SmartChatSource[]

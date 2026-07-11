@@ -12,5 +12,12 @@
   "sendMessage": "Enviar mensagem",
   "typing": "Pesquisando e analisando...",
   "sources": "Fontes:",
-  "errorMessage": "Desculpe, ocorreu um erro ao processar sua pergunta. Verifique se a IA está configurada nas configurações."
+  "errorMessage": "Desculpe, ocorreu um erro ao processar sua pergunta. Verifique se a IA está configurada nas configurações.",
+  "newConversation": "Nova conversa",
+  "toggleHistory": "Histórico de conversas",
+  "conversations": "Conversas",
+  "rename": "Renomear",
+  "delete": "Excluir",
+  "clearAll": "Limpar tudo",
+  "noConversations": "Nenhuma conversa ainda"
 }

@@ -240,6 +240,38 @@ const migrations: Migration[] = [
       `)
     },
   },
+  {
+    version: 10,
+    name: 'add_chat_history',
+    up: (database) => {
+      database.exec(`
+        -- Conversations table: groups messages into conversations
+        CREATE TABLE IF NOT EXISTS chat_conversations (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        -- Messages table: individual messages within a conversation
+        CREATE TABLE IF NOT EXISTS chat_messages (
+          id TEXT PRIMARY KEY,
+          conversation_id TEXT NOT NULL,
+          role TEXT NOT NULL CHECK(role IN ('user', 'assistant')),
+          content TEXT NOT NULL,
+          sources TEXT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          FOREIGN KEY (conversation_id) REFERENCES chat_conversations(id) ON DELETE CASCADE
+        );
+
+        -- Index for fast message retrieval by conversation
+        CREATE INDEX IF NOT EXISTS idx_chat_messages_conversation ON chat_messages(conversation_id, created_at ASC);
+
+        -- Index for listing conversations by most recent activity
+        CREATE INDEX IF NOT EXISTS idx_chat_conversations_updated ON chat_conversations(updated_at DESC);
+      `)
+    },
+  },
 ]
 
 function runMigrations(database: Database.Database): void {
