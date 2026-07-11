@@ -31,7 +31,7 @@ Aplicativo desktop para organização de notas de trabalho com categorização a
 
 | Camada | Tecnologia |
 |--------|-----------|
-| Runtime | Electron 35 |
+| Runtime | Electron 43 |
 | Linguagem | TypeScript 5.8 (strict mode) |
 | Frontend | React 19 + Vite 8 |
 | Banco de Dados | better-sqlite3 (SQLite com WAL mode) |

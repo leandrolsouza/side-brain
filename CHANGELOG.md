@@ -5,6 +5,18 @@ Todas as mudanças notáveis do SideBrain serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.4.0] - 2025-07-10
+
+### Alterado
+- Atualização do Electron 35 → 43 e dependências principais (React 19.2, TypeScript 7.0, Vite 8.1, better-sqlite3 12.11, uuid 14)
+- Script `dev` e `start` agora executam `electron-rebuild` automaticamente antes de iniciar
+- Script `postinstall` inclui `npx install-electron` para garantir binário correto
+- Novo script `rebuild:electron` dedicado ao rebuild de módulos nativos
+
+### Corrigido
+- Relatórios de atividade por dia da semana agora usam `localtime` no SQLite para respeitar o fuso horário do usuário
+- Tela "Sobre" exibe versão correta do Electron (43)
+
 ## [0.3.9] - 2025-07-10
 
 ### Corrigido

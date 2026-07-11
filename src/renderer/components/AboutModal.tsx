@@ -115,7 +115,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
           <div className="about-tech">
             <p className="about-tech-label">Desenvolvido com</p>
             <p className="about-tech-stack">
-              Electron 35 &middot; React 19 &middot; TypeScript &middot; SQLite &middot; AWS Bedrock (Claude)
+              Electron 43 &middot; React 19 &middot; TypeScript &middot; SQLite &middot; AWS Bedrock (Claude)
             </p>
           </div>
 

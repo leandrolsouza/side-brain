@@ -246,15 +246,15 @@ export class ReportsRepository {
 
     const WEEKDAY_LABELS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
 
-    // SQLite strftime('%w', ...) returns 0=Sunday
+    // SQLite strftime('%w', ...) returns 0=Sunday; use 'localtime' to match user's timezone
     const entryRows = db.prepare(`
-      SELECT CAST(strftime('%w', created_at) AS INTEGER) as dow, COUNT(*) as count
+      SELECT CAST(strftime('%w', created_at, 'localtime') AS INTEGER) as dow, COUNT(*) as count
       FROM entries${where}
       GROUP BY dow
     `).all(...params) as { dow: number; count: number }[]
 
     const taskRows = db.prepare(`
-      SELECT CAST(strftime('%w', updated_at) AS INTEGER) as dow, COUNT(*) as count
+      SELECT CAST(strftime('%w', updated_at, 'localtime') AS INTEGER) as dow, COUNT(*) as count
       FROM tasks
       WHERE status = 'done'${dateFrom ? ' AND updated_at >= ?' : ''}${dateTo ? ' AND updated_at <= ?' : ''}
       GROUP BY dow

@@ -2,49 +2,47 @@
 
 ```
 src/
-├── main/                    # Electron main process
-│   ├── index.ts             # App entry point, window creation, global shortcuts
-│   ├── preload.ts           # Preload script (context bridge)
+├── main/                          # Electron main process (Node.js)
+│   ├── index.ts                   # App entry point, window creation, tray, shortcuts
+│   ├── preload.ts                 # Preload script (context bridge for IPC)
 │   ├── database/
-│   │   ├── schema.ts        # SQLite schema init, migrations, DB singleton
-│   │   └── repositories/    # Data access layer (one file per entity)
-│   │       ├── entry-repository.ts
-│   │       ├── project-repository.ts
-│   │       ├── settings-repository.ts
-│   │       └── task-repository.ts
+│   │   ├── schema.ts              # SQLite schema, migrations, DB singleton
+│   │   └── repositories/         # Data access layer (one file per entity)
 │   ├── ipc/
-│   │   └── handlers.ts      # All IPC handler registrations
-│   └── services/            # Business logic
-│       ├── ai-service.ts    # Bedrock API calls (categorization, summaries)
-│       ├── digest-service.ts
-│       ├── entry-service.ts
-│       └── notification-service.ts
-├── renderer/                # React frontend (Vite-bundled)
-│   ├── App.tsx              # Root component, view routing, global state
-│   ├── main.tsx             # React entry point
-│   ├── index.html           # HTML template
-│   ├── components/          # UI components (one per file)
-│   ├── styles/
-│   │   └── global.css       # Global styles (VS Code-inspired theme)
-│   └── types/
-│       └── electron.d.ts    # Type declarations for preload API
+│   │   ├── handlers.ts           # Central IPC handler registration
+│   │   ├── safe-handle.ts        # Error-safe IPC wrapper
+│   │   └── *-handlers.ts         # Domain-specific IPC handlers
+│   └── services/                 # Business logic layer
+│       ├── ai-service.ts         # AI orchestration
+│       ├── ai-provider.ts        # Multi-provider AI abstraction
+│       ├── container.ts          # Service container / DI
+│       └── *-service.ts          # Domain services
+├── renderer/                      # React frontend (Vite-bundled)
+│   ├── App.tsx                   # Root component, view routing
+│   ├── main.tsx                  # React entry point
+│   ├── components/               # UI components (one per file, PascalCase)
+│   ├── styles/                   # Global CSS (VS Code-inspired dark theme)
+│   ├── types/                    # Renderer-specific types
+│   └── utils/                    # Frontend utilities
 └── shared/
-    └── types.ts             # Domain types shared between main and renderer
+    └── types/                    # Domain types shared between main and renderer
 ```
 
-## Architecture Patterns
+## Architectural Patterns
 
-- **Main/Renderer split**: Strict separation via Electron IPC. No direct Node.js access from renderer.
-- **Repository pattern**: Database access abstracted into repository classes per entity.
-- **Service layer**: Business logic in service classes that coordinate repositories and AI.
-- **IPC handlers**: Single registration file maps IPC channels to service/repository methods.
-- **Shared types**: Domain interfaces and enums in `src/shared/types.ts`, consumed by both processes.
-- **No state management library**: React component state + prop drilling. Views managed by top-level `App.tsx`.
+- **Main/Renderer Separation** — Strict IPC communication. No direct Node.js in renderer (`contextIsolation: true`, `nodeIntegration: false`)
+- **Repository Pattern** — Database access abstracted into classes, one per entity
+- **Service Layer** — Business logic in services that coordinate repositories and AI
+- **IPC Handlers** — Map IPC channels to service/repository methods. Channels use `entity:action` naming (e.g., `entry:create`, `task:getAll`)
+- **Shared Types** — Domain interfaces in `src/shared/types/`, consumed by both processes
+- **UUIDs** — All entities use UUID primary keys
+- **Migration System** — Sequential numbered migrations in `schema.ts` with version tracking
 
-## Conventions
+## Key Conventions
 
-- One component per file in `src/renderer/components/`
-- Repository and service classes are instantiated in the IPC handler registration
-- Database uses a singleton pattern (`getDatabase()`)
-- IPC channels follow the pattern `entity:action` (e.g., `entry:create`, `task:getAll`)
-- UUIDs for all entity IDs
+- One component per file in `src/renderer/components/` (PascalCase filenames)
+- One repository per entity in `src/main/database/repositories/`
+- One IPC handler file per domain in `src/main/ipc/`
+- Services are singletons accessed via getter functions (e.g., `getConfigService()`)
+- DB uses WAL mode with a file lock to prevent concurrent access
+- Dark theme UI inspired by VS Code aesthetics
