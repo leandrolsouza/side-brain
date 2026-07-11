@@ -1,5 +1,6 @@
 import { getDatabase } from '../schema'
 import { AppSettings, DEFAULT_SETTINGS } from '../../../shared/types'
+import { encryptValue, decryptValue, isSensitiveKey } from '../../services/safe-storage-service'
 
 export class SettingsRepository {
   get(): AppSettings {
@@ -11,7 +12,9 @@ export class SettingsRepository {
     for (const row of rows) {
       if (row.key in settings) {
         const key = row.key as keyof AppSettings
-          ; (settings as any)[key] = row.value
+        // Decrypt sensitive keys (API keys) that are stored encrypted
+        const value = isSensitiveKey(key) ? decryptValue(row.value) : row.value
+          ; (settings as any)[key] = value
       }
     }
 
@@ -31,10 +34,12 @@ export class SettingsRepository {
       }
     })
 
-    const entries: [string, string][] = Object.entries(updates).map(([key, value]) => [
-      key,
-      String(value),
-    ])
+    const entries: [string, string][] = Object.entries(updates).map(([key, value]) => {
+      const strValue = String(value)
+      // Encrypt sensitive keys before storing
+      const finalValue = isSensitiveKey(key) ? encryptValue(strValue) : strValue
+      return [key, finalValue]
+    })
 
     updateMany(entries)
   }

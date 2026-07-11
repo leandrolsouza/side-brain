@@ -1,4 +1,5 @@
 import type { AIOperationType, AppSettings } from '../../shared/types'
+import { net } from 'electron'
 import { AIUsageRepository } from '../database/repositories/ai-usage-repository'
 import { SettingsRepository } from '../database/repositories/settings-repository'
 import { getErrorService } from './error-service'
@@ -76,7 +77,7 @@ export class AIProvider {
 
     const startTime = Date.now()
 
-    const response = await fetch(url, {
+    const response = await net.fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -165,7 +166,7 @@ export class AIProvider {
 
     const startTime = Date.now()
 
-    const response = await fetch(url, {
+    const response = await net.fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -250,7 +251,7 @@ export class AIProvider {
 
     const startTime = Date.now()
 
-    const response = await fetch(url, {
+    const response = await net.fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -345,7 +346,7 @@ export class AIProvider {
 
     const startTime = Date.now()
 
-    const response = await fetch(url, {
+    const response = await net.fetch(url, {
       method: 'POST',
       headers,
       body: JSON.stringify(body),
@@ -424,7 +425,7 @@ export class AIProvider {
 
     const startTime = Date.now()
 
-    const response = await fetch(url, {
+    const response = await net.fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

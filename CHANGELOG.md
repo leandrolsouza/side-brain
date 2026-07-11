@@ -5,6 +5,24 @@ Todas as mudanças notáveis do SideBrain serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.4.1] - 2025-07-10
+
+### Segurança
+- API keys (OpenAI, Gemini, Grok, Bedrock, Local) agora são criptografadas no banco usando `safeStorage` do Electron (DPAPI no Windows, Keychain no macOS)
+- Migração automática converte chaves plain-text existentes para formato criptografado na primeira execução
+- Adicionado `sandbox: true` explícito nas webPreferences da janela principal
+- Handler `will-navigate` bloqueia navegação inesperada no renderer (prevenção de XSS)
+- Handler `setWindowOpenHandler` controla abertura de novas janelas — links externos abrem no browser do sistema
+
+### Alterado
+- Chamadas HTTP do AI Provider migradas de `global.fetch` para `net.fetch` do Electron (suporte a proxy corporativo e stack de rede do Chromium)
+- Notificações nativas agora usam `id` (deduplicação), `groupId` (agrupamento visual) e `groupTitle` (header de grupo no Windows) — features do Electron 43
+- Novo método `dismissByType()` no NotificationService para limpar notificações entregues quando o usuário resolve a causa
+
+### Adicionado
+- Serviço `safe-storage-service.ts` para encrypt/decrypt transparente de credenciais
+- Notificações agrupadas por categoria: Tarefas, Reuniões, IA, Insights
+
 ## [0.4.0] - 2025-07-10
 
 ### Alterado

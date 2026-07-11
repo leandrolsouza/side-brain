@@ -1,4 +1,4 @@
-import { app, BrowserWindow, globalShortcut, nativeTheme, Tray, Menu, nativeImage, session, dialog } from 'electron'
+import { app, BrowserWindow, globalShortcut, nativeTheme, Tray, Menu, nativeImage, session, dialog, shell } from 'electron'
 import path from 'path'
 import fs from 'fs'
 
@@ -58,6 +58,7 @@ function createWindow(): void {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: true,
     },
   })
 
@@ -86,6 +87,24 @@ function createWindow(): void {
       dialog.showErrorBox('SideBrain - Erro ao carregar', msg)
     })
   }
+
+  // Security: block unexpected navigation (prevents XSS-driven redirects)
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    // Allow Vite HMR in development
+    if (process.env.NODE_ENV === 'development' && url.startsWith('http://localhost:5173')) {
+      return
+    }
+    event.preventDefault()
+  })
+
+  // Security: control new window creation (links with target="_blank", window.open, etc.)
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    // Open external links in the system's default browser
+    if (url.startsWith('https://') || url.startsWith('http://')) {
+      shell.openExternal(url)
+    }
+    return { action: 'deny' }
+  })
 
   // Minimize to tray instead of closing
   mainWindow.on('close', (event) => {

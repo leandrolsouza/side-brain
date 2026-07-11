@@ -150,6 +150,32 @@ const migrations: Migration[] = [
       `)
     },
   },
+  {
+    version: 7,
+    name: 'encrypt_api_keys',
+    up: (database) => {
+      // Migrate existing plain-text API keys to encrypted format using Electron's safeStorage.
+      // If safeStorage is not available, keys remain as plain-text and will be encrypted on next update.
+      try {
+        const { safeStorage } = require('electron')
+        if (!safeStorage.isEncryptionAvailable()) return
+
+        const sensitiveKeys = ['bedrockApiKey', 'openaiApiKey', 'geminiApiKey', 'grokApiKey', 'localApiKey']
+        const rows = database.prepare('SELECT key, value FROM settings').all() as { key: string; value: string }[]
+        const update = database.prepare('UPDATE settings SET value = ? WHERE key = ?')
+
+        for (const row of rows) {
+          if (sensitiveKeys.includes(row.key) && row.value && !row.value.startsWith('enc::')) {
+            const encrypted = safeStorage.encryptString(row.value)
+            const encodedValue = 'enc::' + encrypted.toString('base64')
+            update.run(encodedValue, row.key)
+          }
+        }
+      } catch {
+        // safeStorage not available (e.g. running tests) — skip migration silently
+      }
+    },
+  },
 ]
 
 function runMigrations(database: Database.Database): void {

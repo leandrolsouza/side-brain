@@ -93,10 +93,15 @@ export class NotificationService {
     const nativeEnabled = settings.nativeNotifications !== 'false'
 
     if (data.showNative !== false && nativeEnabled && Notification.isSupported()) {
+      const groupId = this.getGroupId(data.type)
       const nativeNotification = new Notification({
         title: data.title,
         body: data.body,
         icon: undefined,
+        // Electron 43: use id for deduplication and groupId to visually group related notifications
+        id: notification.id,
+        groupId,
+        groupTitle: this.getGroupTitle(data.type),
       })
       nativeNotification.show()
     }
@@ -151,6 +156,64 @@ export class NotificationService {
       metadata: { meetingTitle },
       showNative: true,
     })
+  }
+
+  /**
+   * Dismisses all delivered native notifications for a given type (macOS/Windows).
+   * Useful when the user addresses the notification source (e.g., marks task as done).
+   */
+  dismissByType(type: NotificationType): void {
+    try {
+      const groupId = this.getGroupId(type)
+      // Electron 43: remove all notifications in a group from Notification Center
+      if (process.platform === 'darwin') {
+        Notification.removeGroup(groupId)
+      }
+    } catch {
+      // removeGroup may not be available on all platforms — fail silently
+    }
+  }
+
+  /**
+   * Maps notification types to group IDs for visual grouping in the OS notification center.
+   */
+  private getGroupId(type: NotificationType): string {
+    switch (type) {
+      case 'task_overdue':
+      case 'task_due_today':
+      case 'task_due_tomorrow':
+        return 'com.sidebrain.tasks'
+      case 'meeting_reminder':
+        return 'com.sidebrain.meetings'
+      case 'ai_error':
+        return 'com.sidebrain.ai'
+      case 'digest_ready':
+      case 'insight_generated':
+        return 'com.sidebrain.insights'
+      default:
+        return 'com.sidebrain.general'
+    }
+  }
+
+  /**
+   * Returns a human-readable group title for Windows notification headers.
+   */
+  private getGroupTitle(type: NotificationType): string {
+    switch (type) {
+      case 'task_overdue':
+      case 'task_due_today':
+      case 'task_due_tomorrow':
+        return 'Tarefas'
+      case 'meeting_reminder':
+        return 'Reuniões'
+      case 'ai_error':
+        return 'Inteligência Artificial'
+      case 'digest_ready':
+      case 'insight_generated':
+        return 'Insights'
+      default:
+        return 'SideBrain'
+    }
   }
 
   private checkDueTasks(): void {
