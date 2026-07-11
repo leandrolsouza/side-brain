@@ -5,6 +5,13 @@ Todas as mudanças notáveis do SideBrain serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.3.9] - 2025-07-10
+
+### Corrigido
+- `ERR_FAILED (-2)` ao carregar em produção — atributo `crossorigin` nos scripts/CSS causava falha no protocolo `file://` dentro do asar
+- Plugin Vite `removeCrossOrigin` remove o atributo no build para garantir compatibilidade com Electron em qualquer cenário
+- Desabilitado module preload polyfill (desnecessário em Electron)
+
 ## [0.3.8] - 2025-07-10
 
 ### Adicionado
