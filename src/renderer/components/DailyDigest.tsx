@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { DailyDigestData, CustomEntryType } from '../../shared/types'
 
 interface DailyDigestProps {
@@ -7,6 +8,7 @@ interface DailyDigestProps {
 }
 
 export function DailyDigest({ onClose, onNavigateToProject }: DailyDigestProps) {
+  const { t } = useTranslation('common')
   const [digest, setDigest] = useState<DailyDigestData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -36,7 +38,7 @@ export function DailyDigest({ onClose, onNavigateToProject }: DailyDigestProps) 
       const data = await window.electronAPI.generateDailyDigest()
       setDigest(data)
     } catch (err: any) {
-      setError(err.message || 'Erro ao gerar o digest')
+      setError(err.message || t('error'))
     } finally {
       setLoading(false)
     }
@@ -48,7 +50,7 @@ export function DailyDigest({ onClose, onNavigateToProject }: DailyDigestProps) 
         <div className="digest-modal" onClick={(e) => e.stopPropagation()}>
           <div className="digest-loading">
             <div className="digest-spinner" />
-            <p>Preparando seu resumo do dia...</p>
+            <p>{t('dailyDigest.preparingDigest')}</p>
           </div>
         </div>
       </div>
@@ -60,12 +62,12 @@ export function DailyDigest({ onClose, onNavigateToProject }: DailyDigestProps) 
       <div className="digest-overlay" onClick={onClose}>
         <div className="digest-modal" onClick={(e) => e.stopPropagation()}>
           <div className="digest-header">
-            <h2>Daily Digest</h2>
+            <h2>{t('dailyDigest.title')}</h2>
             <button className="digest-close" onClick={onClose}>✕</button>
           </div>
           <div className="digest-error">
-            <p>Não foi possível gerar o digest: {error}</p>
-            <button className="digest-retry-btn" onClick={loadDigest}>Tentar novamente</button>
+            <p>{t('dailyDigest.errorGenerating', { error })}</p>
+            <button className="digest-retry-btn" onClick={loadDigest}>{t('dailyDigest.retry')}</button>
           </div>
         </div>
       </div>
@@ -94,7 +96,7 @@ export function DailyDigest({ onClose, onNavigateToProject }: DailyDigestProps) 
             <div className="digest-section digest-suggestion">
               <div className="digest-section-icon">💡</div>
               <div className="digest-section-content">
-                <h3>Sugestão de foco</h3>
+                <h3>{t('dailyDigest.focusSuggestion')}</h3>
                 <p>{digest.aiSuggestion}</p>
               </div>
             </div>
@@ -103,11 +105,11 @@ export function DailyDigest({ onClose, onNavigateToProject }: DailyDigestProps) 
           {/* Tasks Needing Attention */}
           {visibleSections.includes('pendingTasks') && (
             <div className="digest-section">
-              <h3>📋 Tasks pendentes ({totalPending})</h3>
+              <h3>📋 {t('dailyDigest.pendingTasks', { count: totalPending })}</h3>
 
               {digest.tasksNeedingAttention.inProgress.length > 0 && (
                 <div className="digest-task-group">
-                  <span className="digest-task-label in-progress">Em andamento</span>
+                  <span className="digest-task-label in-progress">{t('dailyDigest.inProgress')}</span>
                   <ul>
                     {digest.tasksNeedingAttention.inProgress.slice(0, 5).map((task) => (
                       <li key={task.id}>{task.title}</li>
@@ -118,13 +120,13 @@ export function DailyDigest({ onClose, onNavigateToProject }: DailyDigestProps) 
 
               {digest.tasksNeedingAttention.overdue.length > 0 && (
                 <div className="digest-task-group">
-                  <span className="digest-task-label todo">A fazer</span>
+                  <span className="digest-task-label todo">{t('dailyDigest.todo')}</span>
                   <ul>
                     {digest.tasksNeedingAttention.overdue.slice(0, 5).map((task) => (
                       <li key={task.id}>{task.title}</li>
                     ))}
                     {digest.tasksNeedingAttention.overdue.length > 5 && (
-                      <li className="digest-more">+{digest.tasksNeedingAttention.overdue.length - 5} mais...</li>
+                      <li className="digest-more">{t('seeMore', { count: digest.tasksNeedingAttention.overdue.length - 5 })}</li>
                     )}
                   </ul>
                 </div>
@@ -132,7 +134,7 @@ export function DailyDigest({ onClose, onNavigateToProject }: DailyDigestProps) 
 
               {digest.tasksNeedingAttention.waiting.length > 0 && (
                 <div className="digest-task-group">
-                  <span className="digest-task-label waiting">Aguardando</span>
+                  <span className="digest-task-label waiting">{t('dailyDigest.waiting')}</span>
                   <ul>
                     {digest.tasksNeedingAttention.waiting.slice(0, 3).map((task) => (
                       <li key={task.id}>{task.title}</li>
@@ -142,7 +144,7 @@ export function DailyDigest({ onClose, onNavigateToProject }: DailyDigestProps) 
               )}
 
               {totalPending === 0 && (
-                <p className="digest-empty">Nenhuma task pendente. Tudo em dia! 🎉</p>
+                <p className="digest-empty">{t('dailyDigest.noPendingTasks')}</p>
               )}
             </div>
           )}
@@ -150,19 +152,19 @@ export function DailyDigest({ onClose, onNavigateToProject }: DailyDigestProps) 
           {/* Yesterday Activity */}
           {visibleSections.includes('yesterdayActivity') && (
             <div className="digest-section">
-              <h3>📅 Ontem</h3>
+              <h3>📅 {t('dailyDigest.yesterday')}</h3>
               <div className="digest-stats">
                 <div className="digest-stat">
                   <span className="digest-stat-number">{digest.yesterdayActivity.entriesCreated.length}</span>
-                  <span className="digest-stat-label">entradas criadas</span>
+                  <span className="digest-stat-label">{t('dailyDigest.entriesCreated')}</span>
                 </div>
                 <div className="digest-stat">
                   <span className="digest-stat-number">{digest.yesterdayActivity.tasksCompleted.length}</span>
-                  <span className="digest-stat-label">tasks concluídas</span>
+                  <span className="digest-stat-label">{t('dailyDigest.tasksCompleted')}</span>
                 </div>
                 <div className="digest-stat">
                   <span className="digest-stat-number">{digest.yesterdayActivity.tasksCreated.length}</span>
-                  <span className="digest-stat-label">tasks criadas</span>
+                  <span className="digest-stat-label">{t('dailyDigest.tasksCreated')}</span>
                 </div>
               </div>
 
@@ -185,7 +187,7 @@ export function DailyDigest({ onClose, onNavigateToProject }: DailyDigestProps) 
         {/* Footer */}
         <div className="digest-footer">
           <button className="digest-dismiss-btn" onClick={onClose}>
-            Vamos lá! 🚀
+            {t('dailyDigest.letsGo')}
           </button>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { FolderPlus } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface Props {
   onNext: (projectName: string) => void
@@ -7,6 +8,7 @@ interface Props {
 }
 
 export function OnboardingFirstProject({ onNext, onSkip }: Props) {
+  const { t } = useTranslation('common')
   const [projectName, setProjectName] = useState('')
 
   const handleCreate = () => {
@@ -26,38 +28,37 @@ export function OnboardingFirstProject({ onNext, onSkip }: Props) {
       <div className="onboarding-icon">
         <FolderPlus size={48} strokeWidth={1.5} />
       </div>
-      <h1 className="onboarding-title">Seu primeiro projeto</h1>
+      <h1 className="onboarding-title">{t('onboarding.firstProjectTitle')}</h1>
       <p className="onboarding-description">
-        Projetos agrupam suas entradas e tarefas por contexto.
-        Pode ser o nome de um cliente, equipe, produto ou qualquer tema do seu trabalho.
+        {t('onboarding.firstProjectDescription')}
       </p>
 
       <div className="onboarding-form">
-        <label className="onboarding-label">Nome do projeto</label>
+        <label className="onboarding-label">{t('onboarding.projectNameLabel')}</label>
         <input
           type="text"
           className="onboarding-input"
           value={projectName}
           onChange={(e) => setProjectName(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ex: Projeto Alpha, Marketing Q3, App Mobile..."
+          placeholder={t('onboarding.projectNamePlaceholder')}
           autoFocus
         />
         <p className="onboarding-hint">
-          Não se preocupe, a IA também pode criar projetos automaticamente a partir das suas entradas.
+          {t('onboarding.projectNameHint')}
         </p>
       </div>
 
       <div className="onboarding-actions">
         <button className="onboarding-btn-secondary" onClick={onSkip}>
-          Pular
+          {t('onboarding.skip')}
         </button>
         <button
           className="onboarding-btn-primary"
           onClick={handleCreate}
           disabled={!projectName.trim()}
         >
-          Criar projeto
+          {t('onboarding.createProject')}
         </button>
       </div>
     </div>

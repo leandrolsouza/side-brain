@@ -1,0 +1,23 @@
+{
+  "dialog": {
+    "title": "Exportar Relatório do Projeto",
+    "all_files": "Todos os arquivos",
+    "default_suffix": "_relatorio"
+  },
+  "report": {
+    "title": "Relatório: {{projectName}}",
+    "export_date": "Data de exportação:",
+    "description": "Descrição:",
+    "summary_heading": "Resumo",
+    "total_entries": "Total de entradas:",
+    "total_tasks": "Total de tarefas:",
+    "status_todo": "A Fazer",
+    "status_in_progress": "Em Andamento",
+    "status_waiting": "Aguardando",
+    "status_done": "Concluído",
+    "tasks_heading": "Tarefas",
+    "entries_heading": "Entradas",
+    "deadline_label": "prazo: {{date}}",
+    "footer": "Relatório gerado pelo SideBrain em {{date}}"
+  }
+}

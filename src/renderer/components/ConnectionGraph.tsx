@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import ForceGraph2D from 'react-force-graph-2d'
 import { RefreshCw, Info, X, Sparkles, Search, Filter, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react'
 import { Entry, EntryConnection, ConnectionType, CONNECTION_TYPE_LABELS, Project, CustomEntryType } from '../../shared/types'
@@ -70,15 +71,17 @@ function getProjectColor(index: number): string {
 }
 
 const PERIOD_OPTIONS = [
-  { value: '', label: 'Todo o período' },
-  { value: '7', label: 'Últimos 7 dias' },
-  { value: '30', label: 'Últimos 30 dias' },
-  { value: '90', label: 'Últimos 90 dias' },
+  { value: '', labelKey: 'connectionGraph.periodAll' },
+  { value: '7', labelKey: 'connectionGraph.periodWeek' },
+  { value: '30', labelKey: 'connectionGraph.periodMonth' },
+  { value: '90', labelKey: 'connectionGraph.periodQuarter' },
 ]
 
 export function ConnectionGraph() {
+  const { t } = useTranslation('common')
   const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] })
   const [isLoading, setIsLoading] = useState(true)
+  const [isTruncated, setIsTruncated] = useState(false)
   const [isDiscovering, setIsDiscovering] = useState(false)
   const [discoveryResult, setDiscoveryResult] = useState<string | null>(null)
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null)
@@ -229,6 +232,8 @@ export function ConnectionGraph() {
       const filters = buildFilters()
       const data = await window.electronAPI.getConnectionGraphData(filters)
 
+      setIsTruncated(data.truncated)
+
       // Calculate degree (number of connections per node)
       const degreeMap = new Map<string, number>()
       for (const conn of data.connections) {
@@ -288,14 +293,14 @@ export function ConnectionGraph() {
     try {
       const result = await window.electronAPI.discoverConnections(filterProjectId || undefined)
       if (result.created > 0) {
-        setDiscoveryResult(`${result.created} conexão(ões) descoberta(s) pela IA!`)
+        setDiscoveryResult(t('connectionGraph.discoverySuccess', { count: result.created }))
         await loadGraphData()
       } else {
-        setDiscoveryResult('Nenhuma nova conexão encontrada.')
+        setDiscoveryResult(t('connectionGraph.discoveryNone'))
       }
       setTimeout(() => setDiscoveryResult(null), 5000)
     } catch (err: any) {
-      setDiscoveryResult('Erro ao descobrir conexões: ' + (err.message || 'erro desconhecido'))
+      setDiscoveryResult(t('connectionGraph.discoveryError', { error: err.message || 'erro desconhecido' }))
       setTimeout(() => setDiscoveryResult(null), 5000)
     } finally {
       setIsDiscovering(false)
@@ -401,10 +406,10 @@ export function ConnectionGraph() {
       {/* Header */}
       <div className="panel-header">
         <div className="flex-row">
-          <span className="panel-title">Mapa de Conexões</span>
+          <span className="panel-title">{t('connectionGraph.title')}</span>
           {stats.nodes > 0 && (
             <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>
-              {stats.nodes} nós · {stats.links} conexões · grau médio {stats.avgDegree}
+              {stats.nodes} {t('connectionGraph.nodes')} · {stats.links} {t('connectionGraph.connections')} · {t('connectionGraph.avgDegree')} {stats.avgDegree}
             </span>
           )}
         </div>
@@ -412,7 +417,7 @@ export function ConnectionGraph() {
           <button
             className={`vscode-button secondary ${showFilters ? 'active' : ''}`}
             onClick={() => setShowFilters(!showFilters)}
-            title="Filtros"
+            title={t('filters')}
           >
             <Filter size={14} />
             {hasActiveFilters && <span className="filter-badge" />}
@@ -421,16 +426,16 @@ export function ConnectionGraph() {
             className="vscode-button"
             onClick={handleDiscover}
             disabled={isDiscovering || isLoading}
-            title="Usar IA para descobrir conexões entre entradas existentes"
+            title={t('connectionGraph.discoverTooltip')}
           >
             <Sparkles size={14} className={isDiscovering ? 'spin' : ''} />
-            {isDiscovering ? 'Analisando...' : 'Descobrir'}
+            {isDiscovering ? t('connectionGraph.analyzing') : t('connectionGraph.discover')}
           </button>
           <button
             className="vscode-button secondary"
             onClick={loadGraphData}
             disabled={isLoading}
-            title="Atualizar grafo"
+            title={t('connectionGraph.refreshGraph')}
           >
             <RefreshCw size={14} className={isLoading ? 'spin' : ''} />
           </button>
@@ -442,13 +447,13 @@ export function ConnectionGraph() {
         <div className="graph-filter-bar">
           <div className="graph-filter-row">
             <div className="graph-filter-item">
-              <label>Projeto</label>
+              <label>{t('connectionGraph.filterProject')}</label>
               <select
                 className="vscode-select"
                 value={filterProjectId}
                 onChange={(e) => setFilterProjectId(e.target.value)}
               >
-                <option value="">Todos</option>
+                <option value="">{t('all')}</option>
                 {projects.map(p => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
@@ -456,26 +461,26 @@ export function ConnectionGraph() {
             </div>
 
             <div className="graph-filter-item">
-              <label>Período</label>
+              <label>{t('connectionGraph.filterPeriod')}</label>
               <select
                 className="vscode-select"
                 value={filterPeriod}
                 onChange={(e) => setFilterPeriod(e.target.value)}
               >
                 {PERIOD_OPTIONS.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>
                 ))}
               </select>
             </div>
 
             <div className="graph-filter-item">
-              <label>Tipo de conexão</label>
+              <label>{t('connectionGraph.filterConnectionType')}</label>
               <select
                 className="vscode-select"
                 value={filterConnectionType}
                 onChange={(e) => setFilterConnectionType(e.target.value)}
               >
-                <option value="">Todos</option>
+                <option value="">{t('all')}</option>
                 {Object.entries(CONNECTION_TYPE_LABELS).map(([value, label]) => (
                   <option key={value} value={value}>{label}</option>
                 ))}
@@ -483,7 +488,7 @@ export function ConnectionGraph() {
             </div>
 
             <div className="graph-filter-item">
-              <label>Mín. conexões</label>
+              <label>{t('connectionGraph.filterMinConnections')}</label>
               <input
                 type="number"
                 className="vscode-input"
@@ -496,9 +501,9 @@ export function ConnectionGraph() {
             </div>
 
             <div className="graph-filter-actions">
-              <button className="vscode-button" onClick={handleApplyFilters}>Aplicar</button>
+              <button className="vscode-button" onClick={handleApplyFilters}>{t('apply')}</button>
               {hasActiveFilters && (
-                <button className="vscode-button secondary" onClick={handleClearFilters}>Limpar</button>
+                <button className="vscode-button secondary" onClick={handleClearFilters}>{t('clear')}</button>
               )}
             </div>
           </div>
@@ -525,6 +530,24 @@ export function ConnectionGraph() {
         </div>
       )}
 
+      {/* Truncation warning */}
+      {isTruncated && !isLoading && (
+        <div style={{
+          padding: '6px 12px',
+          fontSize: 11,
+          background: 'var(--vscode-inputValidation-warningBackground, #352a05)',
+          border: '1px solid var(--vscode-inputValidation-warningBorder, #cca700)',
+          borderRadius: 4,
+          margin: '0 8px 8px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+        }}>
+          <Info size={13} style={{ flexShrink: 0, color: 'var(--vscode-inputValidation-warningBorder, #cca700)' }} />
+          <span>{t('connectionGraph.truncatedWarning')}</span>
+        </div>
+      )}
+
       {/* Graph area */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
         {graphData.nodes.length === 0 && !isLoading ? (
@@ -533,13 +556,13 @@ export function ConnectionGraph() {
               <Info size={32} style={{ opacity: 0.4, marginBottom: 8 }} />
               <span className="empty-state-text">
                 {hasActiveFilters
-                  ? 'Nenhuma conexão encontrada com esses filtros.'
-                  : 'Nenhuma conexão criada ainda.'}
+                  ? t('connectionGraph.noConnectionsFiltered')
+                  : t('connectionGraph.noConnectionsEmpty')}
               </span>
               <p style={{ fontSize: 12, color: 'var(--vscode-descriptionForeground)', marginTop: 4 }}>
                 {hasActiveFilters
-                  ? 'Tente ajustar os filtros ou limpar para ver todas as conexões.'
-                  : 'Conecte entradas na lista de entradas de um projeto ou use "Descobrir" para a IA encontrar conexões.'}
+                  ? t('connectionGraph.hintFiltered')
+                  : t('connectionGraph.hintEmpty')}
               </p>
             </div>
           </div>
@@ -585,7 +608,7 @@ export function ConnectionGraph() {
           <input
             type="text"
             className="graph-search-input"
-            placeholder="Buscar no grafo..."
+            placeholder={t('connectionGraph.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -596,7 +619,7 @@ export function ConnectionGraph() {
           )}
           {searchQuery && highlightNodes.size > 0 && (
             <span style={{ fontSize: 10, color: 'var(--vscode-descriptionForeground)', whiteSpace: 'nowrap' }}>
-              {highlightNodes.size} encontrado(s)
+              {t('connectionGraph.found', { count: highlightNodes.size })}
             </span>
           )}
         </div>
@@ -606,16 +629,16 @@ export function ConnectionGraph() {
           <button
             className={`graph-toggle-btn ${colorMode === 'type' ? 'active' : ''}`}
             onClick={() => setColorMode('type')}
-            title="Colorir por tipo de entrada"
+            title={t('connectionGraph.colorByType')}
           >
-            Tipo
+            {t('connectionGraph.colorByType')}
           </button>
           <button
             className={`graph-toggle-btn ${colorMode === 'project' ? 'active' : ''}`}
             onClick={() => setColorMode('project')}
-            title="Colorir por projeto"
+            title={t('connectionGraph.colorByProject')}
           >
-            Projeto
+            {t('connectionGraph.colorByProject')}
           </button>
         </div>
 
@@ -624,21 +647,21 @@ export function ConnectionGraph() {
           <button
             className="graph-zoom-btn"
             onClick={() => graphRef.current?.zoom(graphRef.current.zoom() * 1.5, 300)}
-            title="Zoom in"
+            title={t('connectionGraph.zoomIn')}
           >
             <ZoomIn size={16} />
           </button>
           <button
             className="graph-zoom-btn"
             onClick={() => graphRef.current?.zoom(graphRef.current.zoom() / 1.5, 300)}
-            title="Zoom out"
+            title={t('connectionGraph.zoomOut')}
           >
             <ZoomOut size={16} />
           </button>
           <button
             className="graph-zoom-btn"
             onClick={() => graphRef.current?.zoomToFit(400, 40)}
-            title="Ajustar à tela"
+            title={t('connectionGraph.fitToScreen')}
           >
             <Maximize2 size={16} />
           </button>
@@ -649,7 +672,7 @@ export function ConnectionGraph() {
           <div className="graph-legend">
             <div className="graph-legend-section">
               <span className="graph-legend-title">
-                {colorMode === 'type' ? 'Tipos de entrada' : 'Projetos'}
+                {colorMode === 'type' ? t('connectionGraph.entryTypes') : t('connectionGraph.projectsLabel')}
               </span>
               {legend.nodeTypes.map(({ key, label, color }) => (
                 <div key={key} className="graph-legend-item">
@@ -659,7 +682,7 @@ export function ConnectionGraph() {
               ))}
             </div>
             <div className="graph-legend-section">
-              <span className="graph-legend-title">Tipos de conexão</span>
+              <span className="graph-legend-title">{t('connectionGraph.connectionTypes')}</span>
               {legend.linkTypes.map(({ key, color, label }) => (
                 <div key={key} className="graph-legend-item">
                   <span className="graph-legend-line" style={{ backgroundColor: color }} />
@@ -668,9 +691,9 @@ export function ConnectionGraph() {
               ))}
             </div>
             <div className="graph-legend-section">
-              <span className="graph-legend-title">Tamanho do nó</span>
+              <span className="graph-legend-title">{t('connectionGraph.nodeSize')}</span>
               <div className="graph-legend-item">
-                <span style={{ fontSize: 10 }}>Proporcional ao nº de conexões</span>
+                <span style={{ fontSize: 10 }}>{t('connectionGraph.nodeSizeHint')}</span>
               </div>
             </div>
           </div>
@@ -680,7 +703,7 @@ export function ConnectionGraph() {
         {selectedNode && (
           <div className="graph-detail-panel">
             <div className="graph-detail-header">
-              <span style={{ fontWeight: 500 }}>Detalhes da Entrada</span>
+              <span style={{ fontWeight: 500 }}>{t('connectionGraph.entryDetails')}</span>
               <button className="icon-button" onClick={() => setSelectedNode(null)}>
                 <X size={14} />
               </button>
@@ -703,7 +726,7 @@ export function ConnectionGraph() {
                 {selectedNode.fullText}
               </p>
               <div style={{ marginTop: 8, fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>
-                {selectedNode.degree} conexão(ões)
+                {t('connectionGraph.connectionCount', { count: selectedNode.degree })}
               </div>
             </div>
           </div>

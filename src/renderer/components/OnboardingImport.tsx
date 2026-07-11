@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Database, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface Props {
   onComplete: () => void
@@ -7,6 +8,7 @@ interface Props {
 }
 
 export function OnboardingImport({ onComplete, onBack }: Props) {
+  const { t } = useTranslation('common')
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = useState('')
 
@@ -22,7 +24,7 @@ export function OnboardingImport({ onComplete, onBack }: Props) {
       // If cancelled, stay on same screen (idle)
     } catch (err: any) {
       setStatus('error')
-      setErrorMessage(err?.message || 'Erro ao importar')
+      setErrorMessage(err?.message || t('onboarding.importError'))
     }
   }
 
@@ -32,13 +34,12 @@ export function OnboardingImport({ onComplete, onBack }: Props) {
         <div className="onboarding-icon onboarding-icon-success">
           <CheckCircle size={56} strokeWidth={1.5} />
         </div>
-        <h1 className="onboarding-title">Base importada!</h1>
+        <h1 className="onboarding-title">{t('onboarding.importSuccessTitle')}</h1>
         <p className="onboarding-description">
-          Seus projetos, entradas e tarefas foram restaurados com sucesso.
-          O app vai reiniciar para aplicar os dados.
+          {t('onboarding.importSuccessDescription')}
         </p>
         <button className="onboarding-btn-primary" onClick={onComplete}>
-          Reiniciar app
+          {t('onboarding.restartApp')}
         </button>
       </div>
     )
@@ -49,10 +50,9 @@ export function OnboardingImport({ onComplete, onBack }: Props) {
       <div className="onboarding-icon">
         <Database size={48} strokeWidth={1.5} />
       </div>
-      <h1 className="onboarding-title">Importar base existente</h1>
+      <h1 className="onboarding-title">{t('onboarding.importTitle')}</h1>
       <p className="onboarding-description">
-        Selecione o arquivo <code>.db</code> do SideBrain da sua outra máquina.
-        Você pode encontrá-lo na pasta de dados do app ou em um backup exportado.
+        {t('onboarding.importDescription')}
       </p>
 
       {status === 'error' && (
@@ -65,15 +65,15 @@ export function OnboardingImport({ onComplete, onBack }: Props) {
       <div className="onboarding-actions">
         <button className="onboarding-btn-secondary" onClick={onBack}>
           <ArrowLeft size={16} />
-          Voltar
+          {t('onboarding.back')}
         </button>
         <button className="onboarding-btn-primary" onClick={handleImport}>
-          Selecionar arquivo .db
+          {t('onboarding.selectDbFile')}
         </button>
       </div>
 
       <p className="onboarding-hint" style={{ marginTop: '16px' }}>
-        Dica: na outra máquina, use Configurações → Backup → Exportar para gerar o arquivo.
+        {t('onboarding.importHint')}
       </p>
     </div>
   )

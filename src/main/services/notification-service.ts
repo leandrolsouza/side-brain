@@ -3,6 +3,7 @@ import { TaskRepository } from '../database/repositories/task-repository'
 import { NotificationRepository } from '../database/repositories/notification-repository'
 import { SettingsRepository } from '../database/repositories/settings-repository'
 import type { AppNotification, NotificationType } from '../../shared/types'
+import { t, tp } from '../i18n'
 
 export class NotificationService {
   private taskRepo: TaskRepository
@@ -23,6 +24,9 @@ export class NotificationService {
 
     // Read interval from settings
     this.scheduleTaskCheck()
+
+    // Cleanup old dismissed notifications on startup
+    this.notificationRepo.cleanup(30)
 
     // Cleanup old notifications once a day
     this.cleanupInterval = setInterval(() => {
@@ -115,8 +119,8 @@ export class NotificationService {
   notifyDigestReady(): AppNotification | null {
     return this.notify({
       type: 'digest_ready',
-      title: 'Digest diário pronto',
-      body: 'Seu resumo diário está disponível. Veja o que aconteceu e o que precisa de atenção.',
+      title: t('notifications.digest_ready.title'),
+      body: t('notifications.digest_ready.body'),
       showNative: false,
     })
   }
@@ -127,8 +131,8 @@ export class NotificationService {
   notifyInsightsGenerated(count: number): AppNotification | null {
     return this.notify({
       type: 'insight_generated',
-      title: 'Novos insights disponíveis',
-      body: `${count} insight${count > 1 ? 's' : ''} proativo${count > 1 ? 's' : ''} gerado${count > 1 ? 's' : ''} para você.`,
+      title: t('notifications.insight_generated.title'),
+      body: tp('notifications.insight_generated.body', { count }),
       showNative: false,
     })
   }
@@ -139,7 +143,7 @@ export class NotificationService {
   notifyAIError(errorMessage: string): AppNotification | null {
     return this.notify({
       type: 'ai_error',
-      title: 'Erro na IA',
+      title: t('notifications.ai_error.title'),
       body: errorMessage,
       showNative: false,
     })
@@ -151,8 +155,8 @@ export class NotificationService {
   notifyMeetingReminder(meetingTitle: string): AppNotification | null {
     return this.notify({
       type: 'meeting_reminder',
-      title: 'Reunião em andamento',
-      body: `"${meetingTitle}" está ativa sem novas anotações há um tempo.`,
+      title: t('notifications.meeting_reminder.title'),
+      body: t('notifications.meeting_reminder.body', { meetingTitle }),
       metadata: { meetingTitle },
       showNative: true,
     })
@@ -203,14 +207,14 @@ export class NotificationService {
       case 'task_overdue':
       case 'task_due_today':
       case 'task_due_tomorrow':
-        return 'Tarefas'
+        return t('notifications.group_title.tasks')
       case 'meeting_reminder':
-        return 'Reuniões'
+        return t('notifications.group_title.meetings')
       case 'ai_error':
-        return 'Inteligência Artificial'
+        return t('notifications.group_title.ai')
       case 'digest_ready':
       case 'insight_generated':
-        return 'Insights'
+        return t('notifications.group_title.insights')
       default:
         return 'SideBrain'
     }
@@ -224,10 +228,10 @@ export class NotificationService {
     if (overdue.length > 0) {
       this.notify({
         type: 'task_overdue',
-        title: 'Tarefas vencidas',
+        title: t('notifications.task_overdue.title'),
         body: overdue.length === 1
-          ? `"${overdue[0].title}" está vencida!`
-          : `Você tem ${overdue.length} tarefas vencidas.`,
+          ? t('notifications.task_overdue.body_one', { count: 1, title: overdue[0].title })
+          : t('notifications.task_overdue.body_other', { count: overdue.length }),
         metadata: { count: String(overdue.length) },
         showNative: true,
       })
@@ -235,15 +239,15 @@ export class NotificationService {
 
     // Notify tasks due today
     const today = new Date().toISOString().split('T')[0]
-    const dueToday = dueThisWeek.filter((t) => t.dueDate === today)
+    const dueToday = dueThisWeek.filter((task) => task.dueDate === today)
 
     if (dueToday.length > 0) {
       this.notify({
         type: 'task_due_today',
-        title: 'Tarefas para hoje',
+        title: t('notifications.task_due_today.title'),
         body: dueToday.length === 1
-          ? `"${dueToday[0].title}" vence hoje!`
-          : `Você tem ${dueToday.length} tarefas vencendo hoje.`,
+          ? t('notifications.task_due_today.body_one', { count: 1, title: dueToday[0].title })
+          : t('notifications.task_due_today.body_other', { count: dueToday.length }),
         metadata: { count: String(dueToday.length) },
         showNative: true,
       })
@@ -253,15 +257,15 @@ export class NotificationService {
     const tomorrow = new Date()
     tomorrow.setDate(tomorrow.getDate() + 1)
     const tomorrowStr = tomorrow.toISOString().split('T')[0]
-    const dueTomorrow = dueThisWeek.filter((t) => t.dueDate === tomorrowStr)
+    const dueTomorrow = dueThisWeek.filter((task) => task.dueDate === tomorrowStr)
 
     if (dueTomorrow.length > 0 && overdue.length === 0 && dueToday.length === 0) {
       this.notify({
         type: 'task_due_tomorrow',
-        title: 'Tarefas para amanhã',
+        title: t('notifications.task_due_tomorrow.title'),
         body: dueTomorrow.length === 1
-          ? `"${dueTomorrow[0].title}" vence amanhã.`
-          : `Você tem ${dueTomorrow.length} tarefas vencendo amanhã.`,
+          ? t('notifications.task_due_tomorrow.body_one', { count: 1, title: dueTomorrow[0].title })
+          : t('notifications.task_due_tomorrow.body_other', { count: dueTomorrow.length }),
         metadata: { count: String(dueTomorrow.length) },
         showNative: false,
       })

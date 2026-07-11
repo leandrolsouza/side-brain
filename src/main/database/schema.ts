@@ -29,6 +29,10 @@ export function getDatabase(): Database.Database {
 
   initializeSchema(db)
   runMigrations(db)
+
+  // Update query planner statistics so indexes are used optimally
+  db.exec('ANALYZE')
+
   return db
 }
 
@@ -174,6 +178,66 @@ const migrations: Migration[] = [
       } catch {
         // safeStorage not available (e.g. running tests) — skip migration silently
       }
+    },
+  },
+  {
+    version: 8,
+    name: 'add_performance_indexes',
+    up: (database) => {
+      database.exec(`
+        -- Index on entries.created_at for date range queries (heatmap, timeline, filters)
+        CREATE INDEX IF NOT EXISTS idx_entries_created_at ON entries(created_at);
+
+        -- Composite index for the most common query pattern: entries by project ordered by date
+        CREATE INDEX IF NOT EXISTS idx_entries_project_created ON entries(project_id, created_at DESC);
+
+        -- Index on tasks.created_at for date range queries
+        CREATE INDEX IF NOT EXISTS idx_tasks_created_at ON tasks(created_at);
+
+        -- Composite index for tasks by project ordered by date
+        CREATE INDEX IF NOT EXISTS idx_tasks_project_created ON tasks(project_id, created_at DESC);
+
+        -- Index on meetings.created_at for date range queries
+        CREATE INDEX IF NOT EXISTS idx_meetings_created_at ON meetings(created_at);
+      `)
+    },
+  },
+  {
+    version: 9,
+    name: 'add_fts5_entries',
+    up: (database) => {
+      // Create FTS5 virtual table for full-text search on entries
+      database.exec(`
+        CREATE VIRTUAL TABLE IF NOT EXISTS entries_fts USING fts5(
+          raw_text,
+          improved_text,
+          content='entries',
+          content_rowid='rowid',
+          tokenize='unicode61'
+        );
+
+        -- Populate FTS index with existing data
+        INSERT INTO entries_fts(rowid, raw_text, improved_text)
+          SELECT rowid, raw_text, improved_text FROM entries;
+
+        -- Triggers to keep FTS in sync with entries table
+        CREATE TRIGGER IF NOT EXISTS entries_fts_insert AFTER INSERT ON entries BEGIN
+          INSERT INTO entries_fts(rowid, raw_text, improved_text)
+            VALUES (NEW.rowid, NEW.raw_text, NEW.improved_text);
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS entries_fts_delete AFTER DELETE ON entries BEGIN
+          INSERT INTO entries_fts(entries_fts, rowid, raw_text, improved_text)
+            VALUES ('delete', OLD.rowid, OLD.raw_text, OLD.improved_text);
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS entries_fts_update AFTER UPDATE ON entries BEGIN
+          INSERT INTO entries_fts(entries_fts, rowid, raw_text, improved_text)
+            VALUES ('delete', OLD.rowid, OLD.raw_text, OLD.improved_text);
+          INSERT INTO entries_fts(rowid, raw_text, improved_text)
+            VALUES (NEW.rowid, NEW.raw_text, NEW.improved_text);
+        END;
+      `)
     },
   },
 ]

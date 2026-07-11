@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Download, RefreshCw, CheckCircle, XCircle, X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface UpdateStatus {
   status: 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error'
@@ -9,6 +10,7 @@ interface UpdateStatus {
 }
 
 export function UpdateNotification() {
+  const { t } = useTranslation('common')
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null)
   const [dismissed, setDismissed] = useState(false)
 
@@ -49,12 +51,12 @@ export function UpdateNotification() {
           <div className="update-notification-content">
             <Download size={16} />
             <span>
-              Nova versão disponível: <strong>{updateStatus.info?.version}</strong>
+              {t('update.available', { version: updateStatus.info?.version })}
             </span>
           </div>
           <div className="update-notification-actions">
             <button className="update-btn update-btn-primary" onClick={handleDownload}>
-              Baixar
+              {t('update.download')}
             </button>
             <button className="update-btn update-btn-dismiss" onClick={handleDismiss}>
               <X size={14} />
@@ -67,7 +69,7 @@ export function UpdateNotification() {
         <>
           <div className="update-notification-content">
             <RefreshCw size={16} className="update-spinner" />
-            <span>Baixando atualização...</span>
+            <span>{t('update.downloading')}</span>
           </div>
           {updateStatus.progress?.percent != null && (
             <div className="update-progress-bar">
@@ -84,11 +86,11 @@ export function UpdateNotification() {
         <>
           <div className="update-notification-content">
             <CheckCircle size={16} />
-            <span>Atualização pronta para instalar</span>
+            <span>{t('update.ready')}</span>
           </div>
           <div className="update-notification-actions">
             <button className="update-btn update-btn-primary" onClick={handleInstall}>
-              Reiniciar e Atualizar
+              {t('update.install')}
             </button>
             <button className="update-btn update-btn-dismiss" onClick={handleDismiss}>
               <X size={14} />
@@ -101,7 +103,7 @@ export function UpdateNotification() {
         <>
           <div className="update-notification-content">
             <XCircle size={16} />
-            <span>Erro ao atualizar: {updateStatus.error}</span>
+            <span>{t('update.error', { error: updateStatus.error })}</span>
           </div>
           <button className="update-btn update-btn-dismiss" onClick={handleDismiss}>
             <X size={14} />

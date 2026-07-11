@@ -1,0 +1,16 @@
+{
+  "headerTitle": "Ask your history",
+  "badge": "AI",
+  "welcomeTitle": "Chat with your data",
+  "welcomeSubtitle": "Ask about decisions, tasks, blockers, or anything you've recorded.",
+  "suggestedRecentDecisions": "What did we decide recently?",
+  "suggestedBlockers": "What blockers do we have now?",
+  "suggestedWeekSummary": "Week summary",
+  "suggestedPending": "What's still pending?",
+  "suggestedOverdueTasks": "Which tasks are overdue?",
+  "inputPlaceholder": "Ask something about your work...",
+  "sendMessage": "Send message",
+  "typing": "Searching and analyzing...",
+  "sources": "Sources:",
+  "errorMessage": "Sorry, an error occurred while processing your question. Check if AI is configured in the settings."
+}

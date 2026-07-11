@@ -1,0 +1,46 @@
+{
+  "digest_ready": {
+    "title": "Digest diário pronto",
+    "body": "Seu resumo diário está disponível. Veja o que aconteceu e o que precisa de atenção."
+  },
+  "insight_generated": {
+    "title": "Novos insights disponíveis",
+    "body_one": "{{count}} insight proativo gerado para você.",
+    "body_other": "{{count}} insights proativos gerados para você."
+  },
+  "ai_error": {
+    "title": "Erro na IA",
+    "meeting_process_error": "A IA retornou uma resposta com formato inválido. Tente reprocessar."
+  },
+  "meeting_reminder": {
+    "title": "Reunião em andamento",
+    "body": "\"{{meetingTitle}}\" está ativa sem novas anotações há um tempo."
+  },
+  "task_overdue": {
+    "title": "Tarefas vencidas",
+    "body_one": "\"{{title}}\" está vencida!",
+    "body_other": "Você tem {{count}} tarefas vencidas."
+  },
+  "task_due_today": {
+    "title": "Tarefas para hoje",
+    "body_one": "\"{{title}}\" vence hoje!",
+    "body_other": "Você tem {{count}} tarefas vencendo hoje."
+  },
+  "task_due_tomorrow": {
+    "title": "Tarefas para amanhã",
+    "body_one": "\"{{title}}\" vence amanhã.",
+    "body_other": "Você tem {{count}} tarefas vencendo amanhã."
+  },
+  "group_title": {
+    "tasks": "Tarefas",
+    "meetings": "Reuniões",
+    "ai": "Inteligência Artificial",
+    "insights": "Insights"
+  },
+  "errors": {
+    "meeting_process": "Erro ao processar reunião",
+    "meeting_process_detail": "A IA retornou uma resposta com formato inválido. Tente reprocessar.",
+    "meeting_process_ai": "Erro ao processar reunião com IA",
+    "project_not_found": "Projeto não encontrado"
+  }
+}

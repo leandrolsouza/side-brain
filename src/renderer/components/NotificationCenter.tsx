@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Bell, X, Check, CheckCheck, Trash2, AlertTriangle, Clock, Calendar, Brain, MessageSquare, Sparkles, Zap } from 'lucide-react'
 import type { AppNotification, NotificationType } from '../../shared/types'
 
@@ -9,6 +10,7 @@ interface ToastNotification {
 }
 
 export function NotificationCenter() {
+  const { t } = useTranslation('common')
   const [notifications, setNotifications] = useState<AppNotification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [isOpen, setIsOpen] = useState(false)
@@ -151,17 +153,17 @@ export function NotificationCenter() {
     const diffHours = Math.floor(diffMin / 60)
     const diffDays = Math.floor(diffHours / 24)
 
-    if (diffMin < 1) return 'agora'
-    if (diffMin < 60) return `${diffMin}min atrás`
-    if (diffHours < 24) return `${diffHours}h atrás`
-    if (diffDays < 7) return `${diffDays}d atrás`
+    if (diffMin < 1) return t('timeNow')
+    if (diffMin < 60) return t('timeMinutes', { count: diffMin })
+    if (diffHours < 24) return t('timeHours', { count: diffHours })
+    if (diffDays < 7) return t('timeDays', { count: diffDays })
     return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
   }
 
   return (
     <>
       {/* Bell Button (status bar item) */}
-      <div className="status-bar-item clickable notification-bell" onClick={handleTogglePanel} title="Notificações">
+      <div className="status-bar-item clickable notification-bell" onClick={handleTogglePanel} title={t('notifications.title')}>
         <Bell size={14} />
         {unreadCount > 0 && (
           <span className="notification-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
@@ -172,13 +174,13 @@ export function NotificationCenter() {
       {isOpen && (
         <div className="notification-panel" ref={panelRef}>
           <div className="notification-panel-header">
-            <h3>Notificações</h3>
+            <h3>{t('notifications.title')}</h3>
             <div className="notification-panel-actions">
               {unreadCount > 0 && (
                 <button
                   className="notification-action-btn"
                   onClick={handleMarkAllRead}
-                  title="Marcar todas como lidas"
+                  title={t('notifications.markAllRead')}
                 >
                   <CheckCheck size={14} />
                 </button>
@@ -187,7 +189,7 @@ export function NotificationCenter() {
                 <button
                   className="notification-action-btn"
                   onClick={handleDismissAll}
-                  title="Limpar todas"
+                  title={t('notifications.clearAll')}
                 >
                   <Trash2 size={14} />
                 </button>
@@ -199,7 +201,7 @@ export function NotificationCenter() {
             {notifications.length === 0 ? (
               <div className="notification-empty">
                 <Bell size={24} strokeWidth={1.5} />
-                <p>Nenhuma notificação</p>
+                <p>{t('notifications.noNotifications')}</p>
               </div>
             ) : (
               notifications.map((notification) => (
@@ -220,7 +222,7 @@ export function NotificationCenter() {
                       <button
                         className="notification-item-btn"
                         onClick={() => handleMarkRead(notification.id)}
-                        title="Marcar como lida"
+                        title={t('notifications.markRead')}
                       >
                         <Check size={12} />
                       </button>
@@ -228,7 +230,7 @@ export function NotificationCenter() {
                     <button
                       className="notification-item-btn"
                       onClick={() => handleDismiss(notification.id)}
-                      title="Dispensar"
+                      title={t('notifications.dismiss')}
                     >
                       <X size={12} />
                     </button>

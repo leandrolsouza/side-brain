@@ -1,6 +1,6 @@
 import { v4 as uuid } from 'uuid'
 import { getDatabase } from '../schema'
-import { Task, TaskStatus } from '../../../shared/types'
+import { Task, TaskStatus, PaginatedResult, PaginationParams } from '../../../shared/types'
 
 export class TaskRepository {
   getAll(projectId?: string): Task[] {
@@ -20,6 +20,44 @@ export class TaskRepository {
 
     query += ' ORDER BY created_at DESC'
     return db.prepare(query).all() as Task[]
+  }
+
+  getPaginated(params: PaginationParams & { projectId?: string; status?: TaskStatus }): PaginatedResult<Task> {
+    const db = getDatabase()
+    const { page, pageSize, projectId, status } = params
+    const offset = (page - 1) * pageSize
+
+    const conditions: string[] = []
+    const queryParams: any[] = []
+
+    if (projectId) {
+      conditions.push('project_id = ?')
+      queryParams.push(projectId)
+    }
+    if (status) {
+      conditions.push('status = ?')
+      queryParams.push(status)
+    }
+
+    const whereClause = conditions.length > 0 ? ' WHERE ' + conditions.join(' AND ') : ''
+
+    const { total } = db.prepare(`SELECT COUNT(*) as total FROM tasks${whereClause}`).get(...queryParams) as { total: number }
+
+    const data = db.prepare(`
+      SELECT id, project_id as projectId, title, description, status, assignee, due_date as dueDate,
+             source_entry_id as sourceEntryId, created_at as createdAt, updated_at as updatedAt
+      FROM tasks${whereClause}
+      ORDER BY created_at DESC
+      LIMIT ? OFFSET ?
+    `).all(...queryParams, pageSize, offset) as Task[]
+
+    return {
+      data,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    }
   }
 
   getByProject(projectId: string): Task[] {

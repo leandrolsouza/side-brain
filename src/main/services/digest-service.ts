@@ -4,6 +4,7 @@ import { TaskRepository } from '../database/repositories/task-repository'
 import { ProjectRepository } from '../database/repositories/project-repository'
 import { SettingsRepository } from '../database/repositories/settings-repository'
 import { AIService } from './ai-service'
+import { t } from '../i18n'
 
 export class DigestService {
   constructor(
@@ -45,18 +46,18 @@ export class DigestService {
 
   private getGreeting(now: Date): string {
     const hour = now.getHours()
-    if (hour < 12) return 'Bom dia! ☀️'
-    if (hour < 18) return 'Boa tarde! 🌤️'
-    return 'Boa noite! 🌙'
+    if (hour < 12) return t('prompts.digest.greeting_morning')
+    if (hour < 18) return t('prompts.digest.greeting_afternoon')
+    return t('prompts.digest.greeting_evening')
   }
 
   private categorizeTasks(allTasks: Task[]): DailyDigestData['tasksNeedingAttention'] {
-    const activeTasks = allTasks.filter((t) => t.status !== 'done')
+    const activeTasks = allTasks.filter((task) => task.status !== 'done')
 
     return {
-      overdue: activeTasks.filter((t) => t.status === 'todo'),
-      inProgress: activeTasks.filter((t) => t.status === 'in_progress'),
-      waiting: activeTasks.filter((t) => t.status === 'waiting'),
+      overdue: activeTasks.filter((task) => task.status === 'todo'),
+      inProgress: activeTasks.filter((task) => task.status === 'in_progress'),
+      waiting: activeTasks.filter((task) => task.status === 'waiting'),
     }
   }
 
@@ -73,13 +74,13 @@ export class DigestService {
     )
 
     // Tasks completed yesterday (updatedAt within yesterday and status = done)
-    const tasksCompleted = allTasks.filter((t) =>
-      t.status === 'done' && t.updatedAt >= yesterdayStart && t.updatedAt <= yesterdayEnd
+    const tasksCompleted = allTasks.filter((task) =>
+      task.status === 'done' && task.updatedAt >= yesterdayStart && task.updatedAt <= yesterdayEnd
     )
 
     // Tasks created yesterday
-    const tasksCreated = allTasks.filter((t) =>
-      t.createdAt >= yesterdayStart && t.createdAt <= yesterdayEnd
+    const tasksCreated = allTasks.filter((task) =>
+      task.createdAt >= yesterdayStart && task.createdAt <= yesterdayEnd
     )
 
     return { entriesCreated, tasksCompleted, tasksCreated }
@@ -92,7 +93,7 @@ export class DigestService {
     const settings = this.settingsRepo.get()
 
     if (!settings.bedrockApiKey) {
-      return 'Configure sua API Key nas configurações para receber sugestões personalizadas.'
+      return t('prompts.digest.no_api_key')
     }
 
     const projects = this.projectRepo.getAll()
@@ -100,7 +101,7 @@ export class DigestService {
 
     const pendingTasksText = [...tasksNeedingAttention.inProgress, ...tasksNeedingAttention.overdue, ...tasksNeedingAttention.waiting]
       .slice(0, 15)
-      .map((t) => `[${t.status}] ${t.title} (Projeto: ${projectMap.get(t.projectId) || 'Desconhecido'})`)
+      .map((task) => `[${task.status}] ${task.title} (Projeto: ${projectMap.get(task.projectId) || t('prompts.digest.unknown_project')})`)
       .join('\n')
 
     const yesterdayText = yesterdayActivity.entriesCreated
@@ -108,18 +109,14 @@ export class DigestService {
       .map((e) => `[${e.type}] ${e.improvedText}`)
       .join('\n')
 
-    const systemPrompt = `Você é um assistente pessoal de produtividade. Baseado nas tasks pendentes e na atividade de ontem, sugira em 2-3 frases o que a pessoa deveria focar hoje. Seja direto, motivacional e prático. Responda em português.`
+    const systemPrompt = t('prompts.digest.focus_system')
 
-    const userMessage = `Tasks pendentes:
-${pendingTasksText || '(nenhuma task pendente)'}
-
-Atividade de ontem:
-${yesterdayText || '(nenhuma atividade ontem)'}
-
-Tasks completadas ontem: ${yesterdayActivity.tasksCompleted.length}
-Tasks criadas ontem: ${yesterdayActivity.tasksCreated.length}
-
-Sugira o foco para hoje em 2-3 frases.`
+    const userMessage = t('prompts.digest.focus_user', {
+      pendingTasksText: pendingTasksText || t('prompts.digest.no_pending_tasks'),
+      yesterdayText: yesterdayText || t('prompts.digest.no_activity'),
+      completedCount: yesterdayActivity.tasksCompleted.length,
+      createdCount: yesterdayActivity.tasksCreated.length,
+    })
 
     return this.aiService.invokeConversePublic(systemPrompt, userMessage, settings)
   }

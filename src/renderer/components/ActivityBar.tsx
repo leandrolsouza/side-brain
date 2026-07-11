@@ -1,5 +1,6 @@
 import React from 'react'
 import { LayoutDashboard, PenLine, FolderOpen, Video, Settings, Sun, Moon, BarChart3, Info, MessageCircle, SlidersHorizontal, Network } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import type { View, Theme } from '../App'
 
 interface ActivityBarProps {
@@ -10,17 +11,19 @@ interface ActivityBarProps {
   onAboutClick: () => void
 }
 
-const activityItems: { view: View; icon: React.ReactNode; tooltip: string }[] = [
-  { view: 'dashboard', icon: <LayoutDashboard size={24} />, tooltip: 'Visão Geral (Ctrl+1)' },
-  { view: 'capture', icon: <PenLine size={24} />, tooltip: 'Captura Rápida (Ctrl+2)' },
-  { view: 'projects', icon: <FolderOpen size={24} />, tooltip: 'Projetos (Ctrl+3)' },
-  { view: 'meeting', icon: <Video size={24} />, tooltip: 'Nova Reunião (Ctrl+4)' },
-  { view: 'reports', icon: <BarChart3 size={24} />, tooltip: 'Métricas & Relatórios (Ctrl+5)' },
-  { view: 'smart-chat', icon: <MessageCircle size={24} />, tooltip: 'Chat Inteligente (Ctrl+6)' },
-  { view: 'connection-graph', icon: <Network size={24} />, tooltip: 'Mapa de Conexões (Ctrl+7)' },
-]
-
 export function ActivityBar({ currentView, onViewChange, theme, onThemeChange, onAboutClick }: ActivityBarProps) {
+  const { t } = useTranslation('common')
+
+  const activityItems: { view: View; icon: React.ReactNode; tooltip: string }[] = [
+    { view: 'dashboard', icon: <LayoutDashboard size={24} />, tooltip: t('activityBar.dashboard') },
+    { view: 'capture', icon: <PenLine size={24} />, tooltip: t('activityBar.capture') },
+    { view: 'projects', icon: <FolderOpen size={24} />, tooltip: t('activityBar.projects') },
+    { view: 'meeting', icon: <Video size={24} />, tooltip: t('activityBar.meeting') },
+    { view: 'reports', icon: <BarChart3 size={24} />, tooltip: t('activityBar.reports') },
+    { view: 'smart-chat', icon: <MessageCircle size={24} />, tooltip: t('activityBar.smartChat') },
+    { view: 'connection-graph', icon: <Network size={24} />, tooltip: t('activityBar.connectionGraph') },
+  ]
+
   const isActive = (view: View) =>
     currentView === view || (view === 'projects' && currentView === 'entries')
 
@@ -41,28 +44,28 @@ export function ActivityBar({ currentView, onViewChange, theme, onThemeChange, o
         <div
           className="activity-bar-item"
           onClick={() => onThemeChange(theme === 'dark' ? 'light' : 'dark')}
-          title={theme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
+          title={theme === 'dark' ? t('activityBar.lightTheme') : t('activityBar.darkTheme')}
         >
           {theme === 'dark' ? <Sun size={22} /> : <Moon size={22} />}
         </div>
         <div
           className="activity-bar-item"
           onClick={onAboutClick}
-          title="Sobre o SideBrain"
+          title={t('activityBar.about')}
         >
           <Info size={22} />
         </div>
         <div
           className={`activity-bar-item ${currentView === 'custom-fields' ? 'active' : ''}`}
           onClick={() => onViewChange('custom-fields')}
-          title="Campos Personalizados"
+          title={t('activityBar.customFields')}
         >
           <SlidersHorizontal size={22} />
         </div>
         <div
           className={`activity-bar-item ${currentView === 'settings' ? 'active' : ''}`}
           onClick={() => onViewChange('settings')}
-          title="Configurações"
+          title={t('activityBar.settings')}
         >
           <Settings size={24} />
         </div>

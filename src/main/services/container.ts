@@ -22,6 +22,7 @@ import { MeetingService } from './meeting-service'
 import { ReportsService } from './reports-service'
 import { ExportService } from './export-service'
 import { BackupService } from './backup-service'
+import { setLocale } from '../i18n'
 
 export interface AppContainer {
   // Repositories
@@ -63,6 +64,10 @@ export function getContainer(): AppContainer {
   const notificationRepo = new NotificationRepository()
   const customFieldsRepo = new CustomFieldsRepository()
   const connectionRepo = new ConnectionRepository()
+
+  // Initialize main process i18n from persisted settings
+  const settings = settingsRepo.get()
+  setLocale(settings.language)
 
   // AI layer
   const aiProvider = new AIProvider(aiUsageRepo, settingsRepo)

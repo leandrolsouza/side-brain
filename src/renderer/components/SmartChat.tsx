@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Send, Bot, User, Loader2, MessageCircle, FileText, CheckSquare, Sparkles } from 'lucide-react'
 import { MarkdownViewer } from './MarkdownViewer'
 
@@ -10,20 +11,21 @@ interface ChatMessage {
   createdAt: string
 }
 
-const SUGGESTED_QUESTIONS = [
-  'O que decidimos recentemente?',
-  'Quais bloqueios temos agora?',
-  'Resumo da semana',
-  'O que ficou pendente?',
-  'Quais tarefas estão atrasadas?',
-]
-
 export function SmartChat() {
+  const { t } = useTranslation('chat')
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  const SUGGESTED_QUESTIONS = [
+    t('suggestedRecentDecisions'),
+    t('suggestedBlockers'),
+    t('suggestedWeekSummary'),
+    t('suggestedPending'),
+    t('suggestedOverdueTasks'),
+  ]
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -55,7 +57,7 @@ export function SmartChat() {
       const errorMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: 'Desculpe, ocorreu um erro ao processar sua pergunta. Verifique se a IA está configurada nas configurações.',
+        content: t('errorMessage'),
         createdAt: new Date().toISOString(),
       }
       setMessages((prev) => [...prev, errorMessage])
@@ -83,8 +85,8 @@ export function SmartChat() {
     <div className="smart-chat">
       <div className="smart-chat-header">
         <MessageCircle size={16} />
-        <span>Pergunte ao seu histórico</span>
-        <span className="smart-chat-badge">IA</span>
+        <span>{t('headerTitle')}</span>
+        <span className="smart-chat-badge">{t('badge')}</span>
       </div>
 
       <div className="smart-chat-messages">
@@ -93,8 +95,8 @@ export function SmartChat() {
             <div className="smart-chat-welcome-icon">
               <Sparkles size={32} />
             </div>
-            <h3>Converse com seus dados</h3>
-            <p>Pergunte sobre decisões, tarefas, bloqueios ou qualquer coisa que você registrou.</p>
+            <h3>{t('welcomeTitle')}</h3>
+            <p>{t('welcomeSubtitle')}</p>
             <div className="smart-chat-suggestions">
               {SUGGESTED_QUESTIONS.map((q) => (
                 <button
@@ -122,7 +124,7 @@ export function SmartChat() {
               )}
               {msg.sources && msg.sources.length > 0 && (
                 <div className="smart-chat-sources">
-                  <span className="smart-chat-sources-label">Fontes:</span>
+                  <span className="smart-chat-sources-label">{t('sources')}</span>
                   {msg.sources.map((source, i) => (
                     <span key={i} className="smart-chat-source-chip">
                       {getSourceIcon(source.type)}
@@ -146,7 +148,7 @@ export function SmartChat() {
             <div className="smart-chat-message-content">
               <div className="smart-chat-typing">
                 <Loader2 size={14} className="spinning" />
-                <span>Pesquisando e analisando...</span>
+                <span>{t('typing')}</span>
               </div>
             </div>
           </div>
@@ -162,7 +164,7 @@ export function SmartChat() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Pergunte algo sobre seu trabalho..."
+          placeholder={t('inputPlaceholder')}
           rows={1}
           disabled={isLoading}
         />
@@ -170,7 +172,7 @@ export function SmartChat() {
           className="smart-chat-send"
           onClick={() => handleSend()}
           disabled={!input.trim() || isLoading}
-          aria-label="Enviar mensagem"
+          aria-label={t('sendMessage')}
         >
           <Send size={16} />
         </button>

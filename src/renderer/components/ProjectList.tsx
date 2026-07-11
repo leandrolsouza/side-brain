@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { FolderOpen, Plus, Sparkles, Pencil, Check, X, Archive, ArchiveRestore, Eye, EyeOff } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface Project {
   id: string
@@ -16,6 +17,7 @@ interface ProjectListProps {
 }
 
 export function ProjectList({ onSelectProject, onProjectsChanged }: ProjectListProps) {
+  const { t } = useTranslation('projects')
   const [projects, setProjects] = useState<Project[]>([])
   const [newProjectName, setNewProjectName] = useState('')
   const [isCreating, setIsCreating] = useState(false)
@@ -101,22 +103,22 @@ export function ProjectList({ onSelectProject, onProjectsChanged }: ProjectListP
   return (
     <div className="flex-col">
       <div className="panel-header">
-        <span className="panel-title">Projetos</span>
+        <span className="panel-title">{t('title')}</span>
         <div className="flex-row">
           <button
             className={`vscode-button secondary`}
             onClick={() => setShowInactive(!showInactive)}
-            title={showInactive ? 'Ocultar arquivados' : 'Mostrar arquivados'}
+            title={showInactive ? t('hideArchived') : t('showArchived')}
           >
             {showInactive ? <EyeOff size={14} /> : <Eye size={14} />}
-            {showInactive ? 'Ocultar arquivados' : 'Ver arquivados'}
+            {showInactive ? t('hideArchived') : t('showArchived')}
           </button>
           <button
             className="vscode-button secondary"
             onClick={() => setShowCreateInput(!showCreateInput)}
           >
             <Plus size={14} />
-            Novo Projeto
+            {t('newProject')}
           </button>
         </div>
       </div>
@@ -128,7 +130,7 @@ export function ProjectList({ onSelectProject, onProjectsChanged }: ProjectListP
             className="vscode-input"
             value={newProjectName}
             onChange={(e) => setNewProjectName(e.target.value)}
-            placeholder="Nome do projeto..."
+            placeholder={t('projectNamePlaceholder')}
             onKeyDown={(e) => e.key === 'Enter' && handleCreateProject()}
             autoFocus
           />
@@ -137,13 +139,13 @@ export function ProjectList({ onSelectProject, onProjectsChanged }: ProjectListP
             onClick={handleCreateProject}
             disabled={isCreating || !newProjectName.trim()}
           >
-            Criar
+            {t('common:create')}
           </button>
           <button
             className="vscode-button secondary"
             onClick={() => { setShowCreateInput(false); setNewProjectName('') }}
           >
-            Cancelar
+            {t('common:cancel')}
           </button>
         </div>
       )}
@@ -152,7 +154,7 @@ export function ProjectList({ onSelectProject, onProjectsChanged }: ProjectListP
         <div className="empty-state">
           <FolderOpen size={48} className="empty-state-icon" />
           <span className="empty-state-text">
-            Nenhum projeto ainda. Crie um acima ou comece a digitar entradas — a IA vai sugerir projetos automaticamente.
+            {t('emptyState')}
           </span>
         </div>
       ) : (
@@ -186,14 +188,14 @@ export function ProjectList({ onSelectProject, onProjectsChanged }: ProjectListP
                       <button
                         className="icon-button"
                         onClick={(e) => { e.stopPropagation(); saveEditing() }}
-                        title="Salvar"
+                        title={t('common:save')}
                       >
                         <Check size={14} style={{ color: 'var(--vscode-testing-iconPassed)' }} />
                       </button>
                       <button
                         className="icon-button"
                         onClick={(e) => { e.stopPropagation(); cancelEditing() }}
-                        title="Cancelar"
+                        title={t('common:cancel')}
                       >
                         <X size={14} style={{ color: 'var(--vscode-errorForeground)' }} />
                       </button>
@@ -204,26 +206,26 @@ export function ProjectList({ onSelectProject, onProjectsChanged }: ProjectListP
                       {!project.active && (
                         <span className="vscode-badge" style={{ opacity: 0.8 }}>
                           <Archive size={10} style={{ display: 'inline', marginRight: 2 }} />
-                          arquivado
+                          {t('archived')}
                         </span>
                       )}
                       {project.isAutoSuggested && (
                         <span className="vscode-badge warning">
                           <Sparkles size={10} style={{ display: 'inline', marginRight: 2 }} />
-                          sugerido
+                          {t('suggested')}
                         </span>
                       )}
                       <button
                         className="icon-button"
                         onClick={(e) => handleToggleActive(e, project)}
-                        title={project.active ? 'Arquivar projeto' : 'Reativar projeto'}
+                        title={project.active ? t('archiveProject') : t('reactivateProject')}
                       >
                         {project.active ? <Archive size={14} /> : <ArchiveRestore size={14} />}
                       </button>
                       <button
                         className="icon-button"
                         onClick={(e) => startEditing(e, project)}
-                        title="Renomear projeto"
+                        title={t('renameProject')}
                       >
                         <Pencil size={14} />
                       </button>

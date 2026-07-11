@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import { ArrowLeft, Sparkles, X, Trash2, Link2, Search, Plus, ArrowUpDown } from 'lucide-react'
+import { ArrowLeft, Sparkles, X, Trash2, Link2, Search, Plus, ArrowUpDown, ChevronDown } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { ConfirmModal } from './ConfirmModal'
 import { MarkdownViewer } from './MarkdownViewer'
 import { CONNECTION_TYPE_LABELS, ConnectionType, ConnectedEntry } from '../../shared/types'
@@ -17,13 +18,19 @@ interface Entry {
 type SortField = 'date' | 'type' | 'action'
 type SortDirection = 'asc' | 'desc'
 
+const PAGE_SIZE = 50
+
 interface EntryListProps {
   projectId: string
   onBack: () => void
 }
 
 export function EntryList({ projectId, onBack }: EntryListProps) {
+  const { t, i18n } = useTranslation('projects')
   const [entries, setEntries] = useState<Entry[]>([])
+  const [totalEntries, setTotalEntries] = useState(0)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [summary, setSummary] = useState<string | null>(null)
   const [isLoadingSummary, setIsLoadingSummary] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
@@ -65,9 +72,34 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
   }
 
   const loadEntries = async () => {
-    const data = await window.electronAPI.getEntries(projectId)
-    setEntries(data)
+    const result = await window.electronAPI.getEntriesPaginated({
+      page: 1,
+      pageSize: PAGE_SIZE,
+      projectId,
+    })
+    setEntries(result.data)
+    setTotalEntries(result.total)
+    setCurrentPage(1)
   }
+
+  const loadMoreEntries = async () => {
+    setIsLoadingMore(true)
+    try {
+      const nextPage = currentPage + 1
+      const result = await window.electronAPI.getEntriesPaginated({
+        page: nextPage,
+        pageSize: PAGE_SIZE,
+        projectId,
+      })
+      setEntries(prev => [...prev, ...result.data])
+      setCurrentPage(nextPage)
+      setTotalEntries(result.total)
+    } finally {
+      setIsLoadingMore(false)
+    }
+  }
+
+  const hasMoreEntries = entries.length < totalEntries
 
   // Filtered and sorted entries
   const filteredEntries = useMemo(() => {
@@ -216,12 +248,12 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
           <button
             className="inline-action-btn"
             onClick={onBack}
-            title="Voltar aos projetos"
+            title={t('entryList.backToProjects')}
             style={{ opacity: 1 }}
           >
             <ArrowLeft size={16} />
           </button>
-          <span className="panel-title">Entradas do Projeto</span>
+          <span className="panel-title">{t('entryList.title')}</span>
         </div>
         <button
           className="vscode-button"
@@ -229,7 +261,7 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
           disabled={isLoadingSummary}
         >
           <Sparkles size={14} />
-          {isLoadingSummary ? 'Gerando...' : 'Me atualiza'}
+          {isLoadingSummary ? t('entryList.generatingSummary') : t('entryList.generateSummary')}
         </button>
       </div>
 
@@ -241,7 +273,7 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
             <input
               type="text"
               className="vscode-input"
-              placeholder="Pesquisar entradas..."
+              placeholder={t('entryList.searchPlaceholder')}
               value={filterQuery}
               onChange={(e) => setFilterQuery(e.target.value)}
               style={{ paddingLeft: 28, width: '100%' }}
@@ -261,28 +293,33 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
             <button
               className={`entry-sort-btn ${sortField === 'date' ? 'active' : ''}`}
               onClick={() => handleSortChange('date')}
-              title="Ordenar por data"
+              title={t('entryList.sortByDate')}
             >
-              Data {sortField === 'date' && (sortDirection === 'desc' ? '↓' : '↑')}
+              {t('entryList.sortDate')} {sortField === 'date' && (sortDirection === 'desc' ? '↓' : '↑')}
             </button>
             <button
               className={`entry-sort-btn ${sortField === 'type' ? 'active' : ''}`}
               onClick={() => handleSortChange('type')}
-              title="Ordenar por tipo"
+              title={t('entryList.sortByType')}
             >
-              Tipo {sortField === 'type' && (sortDirection === 'desc' ? '↓' : '↑')}
+              {t('entryList.sortType')} {sortField === 'type' && (sortDirection === 'desc' ? '↓' : '↑')}
             </button>
             <button
               className={`entry-sort-btn ${sortField === 'action' ? 'active' : ''}`}
               onClick={() => handleSortChange('action')}
-              title="Ordenar por status"
+              title={t('entryList.sortByStatus')}
             >
-              Status {sortField === 'action' && (sortDirection === 'desc' ? '↓' : '↑')}
+              {t('entryList.sortStatus')} {sortField === 'action' && (sortDirection === 'desc' ? '↓' : '↑')}
             </button>
           </div>
           {filterQuery && (
             <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>
-              {filteredEntries.length} de {entries.length} entradas
+              {t('entryList.resultsCount', { filtered: filteredEntries.length, total: totalEntries })}
+            </span>
+          )}
+          {!filterQuery && totalEntries > 0 && (
+            <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>
+              {t('entryList.loadedCount', { loaded: entries.length, total: totalEntries })}
             </span>
           )}
         </div>
@@ -293,7 +330,7 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
           <div className="summary-modal" onClick={(e) => e.stopPropagation()}>
             <div className="summary-modal-header">
               <Sparkles size={16} />
-              <span>Resumo do Projeto</span>
+              <span>{t('entryList.summaryTitle')}</span>
               <button className="icon-button" onClick={() => setSummary(null)}>
                 <X size={16} />
               </button>
@@ -308,13 +345,13 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
       {entries.length === 0 ? (
         <div className="empty-state">
           <span className="empty-state-text">
-            Nenhuma entrada neste projeto ainda.
+            {t('entryList.emptyState')}
           </span>
         </div>
       ) : filteredEntries.length === 0 ? (
         <div className="empty-state">
           <span className="empty-state-text">
-            Nenhuma entrada encontrada para "{filterQuery}".
+            {t('entryList.noResults', { query: filterQuery })}
           </span>
         </div>
       ) : (
@@ -328,7 +365,7 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
                       {typeLabels[entry.type] || entry.type}
                     </span>
                     <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>
-                      {new Date(entry.createdAt).toLocaleString('pt-BR')}
+                      {new Date(entry.createdAt).toLocaleString(i18n.language)}
                     </span>
                   </div>
                   <div className="flex-row">
@@ -347,7 +384,7 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
                     <button
                       className="inline-action-btn"
                       onClick={() => openConnectModal(entry.id)}
-                      title="Conectar a outra entrada"
+                      title={t('entryList.connectTooltip')}
                       style={{ opacity: 0.6 }}
                     >
                       <Link2 size={14} />
@@ -355,7 +392,7 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
                     <button
                       className="inline-action-btn"
                       onClick={() => handleDelete(entry.id)}
-                      title="Excluir entrada"
+                      title={t('entryList.deleteTooltip')}
                       style={{ opacity: 0.6, color: 'var(--vscode-errorForeground)' }}
                     >
                       <Trash2 size={14} />
@@ -367,7 +404,7 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
                 </div>
                 {entry.rawText !== entry.improvedText && (
                   <div style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', marginTop: 6, fontStyle: 'italic' }}>
-                    Original: {entry.rawText}
+                    {t('entryList.original')} {entry.rawText}
                   </div>
                 )}
 
@@ -379,14 +416,14 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
                     style={{ fontSize: 11, opacity: 0.8, display: 'flex', alignItems: 'center', gap: 4 }}
                   >
                     <Link2 size={12} />
-                    {expandedConnections.has(entry.id) ? 'Ocultar conexões' : 'Ver conexões'}
+                    {expandedConnections.has(entry.id) ? t('entryList.hideConnections') : t('entryList.showConnections')}
                   </button>
 
                   {expandedConnections.has(entry.id) && connectionsMap[entry.id] && (
                     <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                       {connectionsMap[entry.id].length === 0 ? (
                         <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>
-                          Nenhuma conexão ainda.
+                          {t('entryList.noConnections')}
                         </span>
                       ) : (
                         connectionsMap[entry.id].map((conn) => (
@@ -406,7 +443,7 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
                             <button
                               className="connection-chip-remove"
                               onClick={() => handleDeleteConnection(conn.connection.id, entry.id)}
-                              title="Remover conexão"
+                              title={t('entryList.removeConnection')}
                             >
                               <X size={10} />
                             </button>
@@ -418,6 +455,22 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
                 </div>
               </div>
             ))}
+
+            {/* Load More button */}
+            {hasMoreEntries && !filterQuery && (
+              <button
+                className="vscode-button"
+                onClick={loadMoreEntries}
+                disabled={isLoadingMore}
+                style={{ alignSelf: 'center', marginTop: 8, marginBottom: 8 }}
+              >
+                <ChevronDown size={14} />
+                {isLoadingMore
+                  ? t('entryList.loadingMore')
+                  : t('entryList.loadMore', { remaining: totalEntries - entries.length })
+                }
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -428,7 +481,7 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
           <div className="summary-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 500 }}>
             <div className="summary-modal-header">
               <Link2 size={16} />
-              <span>Conectar Entrada</span>
+              <span>{t('entryList.connectEntry')}</span>
               <button className="icon-button" onClick={closeConnectModal}>
                 <X size={16} />
               </button>
@@ -436,7 +489,7 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
             <div className="summary-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {/* Connection type selector */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <label style={{ fontSize: 12, color: 'var(--vscode-descriptionForeground)' }}>Tipo:</label>
+                <label style={{ fontSize: 12, color: 'var(--vscode-descriptionForeground)' }}>{t('entryList.connectionType')}</label>
                 <select
                   className="vscode-select"
                   value={selectedConnectionType}
@@ -455,7 +508,7 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
                 <input
                   type="text"
                   className="vscode-input"
-                  placeholder="Buscar entradas para conectar..."
+                  placeholder={t('entryList.searchConnections')}
                   value={searchQuery}
                   onChange={(e) => handleSearchConnections(e.target.value)}
                   autoFocus
@@ -466,10 +519,10 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
               {/* Search results */}
               <div style={{ maxHeight: 300, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {isSearching && (
-                  <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>Buscando...</span>
+                  <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>{t('entryList.searching')}</span>
                 )}
                 {!isSearching && searchQuery.length >= 2 && searchResults.length === 0 && (
-                  <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>Nenhuma entrada encontrada.</span>
+                  <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>{t('entryList.noEntriesFound')}</span>
                 )}
                 {searchResults.map((result) => (
                   <div
@@ -486,7 +539,7 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
                       </span>
                     </div>
                     <span style={{ fontSize: 10, color: 'var(--vscode-descriptionForeground)' }}>
-                      {new Date(result.createdAt).toLocaleDateString('pt-BR')}
+                      {new Date(result.createdAt).toLocaleDateString(i18n.language)}
                     </span>
                   </div>
                 ))}
@@ -498,8 +551,8 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
 
       <ConfirmModal
         isOpen={deleteTarget !== null}
-        title="Excluir entrada"
-        message="Tem certeza que deseja excluir esta entrada? Esta ação não pode ser desfeita."
+        title={t('entryList.deleteTitle')}
+        message={t('entryList.deleteMessage')}
         confirmLabel="Excluir"
         cancelLabel="Cancelar"
         variant="danger"

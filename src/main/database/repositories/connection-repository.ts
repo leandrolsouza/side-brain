@@ -141,8 +141,10 @@ export class ConnectionRepository {
     dateFrom?: string
     minConnections?: number
     connectionType?: string
-  }): { entries: Entry[]; connections: EntryConnection[] } {
+    maxConnections?: number
+  }): { entries: Entry[]; connections: EntryConnection[]; truncated: boolean } {
     const db = getDatabase()
+    const maxConnections = filters?.maxConnections ?? 500
 
     // Build dynamic conditions for connections
     const connConditions: string[] = []
@@ -182,7 +184,7 @@ export class ConnectionRepository {
       const matchingIds = new Set(matchingEntries.map(e => e.id))
 
       if (matchingIds.size === 0) {
-        return { entries: [], connections: [] }
+        return { entries: [], connections: [], truncated: false }
       }
 
       // Get all connections where AT LEAST ONE side is in the matching set
@@ -193,7 +195,8 @@ export class ConnectionRepository {
         FROM entry_connections c
         ${connWhereClause}
         ORDER BY c.created_at DESC
-      `).all(...connParams).map((row: any) => ({
+        LIMIT ?
+      `).all(...connParams, maxConnections).map((row: any) => ({
         ...row,
         isAiSuggested: Boolean(row.isAiSuggested),
         description: row.description || undefined,
@@ -212,7 +215,7 @@ export class ConnectionRepository {
       }
 
       if (neededIds.size === 0) {
-        return { entries: [], connections: [] }
+        return { entries: [], connections: [], truncated: false }
       }
 
       // Fetch all needed entries
@@ -228,13 +231,13 @@ export class ConnectionRepository {
 
       // Apply minConnections filter
       if (filters?.minConnections && filters.minConnections > 1) {
-        return this.applyMinConnections(entries, filteredConnections, filters.minConnections)
+        return this.applyMinConnections(entries, filteredConnections, filters.minConnections, allConnections.length >= maxConnections)
       }
 
-      return { entries, connections: filteredConnections }
+      return { entries, connections: filteredConnections, truncated: allConnections.length >= maxConnections }
     }
 
-    // No project/date filter — get all connections
+    // No project/date filter — get all connections (capped)
     const connections = db.prepare(`
       SELECT c.id, c.source_entry_id as sourceEntryId, c.target_entry_id as targetEntryId,
              c.connection_type as connectionType, c.description, c.is_ai_suggested as isAiSuggested,
@@ -242,7 +245,8 @@ export class ConnectionRepository {
       FROM entry_connections c
       ${connWhereClause}
       ORDER BY c.created_at DESC
-    `).all(...connParams).map((row: any) => ({
+      LIMIT ?
+    `).all(...connParams, maxConnections).map((row: any) => ({
       ...row,
       isAiSuggested: Boolean(row.isAiSuggested),
       description: row.description || undefined,
@@ -256,7 +260,7 @@ export class ConnectionRepository {
     }
 
     if (entryIdsInConnections.size === 0) {
-      return { entries: [], connections: [] }
+      return { entries: [], connections: [], truncated: false }
     }
 
     // Get all entries that participate in connections
@@ -272,17 +276,18 @@ export class ConnectionRepository {
 
     // Apply minConnections filter
     if (filters?.minConnections && filters.minConnections > 1) {
-      return this.applyMinConnections(entries, connections, filters.minConnections)
+      return this.applyMinConnections(entries, connections, filters.minConnections, connections.length >= maxConnections)
     }
 
-    return { entries, connections }
+    return { entries, connections, truncated: connections.length >= maxConnections }
   }
 
   private applyMinConnections(
     entries: Entry[],
     connections: EntryConnection[],
-    minConnections: number
-  ): { entries: Entry[]; connections: EntryConnection[] } {
+    minConnections: number,
+    truncated: boolean = false
+  ): { entries: Entry[]; connections: EntryConnection[]; truncated: boolean } {
     const degreeMap = new Map<string, number>()
     for (const conn of connections) {
       degreeMap.set(conn.sourceEntryId, (degreeMap.get(conn.sourceEntryId) || 0) + 1)
@@ -295,6 +300,6 @@ export class ConnectionRepository {
       validIds.has(c.sourceEntryId) && validIds.has(c.targetEntryId)
     )
 
-    return { entries: filteredEntries, connections: filteredConnections }
+    return { entries: filteredEntries, connections: filteredConnections, truncated }
   }
 }

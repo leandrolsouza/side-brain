@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { ChevronDown, FolderOpen, PenLine, Video, Sparkles } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import type { View } from '../App'
 
 interface Project {
@@ -35,6 +36,7 @@ function getProjectColor(index: number): string {
 }
 
 export function Sidebar({ currentView, onViewChange, onProjectSelect, refreshKey }: SidebarProps) {
+  const { t } = useTranslation('common')
   const [projects, setProjects] = useState<Project[]>([])
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     projects: true,
@@ -59,12 +61,12 @@ export function Sidebar({ currentView, onViewChange, onProjectSelect, refreshKey
 
   const getSidebarTitle = (): string => {
     switch (currentView) {
-      case 'dashboard': return 'Dashboard'
-      case 'capture': return 'Captura'
+      case 'dashboard': return t('sidebar.dashboard')
+      case 'capture': return t('sidebar.capture')
       case 'projects':
-      case 'entries': return 'Explorer'
-      case 'meeting': return 'Reunião'
-      case 'settings': return 'Configurações'
+      case 'entries': return t('sidebar.explorer')
+      case 'meeting': return t('sidebar.meeting')
+      case 'settings': return t('sidebar.settings')
     }
   }
 
@@ -85,7 +87,7 @@ export function Sidebar({ currentView, onViewChange, onProjectSelect, refreshKey
               size={16}
               className={`chevron ${!expandedSections.quickActions ? 'collapsed' : ''}`}
             />
-            Ações Rápidas
+            {t('sidebar.quickActions')}
           </div>
           {expandedSections.quickActions && (
             <div className="sidebar-section-body">
@@ -94,14 +96,14 @@ export function Sidebar({ currentView, onViewChange, onProjectSelect, refreshKey
                 onClick={() => onViewChange('capture')}
               >
                 <PenLine size={16} className="tree-item-icon" />
-                <span className="tree-item-label">Nova Captura</span>
+                <span className="tree-item-label">{t('sidebar.newCapture')}</span>
               </div>
               <div
                 className={`tree-item ${currentView === 'meeting' ? 'selected' : ''}`}
                 onClick={() => onViewChange('meeting')}
               >
                 <Video size={16} className="tree-item-icon" />
-                <span className="tree-item-label">Nova Reunião</span>
+                <span className="tree-item-label">{t('sidebar.newMeeting')}</span>
               </div>
             </div>
           )}
@@ -117,7 +119,7 @@ export function Sidebar({ currentView, onViewChange, onProjectSelect, refreshKey
               size={16}
               className={`chevron ${!expandedSections.projects ? 'collapsed' : ''}`}
             />
-            Projetos
+            {t('sidebar.projects')}
           </div>
           {expandedSections.projects && (
             <div className="sidebar-section-body">
@@ -137,7 +139,7 @@ export function Sidebar({ currentView, onViewChange, onProjectSelect, refreshKey
               ))}
               {projects.length === 0 && (
                 <div className="tree-item" style={{ color: 'var(--vscode-descriptionForeground)' }}>
-                  <span className="tree-item-label">Nenhum projeto</span>
+                  <span className="tree-item-label">{t('sidebar.noProjects')}</span>
                 </div>
               )}
             </div>

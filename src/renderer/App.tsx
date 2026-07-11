@@ -1,4 +1,8 @@
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { I18nextProvider } from 'react-i18next'
+import i18n from 'i18next'
+import { isValidLocale } from './i18n'
 import { ToastProvider } from './components/ToastContext'
 import { ToastContainer } from './components/ToastContainer'
 import { AppProvider, useApp } from './components/AppContext'
@@ -49,6 +53,7 @@ const FONT_FAMILY_STACKS: Record<string, string> = {
 }
 
 function AppContent() {
+  const { t } = useTranslation('common')
   const { state, dispatch, navigateToProject, navigateToMeeting, refreshProjects } = useApp()
   const { currentView, selectedProjectId, selectedProjectName, meetingProjectId, projectInitialTab, projectsRefreshKey, isSearchOpen, showDigest, showAbout, activeModelLabel, aiStatus, theme } = state
   const [appVersion, setAppVersion] = useState<string>('')
@@ -202,17 +207,17 @@ function AppContent() {
 
   const getTabTitle = (): string => {
     switch (currentView) {
-      case 'dashboard': return 'Visão Geral'
-      case 'capture': return 'Captura Rápida'
-      case 'projects': return 'Projetos'
-      case 'entries': return selectedProjectName || 'Entradas'
-      case 'meeting': return 'Reunião'
-      case 'settings': return 'Configurações'
-      case 'reports': return 'Métricas & Relatórios'
-      case 'smart-chat': return 'Chat Inteligente'
-      case 'error-center': return 'Central de Erros'
-      case 'custom-fields': return 'Campos Personalizados'
-      case 'connection-graph': return 'Mapa de Conexões'
+      case 'dashboard': return t('tabs.dashboard')
+      case 'capture': return t('tabs.capture')
+      case 'projects': return t('tabs.projects')
+      case 'entries': return selectedProjectName || t('tabs.entries')
+      case 'meeting': return t('tabs.meeting')
+      case 'settings': return t('tabs.settings')
+      case 'reports': return t('tabs.reports')
+      case 'smart-chat': return t('tabs.smartChat')
+      case 'error-center': return t('tabs.errorCenter')
+      case 'custom-fields': return t('tabs.customFields')
+      case 'connection-graph': return t('tabs.connectionGraph')
     }
   }
 
@@ -324,12 +329,12 @@ function AppContent() {
           <StatusBarErrorIndicator onClick={() => dispatch({ type: 'SET_VIEW', view: 'error-center' })} />
           <NotificationCenter />
           <UpdateNotification />
-          <div className="status-bar-item ai-status-indicator" title={aiStatus === 'processing' ? 'IA processando...' : aiStatus === 'error' ? 'Erro na IA' : 'IA conectada'}>
+          <div className="status-bar-item ai-status-indicator" title={aiStatus === 'processing' ? t('statusBar.aiProcessing') : aiStatus === 'error' ? t('statusBar.aiError') : t('statusBar.aiConnected')}>
             <span className={`ai-status-dot ${aiStatus}`} />
-            <span>{aiStatus === 'processing' ? 'IA processando...' : 'AI: ' + activeModelLabel}</span>
+            <span>{aiStatus === 'processing' ? t('statusBar.aiProcessing') : 'AI: ' + activeModelLabel}</span>
             {aiStatus === 'processing' && <span className="ai-status-progress" />}
           </div>
-          <div className="status-bar-item clickable" onClick={() => dispatch({ type: 'SET_VIEW', view: 'settings' })} title="Clique para alterar o provedor de IA">
+          <div className="status-bar-item clickable" onClick={() => dispatch({ type: 'SET_VIEW', view: 'settings' })} title={t('statusBar.changeProvider')}>
             <span>⚙</span>
           </div>
         </div>
@@ -339,12 +344,32 @@ function AppContent() {
 }
 
 export function App() {
+  // Handle invalid locale fallback: if i18n ended up on pt-BR because
+  // the stored value was invalid, persist pt-BR back to the database
+  useEffect(() => {
+    async function handleInvalidLocaleFallback() {
+      try {
+        const settings = await window.electronAPI.getSettings()
+        const storedLanguage = settings?.language
+        // If a language was stored but it's not valid, overwrite with pt-BR
+        if (storedLanguage && !isValidLocale(storedLanguage)) {
+          await window.electronAPI.updateSettings({ language: 'pt-BR' })
+        }
+      } catch {
+        // Ignore errors — fallback is already applied by initI18n
+      }
+    }
+    handleInvalidLocaleFallback()
+  }, [])
+
   return (
-    <ToastProvider>
-      <AppProvider>
-        <AppContent />
-      </AppProvider>
-      <ToastContainer />
-    </ToastProvider>
+    <I18nextProvider i18n={i18n}>
+      <ToastProvider>
+        <AppProvider>
+          <AppContent />
+        </AppProvider>
+        <ToastContainer />
+      </ToastProvider>
+    </I18nextProvider>
   )
 }

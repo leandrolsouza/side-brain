@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { FileText, Clock, Users, Trash2, ChevronDown, ChevronRight, RefreshCw, Sparkles, AlertTriangle } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { MarkdownViewer } from './MarkdownViewer'
 
 interface Meeting {
@@ -21,6 +22,7 @@ interface MeetingHistoryProps {
 }
 
 export function MeetingHistory({ projectId }: MeetingHistoryProps) {
+  const { t, i18n } = useTranslation('meetings')
   const [meetings, setMeetings] = useState<Meeting[]>([])
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [processingId, setProcessingId] = useState<string | null>(null)
@@ -50,14 +52,14 @@ export function MeetingHistory({ projectId }: MeetingHistoryProps) {
       if (result) {
         await loadMeetings()
       } else {
-        setReprocessError('A IA não retornou resultado. Tente novamente.')
+        setReprocessError(t('meetingHistory.errorNoResult'))
       }
     } catch (error: any) {
       console.error('Failed to reprocess meeting:', error)
       setReprocessError(
         error?.message?.includes('invalid JSON')
-          ? 'A IA retornou formato inválido. Tente novamente.'
-          : error?.message || 'Erro ao reprocessar reunião.'
+          ? t('meetingHistory.errorInvalidJson')
+          : error?.message || t('meetingHistory.errorGeneric')
       )
     } finally {
       setProcessingId(null)
@@ -70,7 +72,7 @@ export function MeetingHistory({ projectId }: MeetingHistoryProps) {
 
   const formatDate = (dateStr: string): string => {
     const date = new Date(dateStr)
-    return date.toLocaleDateString('pt-BR', {
+    return date.toLocaleDateString(i18n.language, {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -80,7 +82,7 @@ export function MeetingHistory({ projectId }: MeetingHistoryProps) {
   }
 
   const formatDuration = (startedAt: string, endedAt: string | null): string => {
-    if (!endedAt) return 'Em andamento'
+    if (!endedAt) return t('meetingHistory.inProgress')
     const start = new Date(startedAt).getTime()
     const end = new Date(endedAt).getTime()
     const diffMin = Math.round((end - start) / 60000)
@@ -92,9 +94,9 @@ export function MeetingHistory({ projectId }: MeetingHistoryProps) {
 
   const getStatusLabel = (status: string): { text: string; variant: string } => {
     switch (status) {
-      case 'active': return { text: 'Em andamento', variant: 'warning' }
-      case 'ended': return { text: 'Aguardando processamento', variant: 'info' }
-      case 'processed': return { text: 'Processada', variant: 'success' }
+      case 'active': return { text: t('meetingHistory.statusActive'), variant: 'warning' }
+      case 'ended': return { text: t('meetingHistory.statusEnded'), variant: 'info' }
+      case 'processed': return { text: t('meetingHistory.statusProcessed'), variant: 'success' }
       default: return { text: status, variant: 'neutral' }
     }
   }
@@ -103,8 +105,8 @@ export function MeetingHistory({ projectId }: MeetingHistoryProps) {
     return (
       <div className="meeting-history-empty">
         <FileText size={32} />
-        <span>Nenhuma reunião registrada neste projeto.</span>
-        <span className="meeting-hint">Use o modo "Nova Reunião" para capturar e gerar atas automaticamente.</span>
+        <span>{t('meetingHistory.emptyState')}</span>
+        <span className="meeting-hint">{t('meetingHistory.emptyHint')}</span>
       </div>
     )
   }
@@ -141,11 +143,11 @@ export function MeetingHistory({ projectId }: MeetingHistoryProps) {
                   <span>
                     <Clock size={10} />
                     {meeting.meetingDate
-                      ? new Date(meeting.meetingDate + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                      ? new Date(meeting.meetingDate + 'T12:00:00').toLocaleDateString(i18n.language, { day: '2-digit', month: '2-digit', year: 'numeric' })
                       : formatDate(meeting.startedAt)}
                   </span>
                   <span>
-                    Duração: {formatDuration(meeting.startedAt, meeting.endedAt)}
+                    {t('meetingHistory.duration')} {formatDuration(meeting.startedAt, meeting.endedAt)}
                   </span>
                   {meeting.participants.length > 0 && (
                     <span>
@@ -154,7 +156,7 @@ export function MeetingHistory({ projectId }: MeetingHistoryProps) {
                     </span>
                   )}
                   <span>
-                    {meeting.rawNotes.length} notas
+                    {meeting.rawNotes.length} {t('meetingHistory.notes')}
                   </span>
                 </div>
               </div>
@@ -165,20 +167,20 @@ export function MeetingHistory({ projectId }: MeetingHistoryProps) {
                     className="vscode-button secondary"
                     onClick={(e) => handleReprocess(e, meeting.id)}
                     disabled={processingId === meeting.id}
-                    title="Reprocessar reunião"
+                    title={t('meetingHistory.reprocessTooltip')}
                     style={{ fontSize: 11, padding: '3px 10px' }}
                   >
                     {processingId === meeting.id ? (
-                      <><Sparkles size={12} className="spinning" /> Processando...</>
+                      <><Sparkles size={12} className="spinning" /> {t('meetingHistory.processing')}</>
                     ) : (
-                      <><RefreshCw size={12} /> Reprocessar</>
+                      <><RefreshCw size={12} /> {t('meetingHistory.reprocess')}</>
                     )}
                   </button>
                 )}
                 <button
                   className="icon-button"
                   onClick={(e) => handleDelete(e, meeting.id)}
-                  title="Excluir reunião"
+                  title={t('meetingHistory.deleteTooltip')}
                 >
                   <Trash2 size={14} />
                 </button>
@@ -192,7 +194,7 @@ export function MeetingHistory({ projectId }: MeetingHistoryProps) {
                   <div className="meeting-minutes">
                     <div className="meeting-minutes-header">
                       <FileText size={14} />
-                      <span>Ata</span>
+                      <span>{t('meetingHistory.minutes')}</span>
                     </div>
                     <div className="meeting-minutes-content">
                       <MarkdownViewer content={meeting.generatedMinutes} />
@@ -203,7 +205,7 @@ export function MeetingHistory({ projectId }: MeetingHistoryProps) {
                 {/* Raw notes */}
                 {meeting.rawNotes.length > 0 && (
                   <div className="meeting-review-section">
-                    <h4>Notas capturadas</h4>
+                    <h4>{t('meetingHistory.capturedNotes')}</h4>
                     <div className="meeting-notes-list compact">
                       {meeting.rawNotes.map((note, i) => (
                         <div key={i} className="meeting-note-item">
@@ -218,7 +220,7 @@ export function MeetingHistory({ projectId }: MeetingHistoryProps) {
                 {/* Pasted transcription preview */}
                 {meeting.pastedTranscription && (
                   <div className="meeting-review-section">
-                    <h4>Transcrição colada</h4>
+                    <h4>{t('meetingHistory.pastedTranscription')}</h4>
                     <div className="meeting-transcription-preview">
                       {meeting.pastedTranscription.slice(0, 500)}
                       {meeting.pastedTranscription.length > 500 && '...'}

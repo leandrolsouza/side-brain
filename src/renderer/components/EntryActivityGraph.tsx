@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Flame } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface ActivityDay {
   date: string
@@ -27,9 +28,8 @@ const CELL_SIZE = 11
 const CELL_GAP = 2
 const COL_WIDTH = CELL_SIZE + CELL_GAP // 13px per column
 
-function getMonthLabels(startDate: Date, totalDays: number): { label: string; leftPx: number }[] {
+function getMonthLabels(startDate: Date, totalDays: number, locale: string): { label: string; leftPx: number }[] {
   const labels: { label: string; leftPx: number }[] = []
-  const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
   let lastMonth = -1
 
   for (let i = 0; i < totalDays; i++) {
@@ -38,7 +38,8 @@ function getMonthLabels(startDate: Date, totalDays: number): { label: string; le
     const month = d.getMonth()
     if (month !== lastMonth) {
       const col = Math.floor(i / 7)
-      labels.push({ label: months[month], leftPx: col * COL_WIDTH })
+      const label = d.toLocaleDateString(locale, { month: 'short' })
+      labels.push({ label, leftPx: col * COL_WIDTH })
       lastMonth = month
     }
   }
@@ -85,7 +86,21 @@ function getLongestStreak(dayMap: Map<string, number>, startDate: Date, totalDay
   return longest
 }
 
+function getDayLabels(locale: string): string[] {
+  const baseDate = new Date(2024, 0, 7) // A known Sunday
+  const labels: string[] = []
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(baseDate)
+    d.setDate(baseDate.getDate() + i)
+    const label = d.toLocaleDateString(locale, { weekday: 'short' })
+    // Only show labels for odd rows (Sun, Tue, Thu, Sat) to avoid crowding
+    labels.push(i % 2 === 0 ? label : '')
+  }
+  return labels
+}
+
 export function EntryActivityGraph() {
+  const { t, i18n } = useTranslation('dashboard')
   const [activityData, setActivityData] = useState<ActivityDay[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [tooltipData, setTooltipData] = useState<{ date: string; count: number; x: number; y: number } | null>(null)
@@ -144,9 +159,10 @@ export function EntryActivityGraph() {
     return { grid, startDate, totalDays, dayMap, totalEntries }
   }, [activityData])
 
-  const monthLabels = useMemo(() => getMonthLabels(startDate, totalDays), [startDate, totalDays])
+  const monthLabels = useMemo(() => getMonthLabels(startDate, totalDays, i18n.language), [startDate, totalDays, i18n.language])
   const currentStreak = useMemo(() => getCurrentStreak(dayMap), [dayMap])
   const longestStreak = useMemo(() => getLongestStreak(dayMap, startDate, totalDays), [dayMap, startDate, totalDays])
+  const dayLabels = useMemo(() => getDayLabels(i18n.language), [i18n.language])
 
   const handleCellHover = (e: React.MouseEvent, date: string, count: number) => {
     if (!date) return
@@ -169,7 +185,7 @@ export function EntryActivityGraph() {
 
   const formatTooltipDate = (dateStr: string): string => {
     const d = new Date(dateStr + 'T00:00:00')
-    return d.toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })
+    return d.toLocaleDateString(i18n.language, { weekday: 'short', day: 'numeric', month: 'short' })
   }
 
   if (isLoading) {
@@ -177,35 +193,33 @@ export function EntryActivityGraph() {
       <div className="dashboard-card">
         <h3 className="dashboard-card-title">
           <Flame size={14} />
-          Atividade de Registros
+          {t('activityGraph.title')}
         </h3>
-        <div className="activity-graph-loading">Carregando...</div>
+        <div className="activity-graph-loading">{t('common:loading')}</div>
       </div>
     )
   }
-
-  const dayLabels = ['Dom', '', 'Ter', '', 'Qui', '', 'Sáb']
 
   return (
     <div className="dashboard-card">
       <h3 className="dashboard-card-title">
         <Flame size={14} />
-        Atividade de Registros
+        {t('activityGraph.title')}
       </h3>
 
       {/* Stats row */}
       <div className="activity-graph-stats">
         <div className="activity-stat">
           <span className="activity-stat-value">{totalEntries}</span>
-          <span className="activity-stat-label">registros ({WEEKS} semanas)</span>
+          <span className="activity-stat-label">{t('activityGraph.totalEntries', { weeks: WEEKS })}</span>
         </div>
         <div className="activity-stat">
           <span className="activity-stat-value">{currentStreak}</span>
-          <span className="activity-stat-label">dias seguidos</span>
+          <span className="activity-stat-label">{t('activityGraph.currentStreak')}</span>
         </div>
         <div className="activity-stat">
           <span className="activity-stat-value">{longestStreak}</span>
-          <span className="activity-stat-label">maior sequência</span>
+          <span className="activity-stat-label">{t('activityGraph.longestStreak')}</span>
         </div>
       </div>
 
@@ -253,7 +267,7 @@ export function EntryActivityGraph() {
                 className="activity-graph-tooltip"
                 style={{ left: tooltipData.x, top: tooltipData.y }}
               >
-                <strong>{tooltipData.count} {tooltipData.count === 1 ? 'registro' : 'registros'}</strong>
+                <strong>{t('activityGraph.tooltip', { count: tooltipData.count })}</strong>
                 <span>{formatTooltipDate(tooltipData.date)}</span>
               </div>
             )}
@@ -263,13 +277,13 @@ export function EntryActivityGraph() {
 
       {/* Legend */}
       <div className="activity-graph-legend">
-        <span className="activity-graph-legend-label">Menos</span>
+        <span className="activity-graph-legend-label">{t('activityGraph.less')}</span>
         <div className="activity-graph-cell level-0" />
         <div className="activity-graph-cell level-1" />
         <div className="activity-graph-cell level-2" />
         <div className="activity-graph-cell level-3" />
         <div className="activity-graph-cell level-4" />
-        <span className="activity-graph-legend-label">Mais</span>
+        <span className="activity-graph-legend-label">{t('activityGraph.more')}</span>
       </div>
     </div>
   )

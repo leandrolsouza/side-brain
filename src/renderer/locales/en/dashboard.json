@@ -1,0 +1,78 @@
+{
+  "greeting": {
+    "morning": "Good morning",
+    "afternoon": "Good afternoon",
+    "evening": "Good evening"
+  },
+  "summary": {
+    "pendingTasks_one": "{{count}} pending task",
+    "pendingTasks_other": "{{count}} pending tasks",
+    "overdue_one": "{{count}} overdue",
+    "overdue_other": "{{count}} overdue",
+    "toReview": "{{count}} to review",
+    "allCaughtUp": "All caught up!"
+  },
+  "actions": {
+    "generating": "Generating...",
+    "updateMe": "Update me"
+  },
+  "kpi": {
+    "pending": "Pending",
+    "inProgress": "In Progress",
+    "completedThisWeek": "Completed this week",
+    "entriesThisWeek": "Entries this week",
+    "completionRate": "Completion rate"
+  },
+  "globalSummary": {
+    "title": "General Summary"
+  },
+  "deadlines": {
+    "title": "This Week's Deadlines",
+    "overdue": "Overdue",
+    "today": "Today"
+  },
+  "pendingTasks": {
+    "title": "Pending Tasks",
+    "empty": "No pending tasks",
+    "todo": "To Do",
+    "inProgress": "In Progress",
+    "waiting": "Waiting"
+  },
+  "yesterday": {
+    "title": "Yesterday",
+    "empty": "No activity yesterday",
+    "tasksCompleted_one": "{{count}} task completed",
+    "tasksCompleted_other": "{{count}} tasks completed",
+    "entries_one": "{{count}} entry",
+    "entries_other": "{{count}} entries"
+  },
+  "review": {
+    "title": "Items to Review",
+    "waiting_one": "{{count}} entry waiting",
+    "waiting_other": "{{count}} entries waiting",
+    "reviewSuffix": "review",
+    "hint": "AI has categorized new entries. Review to confirm or correct."
+  },
+  "focus": {
+    "title": "Today's Focus",
+    "empty": "Nothing urgent for today",
+    "overdue": "Overdue",
+    "today": "Today"
+  },
+  "insights": {
+    "title": "AI Suggestions",
+    "refresh": "Refresh suggestions now",
+    "analyzing": "Analyzing patterns...",
+    "empty": "No suggestions at the moment"
+  },
+  "activityGraph": {
+    "title": "Entry Activity",
+    "totalEntries": "entries ({{weeks}} weeks)",
+    "currentStreak": "day streak",
+    "longestStreak": "longest streak",
+    "tooltip_one": "{{count}} entry",
+    "tooltip_other": "{{count}} entries",
+    "less": "Less",
+    "more": "More"
+  }
+}

@@ -7,6 +7,7 @@ import {
   Bookmark, Coffee, FileText, Globe, Home, Key, Link, Lock,
   Mail, Map, Phone, Search, Settings, Smile, Target, Truck, Wifi
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { CaptureTemplate, EntryPreviewResult, CustomEntryType, CustomActionStatus } from '@shared/types'
 import { CustomSelect } from './CustomSelect'
 import { useToast } from './ToastContext'
@@ -34,6 +35,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ size?: number }>> = {
 }
 
 export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
+  const { t } = useTranslation('capture')
   const { addToast } = useToast()
 
   // Input state
@@ -266,7 +268,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
       onProjectsChanged?.()
       await loadProjects()
 
-      addToast('Registrado com sucesso!', 'success')
+      addToast(t('confirm_success'), 'success')
     } catch (error) {
       console.error('Failed to confirm entry:', error)
     } finally {
@@ -312,9 +314,9 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
         <div className="capture-hero-icon">
           <PenLine size={24} />
         </div>
-        <h2 className="capture-hero-title">Captura Rápida</h2>
+        <h2 className="capture-hero-title">{t('hero_title')}</h2>
         <p className="capture-hero-subtitle">
-          Digite o que aconteceu. A IA organiza, categoriza e sugere ações.
+          {t('hero_subtitle')}
         </p>
       </div>
 
@@ -322,7 +324,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
       <div className="capture-main-card">
         {/* Templates */}
         <div className="capture-templates">
-          <span className="capture-templates-label">Templates:</span>
+          <span className="capture-templates-label">{t('templates_label')}</span>
           <div className="capture-templates-list">
             {captureTemplates.map((template) => {
               const Icon = ICON_MAP[template.icon]
@@ -352,7 +354,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
             onKeyDown={handleKeyDown}
             placeholder={activeTemplate
               ? `${activeTemplate.prefix}${activeTemplate.placeholder}`
-              : 'Ex: João falou que o prazo do projeto X mudou pra semana que vem...'}
+              : t('placeholder_default')}
             disabled={!isIdle}
             rows={5}
             autoFocus
@@ -360,7 +362,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
           {isListening && (
             <div className="capture-listening-indicator">
               <span className="capture-listening-dot" />
-              <span>Ouvindo...</span>
+              <span>{t('listening')}</span>
             </div>
           )}
         </div>
@@ -370,7 +372,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
           <div className="capture-project-select">
             <CustomSelect
               options={[
-                { value: '', label: '🤖 IA identifica o projeto' },
+                { value: '', label: t('project_auto') },
                 ...projects.map((p) => ({ value: p.id, label: p.name }))
               ]}
               value={selectedProjectId}
@@ -385,7 +387,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
                 className={`capture-action-btn ${isListening ? 'recording' : ''}`}
                 onClick={toggleVoiceInput}
                 disabled={!isIdle}
-                title={isListening ? 'Parar gravação' : 'Entrada por voz'}
+                title={isListening ? t('voice_stop') : t('voice_start')}
               >
                 {isListening ? <MicOff size={16} /> : <Mic size={16} />}
               </button>
@@ -399,12 +401,12 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
               {isProcessing ? (
                 <>
                   <Sparkles size={14} className="spin" />
-                  <span>Analisando...</span>
+                  <span>{t('send_analyzing')}</span>
                 </>
               ) : (
                 <>
                   <Send size={14} />
-                  <span>Enviar</span>
+                  <span>{t('send_button')}</span>
                 </>
               )}
             </button>
@@ -414,9 +416,9 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
 
       {/* Keyboard hints */}
       <div className="capture-hints">
-        <span><kbd>Enter</kbd> enviar</span>
-        <span><kbd>Shift+Enter</kbd> nova linha</span>
-        <span><kbd>Ctrl+N</kbd> foco aqui</span>
+        <span><kbd>Enter</kbd> {t('hint_enter')}</span>
+        <span><kbd>Shift+Enter</kbd> {t('hint_shift_enter')}</span>
+        <span><kbd>Ctrl+N</kbd> {t('hint_ctrl_n')}</span>
       </div>
 
       {/* Preview Card */}
@@ -424,8 +426,8 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
         <div className="capture-preview-card">
           <div className="capture-preview-header">
             <Sparkles size={14} />
-            <span>Prévia da IA</span>
-            <button className="capture-preview-close" onClick={handleCancel} title="Cancelar">
+            <span>{t('preview_header')}</span>
+            <button className="capture-preview-close" onClick={handleCancel} title={t('preview_cancel_title')}>
               <X size={14} />
             </button>
           </div>
@@ -434,7 +436,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
           <div className="capture-preview-section">
             <label className="capture-preview-label">
               <Edit3 size={12} />
-              Texto melhorado:
+              {t('preview_improved_label')}
             </label>
             <textarea
               className="vscode-textarea capture-preview-textarea"
@@ -444,7 +446,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
             />
             {editedImprovedText !== preview.rawText && (
               <div className="capture-preview-original">
-                <span className="capture-preview-original-label">Original:</span>
+                <span className="capture-preview-original-label">{t('preview_original_label')}</span>
                 <span className="capture-preview-original-text">{preview.rawText}</span>
               </div>
             )}
@@ -452,14 +454,14 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
 
           {/* Project selection in preview */}
           <div className="capture-preview-section">
-            <label className="capture-preview-label">Projeto:</label>
+            <label className="capture-preview-label">{t('preview_project_label')}</label>
             <div className="capture-preview-project">
               {!isCreatingProject ? (
                 <CustomSelect
                   options={[
-                    { value: '', label: 'Selecionar projeto...' },
+                    { value: '', label: t('preview_project_select') },
                     ...projects.map((p) => ({ value: p.id, label: p.name })),
-                    { value: '__new__', label: '+ Criar novo projeto' }
+                    { value: '__new__', label: t('preview_project_new') }
                   ]}
                   value={editedProjectId}
                   onChange={(val) => {
@@ -480,7 +482,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
                     className="vscode-input"
                     value={newProjectName}
                     onChange={(e) => setNewProjectName(e.target.value)}
-                    placeholder="Nome do novo projeto"
+                    placeholder={t('preview_project_name_placeholder')}
                     autoFocus
                   />
                   <button
@@ -492,7 +494,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
                         setEditedProjectId(preview.project.id)
                       }
                     }}
-                    title="Cancelar criação"
+                    title={t('preview_project_cancel_title')}
                   >
                     <X size={12} />
                   </button>
@@ -501,7 +503,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
               {preview.project.suggestedName && !isCreatingProject && !editedProjectId && (
                 <div className="capture-preview-suggestion">
                   <Sparkles size={12} />
-                  <span>Sugestão da IA: </span>
+                  <span>{t('preview_project_suggestion')}</span>
                   <button
                     className="capture-preview-suggestion-btn"
                     onClick={() => {
@@ -509,7 +511,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
                       setNewProjectName(preview.project.suggestedName || '')
                     }}
                   >
-                    Criar "{preview.project.suggestedName}"
+                    {t('preview_project_create', { name: preview.project.suggestedName })}
                   </button>
                 </div>
               )}
@@ -519,7 +521,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
           {/* Type and Action badges */}
           <div className="capture-preview-section capture-preview-row">
             <div className="capture-preview-field">
-              <label className="capture-preview-label">Tipo:</label>
+              <label className="capture-preview-label">{t('preview_type_label')}</label>
               <CustomSelect
                 options={Object.entries(TYPE_LABELS).map(([value, label]) => ({ value, label }))}
                 value={editedType}
@@ -528,7 +530,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
               />
             </div>
             <div className="capture-preview-field">
-              <label className="capture-preview-label">Ação:</label>
+              <label className="capture-preview-label">{t('preview_action_label')}</label>
               <CustomSelect
                 options={Object.entries(ACTION_LABELS).map(([value, label]) => ({ value, label }))}
                 value={editedAction}
@@ -547,7 +549,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
                   checked={includeSuggestedTask}
                   onChange={(e) => setIncludeSuggestedTask(e.target.checked)}
                 />
-                Criar tarefa sugerida:
+                {t('preview_task_label')}
               </label>
               <div className={`capture-preview-task ${!includeSuggestedTask ? 'disabled' : ''}`}>
                 <strong>{preview.suggestedTask.title}</strong>
@@ -573,18 +575,18 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
               disabled={captureState === 'confirming' || (!editedProjectId && !isCreatingProject) || (isCreatingProject && !newProjectName.trim())}
             >
               <CheckCircle2 size={14} />
-              {captureState === 'confirming' ? 'Salvando...' : 'Confirmar'}
+              {captureState === 'confirming' ? t('preview_confirming') : t('preview_confirm')}
             </button>
             <button
               className="vscode-button secondary"
               onClick={handleCancel}
               disabled={captureState === 'confirming'}
             >
-              Voltar e editar
+              {t('preview_back')}
             </button>
             {!editedProjectId && !isCreatingProject && (
               <span className="capture-preview-warning">
-                Selecione um projeto para confirmar
+                {t('preview_warning_project')}
               </span>
             )}
           </div>

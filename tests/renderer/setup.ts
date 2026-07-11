@@ -1,5 +1,9 @@
 import '@testing-library/jest-dom'
 import { vi } from 'vitest'
+import { initI18n } from '../../src/renderer/i18n'
+
+// Initialize i18n for tests with pt-BR locale
+initI18n('pt-BR')
 
 /**
  * Mock global window.electronAPI used by all renderer components.
@@ -112,7 +116,7 @@ const mockElectronAPI = {
   getConnectionsByEntry: vi.fn().mockResolvedValue([]),
   deleteConnection: vi.fn().mockResolvedValue({ success: true }),
   searchEntriesForConnection: vi.fn().mockResolvedValue([]),
-  getConnectionGraphData: vi.fn().mockResolvedValue({ entries: [], connections: [] }),
+  getConnectionGraphData: vi.fn().mockResolvedValue({ entries: [], connections: [], truncated: false }),
   discoverConnections: vi.fn().mockResolvedValue({ created: 0, suggestions: [] }),
 
   // Reports

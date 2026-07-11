@@ -4,6 +4,7 @@ import {
   Users, Zap, DollarSign, RefreshCw, PieChart, Activity, Target,
   AlertTriangle,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { AIUsageDashboard } from './AIUsageDashboard'
 import type {
   ReportsData, ReportPeriod, EntryType, ActivityTimelinePoint,
@@ -11,15 +12,6 @@ import type {
 } from '../../shared/types'
 
 type ReportsTab = 'productivity' | 'ai-usage'
-
-const ENTRY_TYPE_LABELS: Record<EntryType, string> = {
-  information: 'Informação',
-  decision: 'Decisão',
-  demand: 'Demanda',
-  idea: 'Ideia',
-  blocker: 'Bloqueio',
-  update: 'Atualização',
-}
 
 const ENTRY_TYPE_COLORS: Record<EntryType, string> = {
   information: 'var(--chart-blue)',
@@ -37,6 +29,7 @@ function formatNumber(n: number): string {
 }
 
 export function Reports() {
+  const { t } = useTranslation('reports')
   const [activeTab, setActiveTab] = useState<ReportsTab>('productivity')
   const [period, setPeriod] = useState<ReportPeriod>('30d')
   const [data, setData] = useState<ReportsData | null>(null)
@@ -48,7 +41,7 @@ export function Reports() {
       const result = await window.electronAPI.getReportsData(period)
       setData(result)
     } catch (err) {
-      console.error('Erro ao carregar relatórios:', err)
+      console.error(t('loadError'), err)
     } finally {
       setLoading(false)
     }
@@ -64,21 +57,21 @@ export function Reports() {
     <div className="reports-page">
       {/* Header */}
       <div className="reports-header">
-        <h2><BarChart3 size={20} /> Métricas & Relatórios</h2>
+        <h2><BarChart3 size={20} /> {t('title')}</h2>
         <div className="reports-tabs">
           <button
             className={`reports-tab ${activeTab === 'productivity' ? 'active' : ''}`}
             onClick={() => setActiveTab('productivity')}
           >
             <TrendingUp size={14} />
-            Produtividade
+            {t('tabProductivity')}
           </button>
           <button
             className={`reports-tab ${activeTab === 'ai-usage' ? 'active' : ''}`}
             onClick={() => setActiveTab('ai-usage')}
           >
             <Zap size={14} />
-            Uso da IA
+            {t('tabAiUsage')}
           </button>
         </div>
       </div>
@@ -96,17 +89,17 @@ export function Reports() {
                   className={`period-btn ${period === p ? 'active' : ''}`}
                   onClick={() => setPeriod(p)}
                 >
-                  {p === '7d' ? '7 dias' : p === '30d' ? '30 dias' : p === '90d' ? '90 dias' : 'Tudo'}
+                  {p === '7d' ? t('period7d') : p === '30d' ? t('period30d') : p === '90d' ? t('period90d') : t('periodAll')}
                 </button>
               ))}
             </div>
-            <button className="btn-icon" onClick={loadData} title="Atualizar">
+            <button className="btn-icon" onClick={loadData} title={t('refresh')}>
               <RefreshCw size={16} />
             </button>
           </div>
 
           {loading ? (
-            <div className="reports-loading">Carregando métricas...</div>
+            <div className="reports-loading">{t('loadingMetrics')}</div>
           ) : data ? (
             <div className="reports-content">
               {/* Overview Cards */}
@@ -140,8 +133,8 @@ export function Reports() {
           ) : (
             <div className="reports-empty">
               <BarChart3 size={48} />
-              <p>Nenhum dado disponível ainda.</p>
-              <p className="reports-empty-hint">As métricas aparecerão conforme você usar o app.</p>
+              <p>{t('emptyTitle')}</p>
+              <p className="reports-empty-hint">{t('emptyHint')}</p>
             </div>
           )}
         </>
@@ -152,48 +145,49 @@ export function Reports() {
 
 /* ===== Overview Cards ===== */
 function OverviewCards({ overview }: { overview: ReportsData['overview'] }) {
+  const { t } = useTranslation('reports')
   return (
     <div className="reports-overview-cards">
       <div className="reports-card">
         <div className="reports-card-icon"><Activity size={20} /></div>
         <div className="reports-card-content">
           <span className="reports-card-value">{formatNumber(overview.totalEntries)}</span>
-          <span className="reports-card-label">Entradas</span>
+          <span className="reports-card-label">{t('entries')}</span>
         </div>
       </div>
       <div className="reports-card">
         <div className="reports-card-icon"><CheckCircle2 size={20} /></div>
         <div className="reports-card-content">
           <span className="reports-card-value">{overview.tasksCompleted}/{overview.totalTasks}</span>
-          <span className="reports-card-label">Tarefas Concluídas</span>
+          <span className="reports-card-label">{t('tasksCompleted')}</span>
         </div>
       </div>
       <div className="reports-card">
         <div className="reports-card-icon"><Target size={20} /></div>
         <div className="reports-card-content">
           <span className="reports-card-value">{overview.completionRate}%</span>
-          <span className="reports-card-label">Taxa de Conclusão</span>
+          <span className="reports-card-label">{t('completionRate')}</span>
         </div>
       </div>
       <div className="reports-card">
         <div className="reports-card-icon"><FolderOpen size={20} /></div>
         <div className="reports-card-content">
           <span className="reports-card-value">{overview.activeProjects}/{overview.totalProjects}</span>
-          <span className="reports-card-label">Projetos Ativos</span>
+          <span className="reports-card-label">{t('activeProjects')}</span>
         </div>
       </div>
       <div className="reports-card">
         <div className="reports-card-icon"><Clock size={20} /></div>
         <div className="reports-card-content">
           <span className="reports-card-value">{overview.avgTaskResolutionDays ?? '—'}</span>
-          <span className="reports-card-label">Dias p/ Concluir (média)</span>
+          <span className="reports-card-label">{t('avgResolutionDays')}</span>
         </div>
       </div>
       <div className="reports-card">
         <div className="reports-card-icon"><Users size={20} /></div>
         <div className="reports-card-content">
           <span className="reports-card-value">{formatNumber(overview.totalMeetings)}</span>
-          <span className="reports-card-label">Reuniões</span>
+          <span className="reports-card-label">{t('meetings')}</span>
         </div>
       </div>
     </div>
@@ -202,6 +196,7 @@ function OverviewCards({ overview }: { overview: ReportsData['overview'] }) {
 
 /* ===== Activity Timeline ===== */
 function ActivityTimeline({ timeline }: { timeline: ActivityTimelinePoint[] }) {
+  const { t } = useTranslation('reports')
   const maxEntries = Math.max(...timeline.map((d) => d.entries), 1)
   const maxTasks = Math.max(...timeline.map((d) => d.tasksCompleted), 1)
   const maxVal = Math.max(maxEntries, maxTasks)
@@ -213,7 +208,7 @@ function ActivityTimeline({ timeline }: { timeline: ActivityTimelinePoint[] }) {
     <div className="reports-section">
       <h3 className="reports-section-title">
         <Calendar size={14} />
-        Atividade ao Longo do Tempo
+        {t('activityOverTime')}
       </h3>
       <div className="reports-timeline-chart">
         {displayData.map((day) => {
@@ -223,7 +218,7 @@ function ActivityTimeline({ timeline }: { timeline: ActivityTimelinePoint[] }) {
             <div
               key={day.date}
               className="reports-timeline-bar-group"
-              title={`${day.date}\n${day.entries} entradas\n${day.tasksCreated} tarefas criadas\n${day.tasksCompleted} tarefas concluídas`}
+              title={t('timelineTooltip', { date: day.date, entries: day.entries, tasksCreated: day.tasksCreated, tasksCompleted: day.tasksCompleted })}
             >
               <div className="reports-timeline-bars">
                 <div
@@ -241,8 +236,8 @@ function ActivityTimeline({ timeline }: { timeline: ActivityTimelinePoint[] }) {
         })}
       </div>
       <div className="reports-chart-legend">
-        <span><span className="legend-dot legend-entries" /> Entradas</span>
-        <span><span className="legend-dot legend-tasks-completed" /> Tarefas Concluídas</span>
+        <span><span className="legend-dot legend-entries" /> {t('legendEntries')}</span>
+        <span><span className="legend-dot legend-tasks-completed" /> {t('legendTasksCompleted')}</span>
       </div>
     </div>
   )
@@ -250,13 +245,23 @@ function ActivityTimeline({ timeline }: { timeline: ActivityTimelinePoint[] }) {
 
 /* ===== Entry Type Distribution ===== */
 function EntryTypeChart({ distribution }: { distribution: EntryTypeDistribution[] }) {
+  const { t } = useTranslation('reports')
   const maxCount = Math.max(...distribution.map((d) => d.count), 1)
+
+  const ENTRY_TYPE_LABELS_I18N: Record<EntryType, string> = {
+    information: t('typeInformation'),
+    decision: t('typeDecision'),
+    demand: t('typeDemand'),
+    idea: t('typeIdea'),
+    blocker: t('typeBlocker'),
+    update: t('typeUpdate'),
+  }
 
   return (
     <div className="reports-section">
       <h3 className="reports-section-title">
         <PieChart size={14} />
-        Tipos de Entrada
+        {t('entryTypes')}
       </h3>
       <div className="reports-type-chart">
         {distribution.map((item) => (
@@ -266,7 +271,7 @@ function EntryTypeChart({ distribution }: { distribution: EntryTypeDistribution[
                 className="reports-type-dot"
                 style={{ backgroundColor: ENTRY_TYPE_COLORS[item.type] }}
               />
-              <span>{ENTRY_TYPE_LABELS[item.type]}</span>
+              <span>{ENTRY_TYPE_LABELS_I18N[item.type]}</span>
             </div>
             <div className="reports-type-bar-container">
               <div
@@ -287,19 +292,20 @@ function EntryTypeChart({ distribution }: { distribution: EntryTypeDistribution[
 
 /* ===== Task Flow ===== */
 function TaskFlowChart({ taskFlow }: { taskFlow: ReportsData['taskFlow'] }) {
+  const { t } = useTranslation('reports')
   const total = taskFlow.todo + taskFlow.inProgress + taskFlow.waiting + taskFlow.done
   const segments = [
-    { label: 'A Fazer', count: taskFlow.todo, color: 'var(--chart-blue)' },
-    { label: 'Em Andamento', count: taskFlow.inProgress, color: 'var(--chart-orange)' },
-    { label: 'Aguardando', count: taskFlow.waiting, color: 'var(--chart-yellow)' },
-    { label: 'Concluído', count: taskFlow.done, color: 'var(--chart-green)' },
+    { label: t('taskFlowTodo'), count: taskFlow.todo, color: 'var(--chart-blue)' },
+    { label: t('taskFlowInProgress'), count: taskFlow.inProgress, color: 'var(--chart-orange)' },
+    { label: t('taskFlowWaiting'), count: taskFlow.waiting, color: 'var(--chart-yellow)' },
+    { label: t('taskFlowDone'), count: taskFlow.done, color: 'var(--chart-green)' },
   ]
 
   return (
     <div className="reports-section">
       <h3 className="reports-section-title">
         <Target size={14} />
-        Fluxo de Tarefas
+        {t('taskFlow')}
       </h3>
 
       {/* Stacked bar */}
@@ -332,15 +338,14 @@ function TaskFlowChart({ taskFlow }: { taskFlow: ReportsData['taskFlow'] }) {
         {taskFlow.avgLeadTimeDays !== null && (
           <div className="reports-flow-stat">
             <Clock size={12} />
-            <span>Lead time médio: <strong>{taskFlow.avgLeadTimeDays} dias</strong></span>
+            <span>{t('avgLeadTime', { days: taskFlow.avgLeadTimeDays })}</span>
           </div>
         )}
         {taskFlow.longestWaitingTask && (
           <div className="reports-flow-stat warning">
             <AlertTriangle size={12} />
             <span>
-              Mais tempo aguardando: <strong>"{taskFlow.longestWaitingTask.title}"</strong>
-              {' '}({taskFlow.longestWaitingTask.projectName}) — {taskFlow.longestWaitingTask.daysSinceUpdate} dias
+              {t('longestWaiting', { title: taskFlow.longestWaitingTask.title, project: taskFlow.longestWaitingTask.projectName, days: taskFlow.longestWaitingTask.daysSinceUpdate })}
             </span>
           </div>
         )}
@@ -351,13 +356,14 @@ function TaskFlowChart({ taskFlow }: { taskFlow: ReportsData['taskFlow'] }) {
 
 /* ===== Weekday Activity ===== */
 function WeekdayChart({ weekday }: { weekday: WeekdayActivity[] }) {
+  const { t } = useTranslation('reports')
   const maxActivity = Math.max(...weekday.map((d) => d.entries + d.tasksCompleted), 1)
 
   return (
     <div className="reports-section">
       <h3 className="reports-section-title">
         <Calendar size={14} />
-        Atividade por Dia da Semana
+        {t('weekdayActivity')}
       </h3>
       <div className="reports-weekday-chart">
         {weekday.map((day) => {
@@ -381,8 +387,8 @@ function WeekdayChart({ weekday }: { weekday: WeekdayActivity[] }) {
         })}
       </div>
       <div className="reports-chart-legend">
-        <span><span className="legend-dot legend-entries" /> Entradas</span>
-        <span><span className="legend-dot legend-tasks-completed" /> Tarefas</span>
+        <span><span className="legend-dot legend-entries" /> {t('legendEntries')}</span>
+        <span><span className="legend-dot legend-tasks-completed" /> {t('legendTasks')}</span>
       </div>
     </div>
   )
@@ -390,22 +396,23 @@ function WeekdayChart({ weekday }: { weekday: WeekdayActivity[] }) {
 
 /* ===== Project Ranking Table ===== */
 function ProjectRankingTable({ ranking }: { ranking: ProjectRanking[] }) {
+  const { t } = useTranslation('reports')
   return (
     <div className="reports-section">
       <h3 className="reports-section-title">
         <FolderOpen size={14} />
-        Ranking de Projetos
+        {t('projectRanking')}
       </h3>
       <div className="reports-table">
         <table>
           <thead>
             <tr>
-              <th>Projeto</th>
-              <th>Entradas</th>
-              <th>Tarefas</th>
-              <th>Concluídas</th>
-              <th>Bloqueios</th>
-              <th>Última Atividade</th>
+              <th>{t('columnProject')}</th>
+              <th>{t('columnEntries')}</th>
+              <th>{t('columnTasks')}</th>
+              <th>{t('columnCompleted')}</th>
+              <th>{t('columnBlockers')}</th>
+              <th>{t('columnLastActivity')}</th>
             </tr>
           </thead>
           <tbody>

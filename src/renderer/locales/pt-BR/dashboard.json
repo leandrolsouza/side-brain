@@ -1,0 +1,78 @@
+{
+  "greeting": {
+    "morning": "Bom dia",
+    "afternoon": "Boa tarde",
+    "evening": "Boa noite"
+  },
+  "summary": {
+    "pendingTasks_one": "{{count}} tarefa pendente",
+    "pendingTasks_other": "{{count}} tarefas pendentes",
+    "overdue_one": "{{count}} vencida",
+    "overdue_other": "{{count}} vencidas",
+    "toReview": "{{count}} para revisar",
+    "allCaughtUp": "Tudo em dia!"
+  },
+  "actions": {
+    "generating": "Gerando...",
+    "updateMe": "Me atualiza"
+  },
+  "kpi": {
+    "pending": "Pendentes",
+    "inProgress": "Em andamento",
+    "completedThisWeek": "Concluídas na semana",
+    "entriesThisWeek": "Registros na semana",
+    "completionRate": "Taxa de conclusão"
+  },
+  "globalSummary": {
+    "title": "Resumo Geral"
+  },
+  "deadlines": {
+    "title": "Prazos da Semana",
+    "overdue": "Vencida",
+    "today": "Hoje"
+  },
+  "pendingTasks": {
+    "title": "Tarefas Pendentes",
+    "empty": "Nenhuma tarefa pendente",
+    "todo": "A Fazer",
+    "inProgress": "Em Andamento",
+    "waiting": "Aguardando"
+  },
+  "yesterday": {
+    "title": "Ontem",
+    "empty": "Nenhuma atividade ontem",
+    "tasksCompleted_one": "{{count}} tarefa concluída",
+    "tasksCompleted_other": "{{count}} tarefas concluídas",
+    "entries_one": "{{count}} registro",
+    "entries_other": "{{count}} registros"
+  },
+  "review": {
+    "title": "Itens para Revisar",
+    "waiting_one": "{{count}} entrada aguardando",
+    "waiting_other": "{{count}} entradas aguardando",
+    "reviewSuffix": "revisão",
+    "hint": "A IA categorizou novas entradas. Revise para confirmar ou corrigir."
+  },
+  "focus": {
+    "title": "Foco do Dia",
+    "empty": "Nada urgente para hoje",
+    "overdue": "Vencida",
+    "today": "Hoje"
+  },
+  "insights": {
+    "title": "Sugestões da IA",
+    "refresh": "Atualizar sugestões agora",
+    "analyzing": "Analisando padrões...",
+    "empty": "Nenhuma sugestão no momento"
+  },
+  "activityGraph": {
+    "title": "Atividade de Registros",
+    "totalEntries": "registros ({{weeks}} semanas)",
+    "currentStreak": "dias seguidos",
+    "longestStreak": "maior sequência",
+    "tooltip_one": "{{count}} registro",
+    "tooltip_other": "{{count}} registros",
+    "less": "Menos",
+    "more": "Mais"
+  }
+}

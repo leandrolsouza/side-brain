@@ -7,36 +7,7 @@ import { SettingsRepository } from '../database/repositories/settings-repository
 import { NotificationRepository } from '../database/repositories/notification-repository'
 import { getErrorService } from './error-service'
 import { AIService } from './ai-service'
-
-const MEETING_PREP_PROMPT = `Você é um assistente que prepara pautas inteligentes para reuniões de trabalho.
-Dado o contexto do projeto (atividades recentes, tarefas pendentes, decisões e bloqueios), gere uma pauta sugerida para a reunião.
-
-A pauta deve:
-- Ser em markdown
-- Começar com os itens mais urgentes (bloqueios, tarefas atrasadas)
-- Incluir pontos de acompanhamento (tarefas em andamento, aguardando resposta)
-- Mencionar decisões recentes que podem precisar de follow-up
-- Sugerir tópicos com base nos padrões observados
-- Ser concisa e acionável (não mais que 10 tópicos)
-- Incluir um campo "Decisões a tomar" se houver pontos pendentes
-
-Formato esperado:
-# Pauta Sugerida — [título da reunião]
-
-## Urgente
-- ...
-
-## Acompanhamento
-- ...
-
-## Decisões a tomar
-- ...
-
-## Outros pontos
-- ...
-
-Se não houver dados suficientes para uma seção, omita-a.
-Responda APENAS com o markdown da pauta.`
+import { t } from '../i18n'
 
 export class MeetingService {
   constructor(
@@ -118,67 +89,67 @@ export class MeetingService {
     const updates = recentEntries.filter((e) => e.type === 'update' || e.type === 'information')
 
     // Task groups
-    const overdue = tasks.filter((t) => {
-      if (t.status === 'done' || !t.dueDate) return false
-      return t.dueDate < new Date().toISOString().split('T')[0]
+    const overdue = tasks.filter((task) => {
+      if (task.status === 'done' || !task.dueDate) return false
+      return task.dueDate < new Date().toISOString().split('T')[0]
     })
-    const inProgress = tasks.filter((t) => t.status === 'in_progress')
-    const waiting = tasks.filter((t) => t.status === 'waiting')
-    const todo = tasks.filter((t) => t.status === 'todo')
+    const inProgress = tasks.filter((task) => task.status === 'in_progress')
+    const waiting = tasks.filter((task) => task.status === 'waiting')
+    const todo = tasks.filter((task) => task.status === 'todo')
 
     // Build context message
     const contextParts: string[] = []
-    contextParts.push(`Reunião: "${meetingTitle}"`)
-    contextParts.push(`Projeto: ${project.name}`)
+    contextParts.push(t('prompts.meeting_context.meeting_label', { title: meetingTitle }))
+    contextParts.push(t('prompts.meeting_context.project_label', { name: project.name }))
     if (participants.length > 0) {
-      contextParts.push(`Participantes: ${participants.join(', ')}`)
+      contextParts.push(t('prompts.meeting_context.participants_label', { participants: participants.join(', ') }))
     }
 
     if (overdue.length > 0) {
-      contextParts.push(`\nTarefas atrasadas (${overdue.length}):`)
-      overdue.forEach((t) => contextParts.push(`- ${t.title} (prazo: ${t.dueDate})`))
+      contextParts.push(`\n${t('prompts.meeting_context.overdue_tasks', { count: overdue.length })}`)
+      overdue.forEach((task) => contextParts.push(`- ${task.title} (${t('prompts.meeting_context.deadline_label', { date: task.dueDate! })})`))
     }
 
     if (blockers.length > 0) {
-      contextParts.push(`\nBloqueios recentes (${blockers.length}):`)
+      contextParts.push(`\n${t('prompts.meeting_context.recent_blockers', { count: blockers.length })}`)
       blockers.slice(0, 5).forEach((e) => contextParts.push(`- [${e.createdAt.split('T')[0]}] ${e.improvedText}`))
     }
 
     if (inProgress.length > 0) {
-      contextParts.push(`\nTarefas em andamento (${inProgress.length}):`)
-      inProgress.forEach((t) => contextParts.push(`- ${t.title}`))
+      contextParts.push(`\n${t('prompts.meeting_context.in_progress_tasks', { count: inProgress.length })}`)
+      inProgress.forEach((task) => contextParts.push(`- ${task.title}`))
     }
 
     if (waiting.length > 0) {
-      contextParts.push(`\nAguardando resposta (${waiting.length}):`)
-      waiting.forEach((t) => contextParts.push(`- ${t.title}`))
+      contextParts.push(`\n${t('prompts.meeting_context.waiting_tasks', { count: waiting.length })}`)
+      waiting.forEach((task) => contextParts.push(`- ${task.title}`))
     }
 
     if (decisions.length > 0) {
-      contextParts.push(`\nDecisões recentes (${decisions.length}):`)
+      contextParts.push(`\n${t('prompts.meeting_context.recent_decisions', { count: decisions.length })}`)
       decisions.slice(0, 5).forEach((e) => contextParts.push(`- [${e.createdAt.split('T')[0]}] ${e.improvedText}`))
     }
 
     if (demands.length > 0) {
-      contextParts.push(`\nDemandas recentes (${demands.length}):`)
+      contextParts.push(`\n${t('prompts.meeting_context.recent_demands', { count: demands.length })}`)
       demands.slice(0, 5).forEach((e) => contextParts.push(`- [${e.createdAt.split('T')[0]}] ${e.improvedText}`))
     }
 
     if (todo.length > 0) {
-      contextParts.push(`\nBacklog (${todo.length} tarefas a fazer):`)
-      todo.slice(0, 5).forEach((t) => contextParts.push(`- ${t.title}`))
-      if (todo.length > 5) contextParts.push(`  ... e mais ${todo.length - 5}`)
+      contextParts.push(`\n${t('prompts.meeting_context.backlog', { count: todo.length })}`)
+      todo.slice(0, 5).forEach((task) => contextParts.push(`- ${task.title}`))
+      if (todo.length > 5) contextParts.push(t('prompts.meeting_context.backlog_more', { count: todo.length - 5 }))
     }
 
     if (updates.length > 0) {
-      contextParts.push(`\nAtualizações recentes:`)
+      contextParts.push(`\n${t('prompts.meeting_context.recent_updates')}`)
       updates.slice(0, 5).forEach((e) => contextParts.push(`- [${e.createdAt.split('T')[0]}] ${e.improvedText}`))
     }
 
     const userMessage = contextParts.join('\n')
 
     return this.aiService.invokeConverseForChat(
-      MEETING_PREP_PROMPT,
+      t('prompts.meeting_prep.system'),
       userMessage,
       settings,
       'meeting_processing'
@@ -200,8 +171,8 @@ export class MeetingService {
     // Fetch existing tasks for the project (not done) to detect duplicates
     const projectTasks = this.taskRepo.getByProject(meeting.projectId)
     const existingTasks = projectTasks
-      .filter((t) => t.status !== 'done')
-      .map((t) => ({ id: t.id, title: t.title, status: t.status }))
+      .filter((task) => task.status !== 'done')
+      .map((task) => ({ id: task.id, title: task.title, status: task.status }))
 
     try {
       const result = await this.aiService.processMeeting(
@@ -222,8 +193,8 @@ export class MeetingService {
       try {
         this.notificationRepo.create({
           type: 'ai_error',
-          title: 'Erro ao processar reunião',
-          body: error?.message || 'A IA retornou uma resposta com formato inválido. Tente reprocessar.',
+          title: t('notifications.errors.meeting_process'),
+          body: error?.message || t('notifications.errors.meeting_process_detail'),
           metadata: { meetingId: id, meetingTitle: meeting.title },
         })
       } catch { /* ignore notification creation failures */ }
@@ -232,7 +203,7 @@ export class MeetingService {
       getErrorService().logError({
         category: 'ai',
         severity: 'error',
-        message: error?.message || 'Erro ao processar reunião com IA',
+        message: error?.message || t('notifications.errors.meeting_process_ai'),
         stack: error?.stack,
         context: {
           meetingId: id,

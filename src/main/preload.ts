@@ -28,6 +28,9 @@ import type {
   EntryConnection,
   ConnectedEntry,
   ConnectionType,
+  PaginatedResult,
+  PaginationParams,
+  TaskStatus,
 } from '../shared/types'
 
 export interface ElectronAPI {
@@ -45,6 +48,7 @@ export interface ElectronAPI {
   previewEntry: (rawText: string, projectIdHint?: string) => Promise<EntryPreviewResult>
   confirmEntry: (data: EntryConfirmRequest) => Promise<Entry & { autoSuggestedProject?: { id: string; name: string } }>
   getEntries: (projectId?: string) => Promise<Entry[]>
+  getEntriesPaginated: (params: PaginationParams & { projectId?: string }) => Promise<PaginatedResult<Entry>>
   updateEntry: (id: string, updates: Record<string, any>) => Promise<Entry | null>
   deleteEntry: (id: string) => Promise<void>
   getEntryActivityHeatmap: (weeks?: number) => Promise<{ date: string; count: number }[]>
@@ -59,6 +63,7 @@ export interface ElectronAPI {
   // Tasks
   getTasksByProject: (projectId: string) => Promise<Task[]>
   getAllTasks: () => Promise<Task[]>
+  getTasksPaginated: (params: PaginationParams & { projectId?: string; status?: TaskStatus }) => Promise<PaginatedResult<Task>>
   getTasksDueThisWeek: () => Promise<Task[]>
   getOverdueTasks: () => Promise<Task[]>
   createTask: (data: { projectId: string; title: string; description?: string; dueDate?: string | null }) => Promise<Task>
@@ -171,7 +176,7 @@ export interface ElectronAPI {
   getConnectionsByEntry: (entryId: string) => Promise<ConnectedEntry[]>
   deleteConnection: (connectionId: string) => Promise<{ success: boolean }>
   searchEntriesForConnection: (query: string, excludeEntryId: string) => Promise<Entry[]>
-  getConnectionGraphData: (filters?: { projectId?: string; dateFrom?: string; minConnections?: number; connectionType?: string }) => Promise<{ entries: Entry[]; connections: EntryConnection[] }>
+  getConnectionGraphData: (filters?: { projectId?: string; dateFrom?: string; minConnections?: number; connectionType?: string }) => Promise<{ entries: Entry[]; connections: EntryConnection[]; truncated: boolean }>
   discoverConnections: (projectId?: string) => Promise<{ created: number; suggestions: EntryConnection[] }>
 
   // Theme
@@ -218,6 +223,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('entry:confirm', data),
   getEntries: (projectId?: string) =>
     ipcRenderer.invoke('entry:getAll', projectId),
+  getEntriesPaginated: (params: PaginationParams & { projectId?: string }) =>
+    ipcRenderer.invoke('entry:getPaginated', params),
   updateEntry: (id: string, updates: Record<string, any>) =>
     ipcRenderer.invoke('entry:update', id, updates),
   deleteEntry: (id: string) =>
@@ -242,6 +249,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('task:getByProject', projectId),
   getAllTasks: () =>
     ipcRenderer.invoke('task:getAll'),
+  getTasksPaginated: (params: PaginationParams & { projectId?: string; status?: TaskStatus }) =>
+    ipcRenderer.invoke('task:getPaginated', params),
   getTasksDueThisWeek: () =>
     ipcRenderer.invoke('task:getDueThisWeek'),
   getOverdueTasks: () =>

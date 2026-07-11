@@ -4,6 +4,7 @@ import {
   Calendar, Target, Inbox, History, Lightbulb, Loader2, RefreshCw,
   ListTodo, FolderKanban, TrendingUp, Zap
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { MarkdownViewer } from './MarkdownViewer'
 import { EntryActivityGraph } from './EntryActivityGraph'
 
@@ -43,6 +44,7 @@ interface DashboardProps {
 const TASKS_PER_GROUP = 5
 
 export function Dashboard({ onNavigateToProject }: DashboardProps) {
+  const { t } = useTranslation('dashboard')
   const [tasks, setTasks] = useState<Task[]>([])
   const [entries, setEntries] = useState<Entry[]>([])
   const [projects, setProjects] = useState<Project[]>([])
@@ -118,7 +120,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
   }
 
   const getProjectName = (projectId: string): string => {
-    return projects.find((p) => p.id === projectId)?.name || 'Sem projeto'
+    return projects.find((p) => p.id === projectId)?.name || t('common:noProject')
   }
 
   const toggleGroup = (group: string) => {
@@ -185,27 +187,27 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
   const formatRelativeTime = (timestamp: number): string => {
     const diffMs = Date.now() - timestamp
     const diffMin = Math.floor(diffMs / 60000)
-    if (diffMin < 1) return 'agora'
-    if (diffMin < 60) return `há ${diffMin} min`
+    if (diffMin < 1) return t('common:timeNow')
+    if (diffMin < 60) return t('common:timeMinutes', { count: diffMin })
     const diffHours = Math.floor(diffMin / 60)
-    if (diffHours < 24) return `há ${diffHours}h`
-    return `há ${Math.floor(diffHours / 24)}d`
+    if (diffHours < 24) return t('common:timeHours', { count: diffHours })
+    return t('common:timeDays', { count: Math.floor(diffHours / 24) })
   }
 
   const getGreeting = (): string => {
     const hour = new Date().getHours()
-    if (hour < 12) return 'Bom dia'
-    if (hour < 18) return 'Boa tarde'
-    return 'Boa noite'
+    if (hour < 12) return t('greeting.morning')
+    if (hour < 18) return t('greeting.afternoon')
+    return t('greeting.evening')
   }
 
   const getGreetingSummary = (): string => {
     const parts: string[] = []
     const totalPending = actionNeeded.length + waiting.length + inProgress.length
-    if (totalPending > 0) parts.push(`${totalPending} tarefa${totalPending > 1 ? 's' : ''} pendente${totalPending > 1 ? 's' : ''}`)
-    if (overdueTasks.length > 0) parts.push(`${overdueTasks.length} vencida${overdueTasks.length > 1 ? 's' : ''}`)
-    if (pendingReviewCount > 0) parts.push(`${pendingReviewCount} para revisar`)
-    if (parts.length === 0) return 'Tudo em dia!'
+    if (totalPending > 0) parts.push(t('summary.pendingTasks', { count: totalPending }))
+    if (overdueTasks.length > 0) parts.push(t('summary.overdue', { count: overdueTasks.length }))
+    if (pendingReviewCount > 0) parts.push(t('summary.toReview', { count: pendingReviewCount }))
+    if (parts.length === 0) return t('summary.allCaughtUp')
     return parts.join(' · ')
   }
 
@@ -213,7 +215,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
     return (
       <div className="dashboard-loading">
         <Loader2 size={20} className="spinning" />
-        <span>Carregando...</span>
+        <span>{t('common:loading')}</span>
       </div>
     )
   }
@@ -235,7 +237,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
           {pendingReviewCount > 0 && (
             <div className="stat-chip stat-chip-warning">
               <Inbox size={12} />
-              <span>{pendingReviewCount} para revisar</span>
+              <span>{t('summary.toReview', { count: pendingReviewCount })}</span>
             </div>
           )}
           <button
@@ -244,7 +246,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
             disabled={isLoadingSummary}
           >
             <Sparkles size={14} />
-            {isLoadingSummary ? 'Gerando...' : 'Me atualiza'}
+            {isLoadingSummary ? t('actions.generating') : t('actions.updateMe')}
           </button>
         </div>
       </div>
@@ -257,7 +259,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
           </div>
           <div className="kpi-content">
             <span className="kpi-value">{totalPending}</span>
-            <span className="kpi-label">Pendentes</span>
+            <span className="kpi-label">{t('kpi.pending')}</span>
           </div>
         </div>
 
@@ -267,7 +269,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
           </div>
           <div className="kpi-content">
             <span className="kpi-value">{inProgress.length}</span>
-            <span className="kpi-label">Em andamento</span>
+            <span className="kpi-label">{t('kpi.inProgress')}</span>
           </div>
         </div>
 
@@ -277,7 +279,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
           </div>
           <div className="kpi-content">
             <span className="kpi-value">{completedThisWeek.length}</span>
-            <span className="kpi-label">Concluídas na semana</span>
+            <span className="kpi-label">{t('kpi.completedThisWeek')}</span>
           </div>
         </div>
 
@@ -287,7 +289,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
           </div>
           <div className="kpi-content">
             <span className="kpi-value">{entriesThisWeek.length}</span>
-            <span className="kpi-label">Registros na semana</span>
+            <span className="kpi-label">{t('kpi.entriesThisWeek')}</span>
           </div>
         </div>
 
@@ -297,7 +299,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
           </div>
           <div className="kpi-content">
             <span className="kpi-value">{completionRate}%</span>
-            <span className="kpi-label">Taxa de conclusão</span>
+            <span className="kpi-label">{t('kpi.completionRate')}</span>
           </div>
         </div>
       </div>
@@ -308,7 +310,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
           <div className="summary-modal" onClick={(e) => e.stopPropagation()}>
             <div className="summary-modal-header">
               <Sparkles size={16} />
-              <span>Resumo Geral</span>
+              <span>{t('globalSummary.title')}</span>
               <button className="icon-button" onClick={() => setGlobalSummary(null)}>
                 <X size={16} />
               </button>
@@ -329,7 +331,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
             <div className="dashboard-card">
               <h3 className="dashboard-card-title">
                 <Calendar size={14} />
-                Prazos da Semana
+                {t('deadlines.title')}
               </h3>
               <div className="dashboard-due-list">
                 {overdueTasks.map((task) => (
@@ -343,7 +345,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
                     </span>
                     <span className="dashboard-due-title">{task.title}</span>
                     <span className="dashboard-due-project">{getProjectName(task.projectId)}</span>
-                    <span className="dashboard-due-badge overdue">Vencida</span>
+                    <span className="dashboard-due-badge overdue">{t('deadlines.overdue')}</span>
                   </div>
                 ))}
                 {dueThisWeek.map((task) => {
@@ -359,7 +361,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
                       </span>
                       <span className="dashboard-due-title">{task.title}</span>
                       <span className="dashboard-due-project">{getProjectName(task.projectId)}</span>
-                      {isToday && <span className="dashboard-due-badge today">Hoje</span>}
+                      {isToday && <span className="dashboard-due-badge today">{t('deadlines.today')}</span>}
                     </div>
                   )
                 })}
@@ -371,13 +373,13 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
           <div className="dashboard-card">
             <h3 className="dashboard-card-title">
               <ListTodo size={14} />
-              Tarefas Pendentes
+              {t('pendingTasks.title')}
             </h3>
 
             {totalPending === 0 ? (
               <div className="dashboard-empty">
                 <CheckCircle2 size={24} />
-                <span>Nenhuma tarefa pendente</span>
+                <span>{t('pendingTasks.empty')}</span>
               </div>
             ) : (
               <div className="dashboard-task-groups">
@@ -385,7 +387,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
                   <div className="task-group">
                     <div className="task-group-header">
                       <Circle size={10} className="dot-action" />
-                      <span>A Fazer ({actionNeeded.length})</span>
+                      <span>{t('pendingTasks.todo')} ({actionNeeded.length})</span>
                     </div>
                     {(expandedGroups['todo'] ? actionNeeded : actionNeeded.slice(0, TASKS_PER_GROUP)).map((task) => (
                       <div
@@ -399,7 +401,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
                     ))}
                     {actionNeeded.length > TASKS_PER_GROUP && (
                       <button className="task-group-toggle" onClick={() => toggleGroup('todo')}>
-                        {expandedGroups['todo'] ? 'Ver menos' : `+${actionNeeded.length - TASKS_PER_GROUP} mais`}
+                        {expandedGroups['todo'] ? t('common:seeLess') : t('common:seeMore', { count: actionNeeded.length - TASKS_PER_GROUP })}
                       </button>
                     )}
                   </div>
@@ -409,7 +411,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
                   <div className="task-group">
                     <div className="task-group-header">
                       <Circle size={10} className="dot-progress" />
-                      <span>Em Andamento ({inProgress.length})</span>
+                      <span>{t('pendingTasks.inProgress')} ({inProgress.length})</span>
                     </div>
                     {(expandedGroups['in_progress'] ? inProgress : inProgress.slice(0, TASKS_PER_GROUP)).map((task) => (
                       <div
@@ -423,7 +425,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
                     ))}
                     {inProgress.length > TASKS_PER_GROUP && (
                       <button className="task-group-toggle" onClick={() => toggleGroup('in_progress')}>
-                        {expandedGroups['in_progress'] ? 'Ver menos' : `+${inProgress.length - TASKS_PER_GROUP} mais`}
+                        {expandedGroups['in_progress'] ? t('common:seeLess') : t('common:seeMore', { count: inProgress.length - TASKS_PER_GROUP })}
                       </button>
                     )}
                   </div>
@@ -433,7 +435,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
                   <div className="task-group">
                     <div className="task-group-header">
                       <Timer size={10} className="dot-waiting" />
-                      <span>Aguardando ({waiting.length})</span>
+                      <span>{t('pendingTasks.waiting')} ({waiting.length})</span>
                     </div>
                     {(expandedGroups['waiting'] ? waiting : waiting.slice(0, TASKS_PER_GROUP)).map((task) => (
                       <div
@@ -447,7 +449,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
                     ))}
                     {waiting.length > TASKS_PER_GROUP && (
                       <button className="task-group-toggle" onClick={() => toggleGroup('waiting')}>
-                        {expandedGroups['waiting'] ? 'Ver menos' : `+${waiting.length - TASKS_PER_GROUP} mais`}
+                        {expandedGroups['waiting'] ? t('common:seeLess') : t('common:seeMore', { count: waiting.length - TASKS_PER_GROUP })}
                       </button>
                     )}
                   </div>
@@ -460,13 +462,13 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
           <div className="dashboard-card">
             <h3 className="dashboard-card-title">
               <History size={14} />
-              Ontem
+              {t('yesterday.title')}
             </h3>
 
             {yesterdayEntries.length === 0 && yesterdayTasksCompleted.length === 0 ? (
               <div className="dashboard-empty">
                 <Clock size={24} />
-                <span>Nenhuma atividade ontem</span>
+                <span>{t('yesterday.empty')}</span>
               </div>
             ) : (
               <div className="yesterday-content">
@@ -474,7 +476,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
                   <div className="yesterday-group">
                     <div className="yesterday-group-header">
                       <CheckCircle2 size={12} className="yesterday-icon-done" />
-                      <span>{yesterdayTasksCompleted.length} {yesterdayTasksCompleted.length === 1 ? 'tarefa concluída' : 'tarefas concluídas'}</span>
+                      <span>{t('yesterday.tasksCompleted', { count: yesterdayTasksCompleted.length })}</span>
                     </div>
                     {yesterdayTasksCompleted.slice(0, 3).map((task) => (
                       <div
@@ -487,7 +489,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
                       </div>
                     ))}
                     {yesterdayTasksCompleted.length > 3 && (
-                      <span className="yesterday-more">+{yesterdayTasksCompleted.length - 3} mais</span>
+                      <span className="yesterday-more">{t('common:seeMore', { count: yesterdayTasksCompleted.length - 3 })}</span>
                     )}
                   </div>
                 )}
@@ -496,7 +498,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
                   <div className="yesterday-group">
                     <div className="yesterday-group-header">
                       <Circle size={12} className="yesterday-icon-entries" />
-                      <span>{yesterdayEntries.length} {yesterdayEntries.length === 1 ? 'registro' : 'registros'}</span>
+                      <span>{t('yesterday.entries', { count: yesterdayEntries.length })}</span>
                     </div>
                     {yesterdayEntries.slice(0, 4).map((entry) => (
                       <div
@@ -509,7 +511,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
                       </div>
                     ))}
                     {yesterdayEntries.length > 4 && (
-                      <span className="yesterday-more">+{yesterdayEntries.length - 4} mais</span>
+                      <span className="yesterday-more">{t('common:seeMore', { count: yesterdayEntries.length - 4 })}</span>
                     )}
                   </div>
                 )}
@@ -522,17 +524,17 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
             <div className="dashboard-card">
               <h3 className="dashboard-card-title">
                 <Inbox size={14} />
-                Itens para Revisar
+                {t('review.title')}
               </h3>
               <div className="review-summary">
                 <div className="review-summary-count">
                   <span className="review-count-number">{pendingReviewCount}</span>
                   <span className="review-count-label">
-                    {pendingReviewCount === 1 ? 'entrada aguardando' : 'entradas aguardando'} revisão
+                    {t('review.waiting', { count: pendingReviewCount })} {t('review.reviewSuffix')}
                   </span>
                 </div>
                 <p className="review-summary-hint">
-                  A IA categorizou novas entradas. Revise para confirmar ou corrigir.
+                  {t('review.hint')}
                 </p>
               </div>
             </div>
@@ -545,13 +547,13 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
           <div className="dashboard-card dashboard-card-focus">
             <h3 className="dashboard-card-title">
               <Target size={14} />
-              Foco do Dia
+              {t('focus.title')}
             </h3>
 
             {focusTasks.length === 0 ? (
               <div className="dashboard-empty">
                 <CheckCircle2 size={24} />
-                <span>Nada urgente para hoje</span>
+                <span>{t('focus.empty')}</span>
               </div>
             ) : (
               <div className="focus-list">
@@ -573,8 +575,8 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
                         <span className="focus-item-title">{task.title}</span>
                         <span className="focus-item-project">{getProjectName(task.projectId)}</span>
                       </div>
-                      {isOverdue && <span className="focus-badge overdue">Vencida</span>}
-                      {isDueToday && !isOverdue && <span className="focus-badge today">Hoje</span>}
+                      {isOverdue && <span className="focus-badge overdue">{t('focus.overdue')}</span>}
+                      {isDueToday && !isOverdue && <span className="focus-badge today">{t('focus.today')}</span>}
                     </div>
                   )
                 })}
@@ -590,7 +592,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
             <div className="dashboard-card-title-row">
               <h3 className="dashboard-card-title">
                 <Lightbulb size={14} />
-                Sugestões da IA
+                {t('insights.title')}
               </h3>
               <div className="insights-actions">
                 {insightsLastUpdated && !isLoadingInsights && (
@@ -602,7 +604,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
                   className="icon-button insights-refresh-btn"
                   onClick={() => loadInsights(true)}
                   disabled={isLoadingInsights}
-                  title="Atualizar sugestões agora"
+                  title={t('insights.refresh')}
                 >
                   <RefreshCw size={14} className={isLoadingInsights ? 'spinning' : ''} />
                 </button>
@@ -612,12 +614,12 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
             {isLoadingInsights ? (
               <div className="dashboard-insights-loading">
                 <Loader2 size={16} className="spinning" />
-                <span>Analisando padrões...</span>
+                <span>{t('insights.analyzing')}</span>
               </div>
             ) : insights.length === 0 ? (
               <div className="dashboard-empty">
                 <Lightbulb size={24} />
-                <span>Nenhuma sugestão no momento</span>
+                <span>{t('insights.empty')}</span>
               </div>
             ) : (
               <div className="insights-list">

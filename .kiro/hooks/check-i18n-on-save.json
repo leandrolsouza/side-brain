@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Check i18n hardcoded strings",
+      "trigger": "PostFileSave",
+      "description": "Scans .tsx files on save for hardcoded strings that should use the i18n translation system (t() or tp())",
+      "matcher": "\\.(tsx)$",
+      "action": {
+        "type": "command",
+        "command": "node scripts/check-i18n.js"
+      }
+    }
+  ]
+}

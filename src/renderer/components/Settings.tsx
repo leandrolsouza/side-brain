@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react'
-import { CheckCircle2, Download, Upload, Trash2, RotateCcw, HardDrive, AlertTriangle, FolderOpen, Database, Settings as SettingsIcon, Cpu, Cloud, Monitor, Type, Bell, Clock, Keyboard, FileText, Sunrise, Eye, EyeOff } from 'lucide-react'
+import { CheckCircle2, Download, Upload, Trash2, RotateCcw, HardDrive, AlertTriangle, FolderOpen, Database, Settings as SettingsIcon, Cpu, Cloud, Monitor, Type, Bell, Clock, Keyboard, FileText, Sunrise, Eye, EyeOff, Globe } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { ConfirmModal } from './ConfirmModal'
 import { useToast } from './ToastContext'
 import { useApp } from './AppContext'
+import { SUPPORTED_LOCALES, type SupportedLocale } from '../i18n'
 
 interface SettingsProps {
 }
@@ -98,11 +100,17 @@ const FONT_FAMILIES = [
   { id: 'georgia', label: 'Georgia', stack: 'Georgia, "Times New Roman", serif' },
 ]
 
+const LANGUAGE_OPTIONS = [
+  { code: 'pt-BR' as const, nativeName: 'Português (Brasil)' },
+  { code: 'en' as const, nativeName: 'English' },
+]
+
 type SettingsTab = 'geral' | 'aparencia' | 'dados' | 'avancado'
 
 export function Settings({ }: SettingsProps) {
   const { addToast } = useToast()
   const { dispatch } = useApp()
+  const { t, i18n } = useTranslation('settings')
   const [activeTab, setActiveTab] = useState<SettingsTab>('geral')
   const [settings, setSettings] = useState<AppSettings>({
     aiProvider: 'bedrock',
@@ -173,6 +181,11 @@ export function Settings({ }: SettingsProps) {
     setDbPathInfo(info)
   }
 
+  const handleLanguageChange = async (locale: SupportedLocale) => {
+    await i18n.changeLanguage(locale)
+    await window.electronAPI.updateSettings({ language: locale })
+  }
+
   const showBackupMessage = (type: 'success' | 'error', text: string) => {
     addToast(text, type === 'success' ? 'success' : 'error')
   }
@@ -182,10 +195,10 @@ export function Settings({ }: SettingsProps) {
     try {
       const result = await window.electronAPI.createManualBackup()
       if (result.success) {
-        showBackupMessage('success', 'Backup exportado com sucesso!')
+        showBackupMessage('success', t('dados.backup_export_success'))
       }
     } catch {
-      showBackupMessage('error', 'Erro ao exportar backup.')
+      showBackupMessage('error', t('dados.backup_export_error'))
     } finally {
       setBackupLoading(false)
     }
@@ -193,9 +206,9 @@ export function Settings({ }: SettingsProps) {
 
   const handleImportBackup = async () => {
     setConfirmModal({
-      title: 'Importar backup',
-      message: 'Restaurar um backup substituirá todos os dados atuais. Deseja continuar?',
-      confirmLabel: 'Importar',
+      title: t('modals.import_title'),
+      message: t('modals.import_message'),
+      confirmLabel: t('modals.import_confirm'),
       variant: 'warning',
       onConfirm: async () => {
         setConfirmModal(null)
@@ -203,12 +216,12 @@ export function Settings({ }: SettingsProps) {
         try {
           const result = await window.electronAPI.importBackup()
           if (result.success) {
-            showBackupMessage('success', 'Backup restaurado! Recarregando...')
+            showBackupMessage('success', t('dados.backup_import_success'))
           } else if (result.error && result.error !== 'Operação cancelada.') {
             showBackupMessage('error', result.error)
           }
         } catch {
-          showBackupMessage('error', 'Erro ao importar backup.')
+          showBackupMessage('error', t('dados.backup_import_error'))
         } finally {
           setBackupLoading(false)
         }
@@ -218,9 +231,9 @@ export function Settings({ }: SettingsProps) {
 
   const handleRestoreBackup = async (filePath: string) => {
     setConfirmModal({
-      title: 'Restaurar backup',
-      message: 'Restaurar este backup substituirá todos os dados atuais. Deseja continuar?',
-      confirmLabel: 'Restaurar',
+      title: t('modals.restore_title'),
+      message: t('modals.restore_message'),
+      confirmLabel: t('modals.restore_confirm'),
       variant: 'warning',
       onConfirm: async () => {
         setConfirmModal(null)
@@ -228,12 +241,12 @@ export function Settings({ }: SettingsProps) {
         try {
           const result = await window.electronAPI.restoreBackup(filePath)
           if (result.success) {
-            showBackupMessage('success', 'Backup restaurado! Recarregando...')
+            showBackupMessage('success', t('dados.backup_restore_success'))
           } else if (result.error) {
             showBackupMessage('error', result.error)
           }
         } catch {
-          showBackupMessage('error', 'Erro ao restaurar backup.')
+          showBackupMessage('error', t('dados.backup_restore_error'))
         } finally {
           setBackupLoading(false)
         }
@@ -243,9 +256,9 @@ export function Settings({ }: SettingsProps) {
 
   const handleDeleteBackup = async (filePath: string) => {
     setConfirmModal({
-      title: 'Excluir backup',
-      message: 'Excluir este backup permanentemente?',
-      confirmLabel: 'Excluir',
+      title: t('modals.delete_title'),
+      message: t('modals.delete_message'),
+      confirmLabel: t('modals.delete_confirm'),
       variant: 'danger',
       onConfirm: async () => {
         setConfirmModal(null)
@@ -257,9 +270,9 @@ export function Settings({ }: SettingsProps) {
 
   const handleResetDatabase = async () => {
     setConfirmModal({
-      title: 'Resetar Database',
-      message: 'ATENÇÃO: Isso apagará TODOS os dados (projetos, entradas, tarefas, reuniões) e criará uma database nova.\n\nA database atual será arquivada na pasta de backups.',
-      confirmLabel: 'Resetar',
+      title: t('modals.reset_db_title'),
+      message: t('modals.reset_db_message'),
+      confirmLabel: t('modals.reset_db_confirm'),
       variant: 'danger',
       onConfirm: async () => {
         setConfirmModal(null)
@@ -267,12 +280,12 @@ export function Settings({ }: SettingsProps) {
         try {
           const result = await window.electronAPI.resetDatabase()
           if (result.success) {
-            showBackupMessage('success', 'Database resetada! Recarregando...')
+            showBackupMessage('success', t('avancado.reset_db_success'))
           } else if (result.error) {
             showBackupMessage('error', result.error)
           }
         } catch {
-          showBackupMessage('error', 'Erro ao resetar database.')
+          showBackupMessage('error', t('avancado.reset_db_error'))
         } finally {
           setBackupLoading(false)
         }
@@ -287,15 +300,15 @@ export function Settings({ }: SettingsProps) {
     const existsAtDestination = await window.electronAPI.checkDatabaseExists(selectedPath)
 
     const message = existsAtDestination
-      ? 'O que deseja fazer com a database atual?\n\n• Mover dados = Transfere a database para o novo local (substituirá a existente)\n• Criar nova = Começa uma database vazia (dados antigos permanecem no local atual)\n• Usar existente = Usa a database que já existe no destino'
-      : 'O que deseja fazer com a database atual?\n\n• Mover dados = Transfere a database para o novo local\n• Criar nova = Começa uma database vazia (dados antigos permanecem no local atual)'
+      ? t('modals.change_db_message_exists')
+      : t('modals.change_db_message')
 
     setConfirmModal({
-      title: 'Alterar local da database',
+      title: t('modals.change_db_title'),
       message,
-      confirmLabel: 'Mover dados',
-      alternativeLabel: 'Criar nova',
-      secondAlternativeLabel: existsAtDestination ? 'Usar existente' : undefined,
+      confirmLabel: t('modals.change_db_move'),
+      alternativeLabel: t('modals.change_db_new'),
+      secondAlternativeLabel: existsAtDestination ? t('modals.change_db_existing') : undefined,
       variant: 'warning',
       onConfirm: async () => {
         setConfirmModal(null)
@@ -319,12 +332,12 @@ export function Settings({ }: SettingsProps) {
     try {
       const result = await window.electronAPI.setDatabasePath(path, mode)
       if (result.success) {
-        showBackupMessage('success', 'Caminho alterado! Recarregando...')
+        showBackupMessage('success', t('dados.db_change_success'))
       } else if (result.error) {
         showBackupMessage('error', result.error)
       }
     } catch {
-      showBackupMessage('error', 'Erro ao alterar caminho da database.')
+      showBackupMessage('error', t('dados.db_change_error'))
     } finally {
       setDbPathLoading(false)
     }
@@ -337,15 +350,15 @@ export function Settings({ }: SettingsProps) {
     const existsAtDefault = await window.electronAPI.checkDatabaseExists(defaultPath)
 
     const message = existsAtDefault
-      ? 'O que deseja fazer com a database atual?\n\n• Mover dados = Transfere de volta para o local padrão (substituirá a existente)\n• Criar nova = Começa uma database vazia no local padrão\n• Usar existente = Usa a database que já existe no local padrão'
-      : 'O que deseja fazer com a database atual?\n\n• Mover dados = Transfere de volta para o local padrão\n• Criar nova = Começa uma database vazia no local padrão'
+      ? t('modals.restore_default_message_exists')
+      : t('modals.restore_default_message')
 
     setConfirmModal({
-      title: 'Restaurar local padrão',
+      title: t('modals.restore_default_title'),
       message,
-      confirmLabel: 'Mover dados',
-      alternativeLabel: 'Criar nova',
-      secondAlternativeLabel: existsAtDefault ? 'Usar existente' : undefined,
+      confirmLabel: t('modals.change_db_move'),
+      alternativeLabel: t('modals.change_db_new'),
+      secondAlternativeLabel: existsAtDefault ? t('modals.change_db_existing') : undefined,
       variant: 'warning',
       onConfirm: async () => {
         setConfirmModal(null)
@@ -369,12 +382,12 @@ export function Settings({ }: SettingsProps) {
     try {
       const result = await window.electronAPI.resetDatabasePath(mode)
       if (result.success) {
-        showBackupMessage('success', 'Caminho restaurado ao padrão! Recarregando...')
+        showBackupMessage('success', t('dados.db_restore_default_success'))
       } else if (result.error) {
         showBackupMessage('error', result.error)
       }
     } catch {
-      showBackupMessage('error', 'Erro ao restaurar caminho padrão.')
+      showBackupMessage('error', t('dados.db_restore_default_error'))
     } finally {
       setDbPathLoading(false)
     }
@@ -401,7 +414,7 @@ export function Settings({ }: SettingsProps) {
     try {
       await window.electronAPI.updateSettings(settings)
       await window.electronAPI.toggleTray(settings.trayEnabled === 'true')
-      addToast('Configurações salvas com sucesso', 'success')
+      addToast(t('save_success'), 'success')
 
       // Update status bar model label
       const providerLabels: Record<string, string> = {
@@ -432,10 +445,10 @@ export function Settings({ }: SettingsProps) {
   }
 
   const tabs: { id: SettingsTab; label: string; icon: React.ReactNode }[] = [
-    { id: 'geral', label: 'Geral', icon: <SettingsIcon size={14} /> },
-    { id: 'aparencia', label: 'Aparência', icon: <Type size={14} /> },
-    { id: 'dados', label: 'Dados', icon: <HardDrive size={14} /> },
-    { id: 'avancado', label: 'Avançado', icon: <Cpu size={14} /> },
+    { id: 'geral', label: t('tabs.geral'), icon: <SettingsIcon size={14} /> },
+    { id: 'aparencia', label: t('tabs.aparencia'), icon: <Type size={14} /> },
+    { id: 'dados', label: t('tabs.dados'), icon: <HardDrive size={14} /> },
+    { id: 'avancado', label: t('tabs.avancado'), icon: <Cpu size={14} /> },
   ]
 
   const renderGeralTab = () => (
@@ -443,16 +456,16 @@ export function Settings({ }: SettingsProps) {
       {/* User Identity */}
       <div className="settings-group">
         <div className="settings-item">
-          <div className="settings-item-label">Meu nome</div>
+          <div className="settings-item-label">{t('geral.my_name_label')}</div>
           <div className="settings-item-description">
-            Seu primeiro nome. Usado pela IA para identificar suas tasks em reuniões e separar "minhas tasks" das de outros participantes.
+            {t('geral.my_name_description')}
           </div>
           <input
             type="text"
             className="vscode-input"
             value={settings.userName}
             onChange={(e) => setSettings({ ...settings, userName: e.target.value })}
-            placeholder="Ex: Leandro"
+            placeholder={t('geral.my_name_placeholder')}
             style={{ maxWidth: 260, marginTop: 6 }}
           />
         </div>
@@ -461,9 +474,9 @@ export function Settings({ }: SettingsProps) {
       {/* Provider Selection */}
       <div className="settings-group">
         <div className="settings-item">
-          <div className="settings-item-label">Provedor de IA</div>
+          <div className="settings-item-label">{t('geral.ai_provider_label')}</div>
           <div className="settings-item-description">
-            Escolha o provedor de IA para categorização e resumos.
+            {t('geral.ai_provider_description')}
           </div>
           <div className="provider-toggle" style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
             <button
@@ -504,7 +517,7 @@ export function Settings({ }: SettingsProps) {
               style={{ display: 'flex', alignItems: 'center', gap: 6 }}
             >
               <Monitor size={14} />
-              LLM Local
+              {t('geral.provider_local')}
             </button>
           </div>
         </div>
@@ -514,9 +527,9 @@ export function Settings({ }: SettingsProps) {
       {settings.aiProvider === 'bedrock' && (
         <div className="settings-group">
           <div className="settings-item">
-            <div className="settings-item-label">Região AWS</div>
+            <div className="settings-item-label">{t('geral.aws_region_label')}</div>
             <div className="settings-item-description">
-              Região do AWS Bedrock para chamadas de IA.
+              {t('geral.aws_region_description')}
             </div>
             <select
               className="vscode-select"
@@ -530,9 +543,9 @@ export function Settings({ }: SettingsProps) {
           </div>
 
           <div className="settings-item">
-            <div className="settings-item-label">API Key (Bedrock)</div>
+            <div className="settings-item-label">{t('geral.api_key_bedrock_label')}</div>
             <div className="settings-item-description">
-              Gere em: Console AWS → Bedrock → API Keys. Usada como Bearer Token.
+              {t('geral.api_key_bedrock_description')}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, maxWidth: 400 }}>
               <input
@@ -540,13 +553,13 @@ export function Settings({ }: SettingsProps) {
                 className="vscode-input"
                 value={settings.bedrockApiKey}
                 onChange={(e) => setSettings({ ...settings, bedrockApiKey: e.target.value })}
-                placeholder="Cole aqui sua API Key..."
+                placeholder={t('geral.api_key_placeholder')}
                 style={{ flex: 1 }}
               />
               <button
                 className="icon-button"
                 type="button"
-                title={showApiKey ? 'Ocultar chave' : 'Mostrar chave'}
+                title={showApiKey ? t('geral.api_key_hide') : t('geral.api_key_show')}
                 onClick={() => setShowApiKey(!showApiKey)}
                 style={{ flexShrink: 0 }}
               >
@@ -556,9 +569,9 @@ export function Settings({ }: SettingsProps) {
           </div>
 
           <div className="settings-item">
-            <div className="settings-item-label">Modelo</div>
+            <div className="settings-item-label">{t('geral.model_label')}</div>
             <div className="settings-item-description">
-              Modelo de IA para categorização e resumos.
+              {t('geral.model_description')}
             </div>
             <select
               className="vscode-select"
@@ -584,9 +597,9 @@ export function Settings({ }: SettingsProps) {
       {settings.aiProvider === 'openai' && (
         <div className="settings-group">
           <div className="settings-item">
-            <div className="settings-item-label">API Key (OpenAI)</div>
+            <div className="settings-item-label">{t('geral.api_key_openai_label')}</div>
             <div className="settings-item-description">
-              Gere em: <code>platform.openai.com/api-keys</code>
+              {t('geral.api_key_openai_description')}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, maxWidth: 400 }}>
               <input
@@ -600,7 +613,7 @@ export function Settings({ }: SettingsProps) {
               <button
                 className="icon-button"
                 type="button"
-                title={showApiKey ? 'Ocultar chave' : 'Mostrar chave'}
+                title={showApiKey ? t('geral.api_key_hide') : t('geral.api_key_show')}
                 onClick={() => setShowApiKey(!showApiKey)}
                 style={{ flexShrink: 0 }}
               >
@@ -610,9 +623,9 @@ export function Settings({ }: SettingsProps) {
           </div>
 
           <div className="settings-item">
-            <div className="settings-item-label">Modelo</div>
+            <div className="settings-item-label">{t('geral.model_label')}</div>
             <div className="settings-item-description">
-              Modelo OpenAI para categorização e resumos.
+              {t('geral.model_openai_description')}
             </div>
             <select
               className="vscode-select"
@@ -631,9 +644,9 @@ export function Settings({ }: SettingsProps) {
       {settings.aiProvider === 'gemini' && (
         <div className="settings-group">
           <div className="settings-item">
-            <div className="settings-item-label">API Key (Gemini)</div>
+            <div className="settings-item-label">{t('geral.api_key_gemini_label')}</div>
             <div className="settings-item-description">
-              Gere em: <code>aistudio.google.com/apikey</code>
+              {t('geral.api_key_gemini_description')}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, maxWidth: 400 }}>
               <input
@@ -641,13 +654,13 @@ export function Settings({ }: SettingsProps) {
                 className="vscode-input"
                 value={settings.geminiApiKey}
                 onChange={(e) => setSettings({ ...settings, geminiApiKey: e.target.value })}
-                placeholder="Cole aqui sua API Key..."
+                placeholder={t('geral.api_key_placeholder')}
                 style={{ flex: 1 }}
               />
               <button
                 className="icon-button"
                 type="button"
-                title={showApiKey ? 'Ocultar chave' : 'Mostrar chave'}
+                title={showApiKey ? t('geral.api_key_hide') : t('geral.api_key_show')}
                 onClick={() => setShowApiKey(!showApiKey)}
                 style={{ flexShrink: 0 }}
               >
@@ -657,9 +670,9 @@ export function Settings({ }: SettingsProps) {
           </div>
 
           <div className="settings-item">
-            <div className="settings-item-label">Modelo</div>
+            <div className="settings-item-label">{t('geral.model_label')}</div>
             <div className="settings-item-description">
-              Modelo Gemini para categorização e resumos.
+              {t('geral.model_gemini_description')}
             </div>
             <select
               className="vscode-select"
@@ -678,9 +691,9 @@ export function Settings({ }: SettingsProps) {
       {settings.aiProvider === 'grok' && (
         <div className="settings-group">
           <div className="settings-item">
-            <div className="settings-item-label">API Key (Grok)</div>
+            <div className="settings-item-label">{t('geral.api_key_grok_label')}</div>
             <div className="settings-item-description">
-              Gere em: <code>console.x.ai</code>
+              {t('geral.api_key_grok_description')}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, maxWidth: 400 }}>
               <input
@@ -694,7 +707,7 @@ export function Settings({ }: SettingsProps) {
               <button
                 className="icon-button"
                 type="button"
-                title={showApiKey ? 'Ocultar chave' : 'Mostrar chave'}
+                title={showApiKey ? t('geral.api_key_hide') : t('geral.api_key_show')}
                 onClick={() => setShowApiKey(!showApiKey)}
                 style={{ flexShrink: 0 }}
               >
@@ -704,9 +717,9 @@ export function Settings({ }: SettingsProps) {
           </div>
 
           <div className="settings-item">
-            <div className="settings-item-label">Modelo</div>
+            <div className="settings-item-label">{t('geral.model_label')}</div>
             <div className="settings-item-description">
-              Modelo Grok para categorização e resumos.
+              {t('geral.model_grok_description')}
             </div>
             <select
               className="vscode-select"
@@ -725,39 +738,39 @@ export function Settings({ }: SettingsProps) {
       {settings.aiProvider === 'local' && (
         <div className="settings-group">
           <div className="settings-item">
-            <div className="settings-item-label">Endpoint</div>
+            <div className="settings-item-label">{t('geral.local_endpoint_label')}</div>
             <div className="settings-item-description">
-              URL base do servidor local. LM Studio usa <code>http://localhost:1234</code> por padrão.
+              {t('geral.local_endpoint_description')}
             </div>
             <input
               type="text"
               className="vscode-input"
               value={settings.localEndpoint}
               onChange={(e) => setSettings({ ...settings, localEndpoint: e.target.value })}
-              placeholder="http://localhost:1234"
+              placeholder={t('geral.local_endpoint_placeholder')}
               style={{ maxWidth: 400 }}
             />
           </div>
 
           <div className="settings-item">
-            <div className="settings-item-label">Modelo (opcional)</div>
+            <div className="settings-item-label">{t('geral.local_model_label')}</div>
             <div className="settings-item-description">
-              Nome do modelo carregado no servidor. No LM Studio, deixe vazio para usar o modelo ativo.
+              {t('geral.local_model_description')}
             </div>
             <input
               type="text"
               className="vscode-input"
               value={settings.localModelId}
               onChange={(e) => setSettings({ ...settings, localModelId: e.target.value })}
-              placeholder="Ex: qwen2.5-7b-instruct"
+              placeholder={t('geral.local_model_placeholder')}
               style={{ maxWidth: 400 }}
             />
           </div>
 
           <div className="settings-item">
-            <div className="settings-item-label">API Key (opcional)</div>
+            <div className="settings-item-label">{t('geral.local_api_key_label')}</div>
             <div className="settings-item-description">
-              Apenas se o servidor local exigir autenticação. A maioria não precisa.
+              {t('geral.local_api_key_description')}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, maxWidth: 400 }}>
               <input
@@ -765,13 +778,13 @@ export function Settings({ }: SettingsProps) {
                 className="vscode-input"
                 value={settings.localApiKey}
                 onChange={(e) => setSettings({ ...settings, localApiKey: e.target.value })}
-                placeholder="Deixe vazio se não necessário"
+                placeholder={t('geral.local_api_key_placeholder')}
                 style={{ flex: 1 }}
               />
               <button
                 className="icon-button"
                 type="button"
-                title={showApiKey ? 'Ocultar chave' : 'Mostrar chave'}
+                title={showApiKey ? t('geral.api_key_hide') : t('geral.api_key_show')}
                 onClick={() => setShowApiKey(!showApiKey)}
                 style={{ flexShrink: 0 }}
               >
@@ -782,8 +795,7 @@ export function Settings({ }: SettingsProps) {
 
           <div className="settings-item" style={{ padding: '12px', borderRadius: 4, background: 'var(--vscode-editor-background)', border: '1px solid var(--vscode-panel-border)' }}>
             <div style={{ fontSize: 12, opacity: 0.8, lineHeight: 1.5 }}>
-              <strong>Dica:</strong> Para melhores resultados, use modelos com pelo menos 7B parâmetros e
-              que suportem instruções em português. Recomendados: Qwen 2.5, Llama 3, Mistral.
+              <strong>{t('geral.local_tip_prefix')}</strong> {t('geral.local_tip')}
             </div>
           </div>
         </div>
@@ -796,7 +808,7 @@ export function Settings({ }: SettingsProps) {
           onClick={handleSave}
           disabled={isSaving}
         >
-          {isSaving ? 'Salvando...' : 'Salvar Configurações'}
+          {isSaving ? t('save_button_saving') : t('save_button')}
         </button>
       </div>
     </div>
@@ -804,33 +816,57 @@ export function Settings({ }: SettingsProps) {
 
   const renderAparenciaTab = () => (
     <div className="settings-tab-content">
+      {/* Language */}
       <div className="settings-group">
         <div className="settings-section-title">
-          <Type size={16} />
-          <span>Fonte do Conteúdo</span>
+          <Globe size={16} />
+          <span>{t('aparencia.language_section_title')}</span>
         </div>
 
         <div className="settings-item">
-          <div className="settings-item-label">Família da Fonte</div>
+          <div className="settings-item-label">{t('aparencia.language_label')}</div>
           <div className="settings-item-description">
-            Fonte usada na área de conteúdo (entradas, tarefas, captura). A interface do app não é afetada.
+            {t('aparencia.language_description')}
+          </div>
+          <select
+            className="vscode-select"
+            value={i18n.language}
+            onChange={(e) => handleLanguageChange(e.target.value as SupportedLocale)}
+          >
+            {LANGUAGE_OPTIONS.map((option) => (
+              <option key={option.code} value={option.code}>{option.nativeName}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="settings-group">
+        <div className="settings-section-title">
+          <Type size={16} />
+          <span>{t('aparencia.font_section_title')}</span>
+        </div>
+
+        <div className="settings-item">
+          <div className="settings-item-label">{t('aparencia.font_family_label')}</div>
+          <div className="settings-item-description">
+            {t('aparencia.font_family_description')}
           </div>
           <select
             className="vscode-select"
             value={settings.fontFamily}
             onChange={(e) => setSettings({ ...settings, fontFamily: e.target.value })}
           >
-            <optgroup label="Sans-serif">
+            <optgroup label={t('aparencia.font_group_sans')}>
               {FONT_FAMILIES.filter(f => !f.stack.includes('monospace') && !f.stack.includes('serif,')).map((font) => (
                 <option key={font.id} value={font.id}>{font.label}</option>
               ))}
             </optgroup>
-            <optgroup label="Monospace">
+            <optgroup label={t('aparencia.font_group_mono')}>
               {FONT_FAMILIES.filter(f => f.stack.includes('monospace')).map((font) => (
                 <option key={font.id} value={font.id}>{font.label}</option>
               ))}
             </optgroup>
-            <optgroup label="Serif">
+            <optgroup label={t('aparencia.font_group_serif')}>
               {FONT_FAMILIES.filter(f => f.stack.includes('serif,') && !f.stack.includes('sans-serif')).map((font) => (
                 <option key={font.id} value={font.id}>{font.label}</option>
               ))}
@@ -839,9 +875,9 @@ export function Settings({ }: SettingsProps) {
         </div>
 
         <div className="settings-item">
-          <div className="settings-item-label">Tamanho da Fonte</div>
+          <div className="settings-item-label">{t('aparencia.font_size_label')}</div>
           <div className="settings-item-description">
-            Tamanho em pixels para a área de conteúdo ({settings.fontSize}px).
+            {t('aparencia.font_size_description', { size: settings.fontSize })}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
             <span style={{ fontSize: 11, opacity: 0.7 }}>12</span>
@@ -872,7 +908,7 @@ export function Settings({ }: SettingsProps) {
 
         {/* Live Preview */}
         <div className="settings-item">
-          <div className="settings-item-label">Pré-visualização</div>
+          <div className="settings-item-label">{t('aparencia.font_preview_label')}</div>
           <div
             style={{
               marginTop: 8,
@@ -885,8 +921,8 @@ export function Settings({ }: SettingsProps) {
               lineHeight: 1.6,
             }}
           >
-            <p>Reunião com equipe de produto sobre roadmap Q3.</p>
-            <p style={{ marginTop: settings.uiDensity === 'compact' ? 4 : 8, opacity: 0.7 }}>Decisão: priorizar integração com calendário antes do módulo de relatórios.</p>
+            <p>{t('aparencia.font_preview_text_1')}</p>
+            <p style={{ marginTop: settings.uiDensity === 'compact' ? 4 : 8, opacity: 0.7 }}>{t('aparencia.font_preview_text_2')}</p>
           </div>
         </div>
       </div>
@@ -895,53 +931,55 @@ export function Settings({ }: SettingsProps) {
       <div className="settings-group">
         <div className="settings-section-title">
           <Monitor size={16} />
-          <span>Exibição</span>
+          <span>{t('aparencia.display_section_title')}</span>
         </div>
 
         <div className="settings-item">
-          <div className="settings-item-label">Formato de Data</div>
+          <div className="settings-item-label">{t('aparencia.date_format_label')}</div>
           <div className="settings-item-description">
-            Como as datas são exibidas na interface e nos exports.
+            {t('aparencia.date_format_description')}
           </div>
           <select
             className="vscode-select"
             value={settings.dateFormat}
             onChange={(e) => setSettings({ ...settings, dateFormat: e.target.value as DateFormat })}
           >
-            <option value="DD/MM/YYYY">DD/MM/YYYY (brasileiro)</option>
-            <option value="MM/DD/YYYY">MM/DD/YYYY (americano)</option>
-            <option value="YYYY-MM-DD">YYYY-MM-DD (ISO)</option>
+            <option value="DD/MM/YYYY">{t('aparencia.date_format_br')}</option>
+            <option value="MM/DD/YYYY">{t('aparencia.date_format_us')}</option>
+            <option value="YYYY-MM-DD">{t('aparencia.date_format_iso')}</option>
           </select>
           <div style={{ marginTop: 8, fontSize: 12, opacity: 0.7 }}>
-            Exemplo: {(() => {
-              const now = new Date()
-              const d = String(now.getDate()).padStart(2, '0')
-              const m = String(now.getMonth() + 1).padStart(2, '0')
-              const y = now.getFullYear()
-              if (settings.dateFormat === 'DD/MM/YYYY') return `${d}/${m}/${y}`
-              if (settings.dateFormat === 'MM/DD/YYYY') return `${m}/${d}/${y}`
-              return `${y}-${m}-${d}`
-            })()}
+            {t('aparencia.date_format_example', {
+              example: (() => {
+                const now = new Date()
+                const d = String(now.getDate()).padStart(2, '0')
+                const m = String(now.getMonth() + 1).padStart(2, '0')
+                const y = now.getFullYear()
+                if (settings.dateFormat === 'DD/MM/YYYY') return `${d}/${m}/${y}`
+                if (settings.dateFormat === 'MM/DD/YYYY') return `${m}/${d}/${y}`
+                return `${y}-${m}-${d}`
+              })()
+            })}
           </div>
         </div>
 
         <div className="settings-item">
-          <div className="settings-item-label">Densidade da Interface</div>
+          <div className="settings-item-label">{t('aparencia.density_label')}</div>
           <div className="settings-item-description">
-            Controla o espaçamento entre elementos. Compacta mostra mais informação por tela.
+            {t('aparencia.density_description')}
           </div>
           <div className="provider-toggle" style={{ display: 'flex', gap: 8, marginTop: 8 }}>
             <button
               className={`vscode-button ${settings.uiDensity === 'comfortable' ? '' : 'secondary'}`}
               onClick={() => setSettings({ ...settings, uiDensity: 'comfortable' })}
             >
-              Confortável
+              {t('aparencia.density_comfortable')}
             </button>
             <button
               className={`vscode-button ${settings.uiDensity === 'compact' ? '' : 'secondary'}`}
               onClick={() => setSettings({ ...settings, uiDensity: 'compact' })}
             >
-              Compacta
+              {t('aparencia.density_compact')}
             </button>
           </div>
         </div>
@@ -954,7 +992,7 @@ export function Settings({ }: SettingsProps) {
           onClick={handleSave}
           disabled={isSaving}
         >
-          {isSaving ? 'Salvando...' : 'Salvar Configurações'}
+          {isSaving ? t('save_button_saving') : t('save_button')}
         </button>
       </div>
     </div>
@@ -966,13 +1004,13 @@ export function Settings({ }: SettingsProps) {
       <div className="settings-group">
         <div className="settings-section-title">
           <HardDrive size={16} />
-          <span>Backup & Restauração</span>
+          <span>{t('dados.backup_section_title')}</span>
         </div>
 
         <div className="settings-item">
-          <div className="settings-item-label">Frequência de Backup</div>
+          <div className="settings-item-label">{t('dados.backup_frequency_label')}</div>
           <div className="settings-item-description">
-            Com que frequência backups automáticos são criados.
+            {t('dados.backup_frequency_description')}
           </div>
           <select
             className="vscode-select"
@@ -980,18 +1018,18 @@ export function Settings({ }: SettingsProps) {
             onChange={(e) => setSettings({ ...settings, backupFrequency: e.target.value as BackupFrequency })}
             style={{ marginTop: 6 }}
           >
-            <option value="startup">A cada inicialização</option>
-            <option value="4h">A cada 4 horas</option>
-            <option value="8h">A cada 8 horas</option>
-            <option value="12h">A cada 12 horas</option>
-            <option value="disabled">Desativado</option>
+            <option value="startup">{t('dados.backup_frequency_startup')}</option>
+            <option value="4h">{t('dados.backup_frequency_4h')}</option>
+            <option value="8h">{t('dados.backup_frequency_8h')}</option>
+            <option value="12h">{t('dados.backup_frequency_12h')}</option>
+            <option value="disabled">{t('dados.backup_frequency_disabled')}</option>
           </select>
         </div>
 
         <div className="settings-item">
-          <div className="settings-item-label">Limite de Backups</div>
+          <div className="settings-item-label">{t('dados.backup_limit_label')}</div>
           <div className="settings-item-description">
-            Máximo de backups automáticos mantidos. Os mais antigos são removidos ({settings.backupLimit} atualmente).
+            {t('dados.backup_limit_description', { count: settings.backupLimit })}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
             <span style={{ fontSize: 11, opacity: 0.7 }}>3</span>
@@ -1027,7 +1065,7 @@ export function Settings({ }: SettingsProps) {
             disabled={backupLoading}
           >
             <Download size={14} style={{ marginRight: 4 }} />
-            Exportar Backup
+            {t('dados.backup_export')}
           </button>
           <button
             className="vscode-button secondary"
@@ -1035,13 +1073,13 @@ export function Settings({ }: SettingsProps) {
             disabled={backupLoading}
           >
             <Upload size={14} style={{ marginRight: 4 }} />
-            Importar Backup
+            {t('dados.backup_import')}
           </button>
         </div>
 
         {backups.length > 0 && (
           <div className="settings-item">
-            <div className="settings-item-label">Backups Automáticos</div>
+            <div className="settings-item-label">{t('dados.backup_auto_label')}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
               {backups.map((backup) => (
                 <div
@@ -1063,7 +1101,7 @@ export function Settings({ }: SettingsProps) {
                   <div style={{ display: 'flex', gap: 4 }}>
                     <button
                       className="icon-button"
-                      title="Restaurar este backup"
+                      title={t('dados.backup_restore_title')}
                       onClick={() => handleRestoreBackup(backup.filePath)}
                       disabled={backupLoading}
                     >
@@ -1071,7 +1109,7 @@ export function Settings({ }: SettingsProps) {
                     </button>
                     <button
                       className="icon-button"
-                      title="Excluir backup"
+                      title={t('dados.backup_delete_title')}
                       onClick={() => handleDeleteBackup(backup.filePath)}
                       disabled={backupLoading}
                     >
@@ -1087,7 +1125,7 @@ export function Settings({ }: SettingsProps) {
         {backups.length === 0 && (
           <div className="settings-item">
             <div className="settings-item-description" style={{ fontStyle: 'italic' }}>
-              Nenhum backup automático encontrado. Um será criado na próxima inicialização.
+              {t('dados.backup_none')}
             </div>
           </div>
         )}
@@ -1097,19 +1135,18 @@ export function Settings({ }: SettingsProps) {
       <div className="settings-group" style={{ marginTop: 24 }}>
         <div className="settings-section-title">
           <Database size={16} />
-          <span>Local da Database</span>
+          <span>{t('dados.db_section_title')}</span>
         </div>
 
         <div className="settings-item">
           <div className="settings-item-description">
-            Configure onde a database é armazenada. Use uma pasta de nuvem (OneDrive, Dropbox, Google Drive)
-            para sincronizar entre máquinas.
+            {t('dados.db_description')}
           </div>
         </div>
 
         {dbPathInfo && (
           <div className="settings-item">
-            <div className="settings-item-label">Caminho atual</div>
+            <div className="settings-item-label">{t('dados.db_current_path')}</div>
             <div
               style={{
                 padding: '8px 12px',
@@ -1126,7 +1163,7 @@ export function Settings({ }: SettingsProps) {
             </div>
             {dbPathInfo.isCustom && (
               <div style={{ fontSize: 11, opacity: 0.7, marginTop: 4 }}>
-                Padrão: {dbPathInfo.defaultPath}
+                {t('dados.db_default_label', { path: dbPathInfo.defaultPath })}
               </div>
             )}
           </div>
@@ -1139,7 +1176,7 @@ export function Settings({ }: SettingsProps) {
             disabled={dbPathLoading}
           >
             <FolderOpen size={14} style={{ marginRight: 4 }} />
-            Alterar Local
+            {t('dados.db_change_location')}
           </button>
           {dbPathInfo?.isCustom && (
             <button
@@ -1148,7 +1185,7 @@ export function Settings({ }: SettingsProps) {
               disabled={dbPathLoading}
             >
               <RotateCcw size={14} style={{ marginRight: 4 }} />
-              Restaurar Padrão
+              {t('dados.db_restore_default')}
             </button>
           )}
         </div>
@@ -1161,7 +1198,7 @@ export function Settings({ }: SettingsProps) {
           onClick={handleSave}
           disabled={isSaving}
         >
-          {isSaving ? 'Salvando...' : 'Salvar Configurações'}
+          {isSaving ? t('save_button_saving') : t('save_button')}
         </button>
       </div>
     </div>
@@ -1173,13 +1210,13 @@ export function Settings({ }: SettingsProps) {
       <div className="settings-group">
         <div className="settings-section-title">
           <SettingsIcon size={16} />
-          <span>Comportamento</span>
+          <span>{t('avancado.behavior_section_title')}</span>
         </div>
 
         <div className="settings-item">
-          <div className="settings-item-label">Ícone na Bandeja do Sistema (Tray)</div>
+          <div className="settings-item-label">{t('avancado.tray_label')}</div>
           <div className="settings-item-description">
-            Mantém o app rodando em segundo plano ao fechar a janela. Quando desativado, fechar a janela encerra o app.
+            {t('avancado.tray_description')}
           </div>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, cursor: 'pointer' }}>
             <input
@@ -1187,14 +1224,14 @@ export function Settings({ }: SettingsProps) {
               checked={settings.trayEnabled === 'true'}
               onChange={(e) => setSettings({ ...settings, trayEnabled: e.target.checked ? 'true' : 'false' })}
             />
-            <span style={{ fontSize: 13 }}>Ativar ícone na bandeja do sistema</span>
+            <span style={{ fontSize: 13 }}>{t('avancado.tray_enable')}</span>
           </label>
         </div>
 
         <div className="settings-item">
-          <div className="settings-item-label">Notificações Nativas do Sistema</div>
+          <div className="settings-item-label">{t('avancado.notifications_label')}</div>
           <div className="settings-item-description">
-            Exibe notificações do sistema operacional para tarefas vencidas, reuniões e lembretes.
+            {t('avancado.notifications_description')}
           </div>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, cursor: 'pointer' }}>
             <input
@@ -1202,14 +1239,14 @@ export function Settings({ }: SettingsProps) {
               checked={settings.nativeNotifications === 'true'}
               onChange={(e) => setSettings({ ...settings, nativeNotifications: e.target.checked ? 'true' : 'false' })}
             />
-            <span style={{ fontSize: 13 }}>Ativar notificações nativas</span>
+            <span style={{ fontSize: 13 }}>{t('avancado.notifications_enable')}</span>
           </label>
         </div>
 
         <div className="settings-item">
-          <div className="settings-item-label">Intervalo de Verificação de Tarefas</div>
+          <div className="settings-item-label">{t('avancado.task_check_label')}</div>
           <div className="settings-item-description">
-            Com que frequência o app verifica tarefas vencidas e próximas do vencimento.
+            {t('avancado.task_check_description')}
           </div>
           <select
             className="vscode-select"
@@ -1217,10 +1254,10 @@ export function Settings({ }: SettingsProps) {
             onChange={(e) => setSettings({ ...settings, taskCheckInterval: e.target.value as TaskCheckInterval })}
             style={{ marginTop: 6 }}
           >
-            <option value="15">A cada 15 minutos</option>
-            <option value="30">A cada 30 minutos</option>
-            <option value="60">A cada 1 hora</option>
-            <option value="disabled">Desativado</option>
+            <option value="15">{t('avancado.task_check_15')}</option>
+            <option value="30">{t('avancado.task_check_30')}</option>
+            <option value="60">{t('avancado.task_check_60')}</option>
+            <option value="disabled">{t('avancado.task_check_disabled')}</option>
           </select>
         </div>
       </div>
@@ -1229,13 +1266,13 @@ export function Settings({ }: SettingsProps) {
       <div className="settings-group" style={{ marginTop: 24 }}>
         <div className="settings-section-title">
           <Sunrise size={16} />
-          <span>Daily Digest</span>
+          <span>{t('avancado.digest_section_title')}</span>
         </div>
 
         <div className="settings-item">
-          <div className="settings-item-label">Exibir ao iniciar o app</div>
+          <div className="settings-item-label">{t('avancado.digest_show_label')}</div>
           <div className="settings-item-description">
-            Mostra um resumo do dia com tasks pendentes, atividade de ontem e sugestão de foco da IA.
+            {t('avancado.digest_show_description')}
           </div>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, cursor: 'pointer' }}>
             <input
@@ -1243,21 +1280,21 @@ export function Settings({ }: SettingsProps) {
               checked={settings.dailyDigestEnabled === 'true'}
               onChange={(e) => setSettings({ ...settings, dailyDigestEnabled: e.target.checked ? 'true' : 'false' })}
             />
-            <span style={{ fontSize: 13 }}>Ativar Daily Digest no startup</span>
+            <span style={{ fontSize: 13 }}>{t('avancado.digest_enable')}</span>
           </label>
         </div>
 
         {settings.dailyDigestEnabled === 'true' && (
           <div className="settings-item">
-            <div className="settings-item-label">Seções visíveis</div>
+            <div className="settings-item-label">{t('avancado.digest_sections_label')}</div>
             <div className="settings-item-description">
-              Escolha quais seções aparecem no digest.
+              {t('avancado.digest_sections_description')}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
               {[
-                { key: 'aiSuggestion', label: '💡 Sugestão de foco (IA)' },
-                { key: 'pendingTasks', label: '📋 Tasks pendentes' },
-                { key: 'yesterdayActivity', label: '📅 Atividade de ontem' },
+                { key: 'aiSuggestion', label: t('avancado.digest_section_ai') },
+                { key: 'pendingTasks', label: t('avancado.digest_section_tasks') },
+                { key: 'yesterdayActivity', label: t('avancado.digest_section_yesterday') },
               ].map((section) => {
                 const sections = settings.dailyDigestSections.split(',').filter(Boolean)
                 const isChecked = sections.includes(section.key)
@@ -1289,19 +1326,19 @@ export function Settings({ }: SettingsProps) {
       <div className="settings-group" style={{ marginTop: 24 }}>
         <div className="settings-section-title">
           <Keyboard size={16} />
-          <span>Atalhos de Teclado</span>
+          <span>{t('avancado.shortcuts_section_title')}</span>
         </div>
 
         <div className="settings-item">
           <div className="settings-item-description">
-            Atalhos disponíveis no app. Não são configuráveis no momento.
+            {t('avancado.shortcuts_description')}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
             {[
-              { keys: 'Ctrl+K', description: 'Busca global (projetos, entradas, tarefas)' },
-              { keys: 'Ctrl+N', description: 'Nova captura rápida' },
-              { keys: 'Ctrl+Shift+N', description: 'Nova captura (janela em foco)' },
-              { keys: 'Esc', description: 'Fechar modais / cancelar ação' },
+              { keys: 'Ctrl+K', description: t('avancado.shortcut_global_search') },
+              { keys: 'Ctrl+N', description: t('avancado.shortcut_new_capture') },
+              { keys: 'Ctrl+Shift+N', description: t('avancado.shortcut_new_capture_focus') },
+              { keys: 'Esc', description: t('avancado.shortcut_close_modal') },
             ].map((shortcut) => (
               <div
                 key={shortcut.keys}
@@ -1335,12 +1372,12 @@ export function Settings({ }: SettingsProps) {
       <div className="settings-group" style={{ marginTop: 24 }}>
         <div className="settings-section-title">
           <FileText size={16} />
-          <span>Logs & Diagnóstico</span>
+          <span>{t('avancado.logs_section_title')}</span>
         </div>
 
         <div className="settings-item">
           <div className="settings-item-description">
-            Acesse os logs do app e a pasta de dados para diagnóstico de problemas.
+            {t('avancado.logs_description')}
           </div>
           <div className="flex-row" style={{ gap: 8, marginTop: 8 }}>
             <button
@@ -1348,14 +1385,14 @@ export function Settings({ }: SettingsProps) {
               onClick={() => window.electronAPI.openLogsFolder()}
             >
               <FolderOpen size={14} style={{ marginRight: 4 }} />
-              Abrir Pasta de Logs
+              {t('avancado.logs_open_folder')}
             </button>
             <button
               className="vscode-button secondary"
               onClick={() => window.electronAPI.openUserDataFolder()}
             >
               <FolderOpen size={14} style={{ marginRight: 4 }} />
-              Abrir Pasta do App
+              {t('avancado.logs_open_app_folder')}
             </button>
           </div>
         </div>
@@ -1368,7 +1405,7 @@ export function Settings({ }: SettingsProps) {
           onClick={handleSave}
           disabled={isSaving}
         >
-          {isSaving ? 'Salvando...' : 'Salvar Configurações'}
+          {isSaving ? t('save_button_saving') : t('save_button')}
         </button>
       </div>
 
@@ -1376,14 +1413,13 @@ export function Settings({ }: SettingsProps) {
       <div className="settings-group" style={{ marginTop: 24 }}>
         <div className="settings-section-title danger">
           <AlertTriangle size={16} />
-          <span>Zona de Perigo</span>
+          <span>{t('avancado.danger_section_title')}</span>
         </div>
 
         <div className="settings-item">
-          <div className="settings-item-label">Resetar Database</div>
+          <div className="settings-item-label">{t('avancado.reset_db_label')}</div>
           <div className="settings-item-description">
-            Remove todos os dados e começa do zero. A database atual será arquivada automaticamente
-            na pasta de backups e poderá ser restaurada depois.
+            {t('avancado.reset_db_description')}
           </div>
           <button
             className="vscode-button"
@@ -1396,7 +1432,7 @@ export function Settings({ }: SettingsProps) {
             disabled={backupLoading}
           >
             <Trash2 size={14} style={{ marginRight: 4 }} />
-            Resetar Database
+            {t('avancado.reset_db_button')}
           </button>
         </div>
       </div>
@@ -1431,8 +1467,8 @@ export function Settings({ }: SettingsProps) {
         isOpen={confirmModal !== null}
         title={confirmModal?.title ?? ''}
         message={confirmModal?.message ?? ''}
-        confirmLabel={confirmModal?.confirmLabel ?? 'Confirmar'}
-        cancelLabel={confirmModal?.cancelLabel ?? 'Cancelar'}
+        confirmLabel={confirmModal?.confirmLabel ?? t('common:confirm')}
+        cancelLabel={confirmModal?.cancelLabel ?? t('common:cancel')}
         alternativeLabel={confirmModal?.alternativeLabel}
         secondAlternativeLabel={confirmModal?.secondAlternativeLabel}
         variant={confirmModal?.variant ?? 'default'}

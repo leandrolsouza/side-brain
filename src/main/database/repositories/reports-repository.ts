@@ -174,29 +174,58 @@ export class ReportsRepository {
   getProjectRanking(dateFrom?: string, dateTo?: string): ProjectRanking[] {
     const db = getDatabase()
 
-    const dateConditionEntries = dateFrom || dateTo
-      ? ` AND e.created_at ${dateFrom ? '>= ?' : ''} ${dateFrom && dateTo ? 'AND e.created_at' : ''} ${dateTo ? '<= ?' : ''}`
-      : ''
-    const dateConditionTasks = dateFrom || dateTo
-      ? ` AND t.created_at ${dateFrom ? '>= ?' : ''} ${dateFrom && dateTo ? 'AND t.created_at' : ''} ${dateTo ? '<= ?' : ''}`
-      : ''
+    // Build date filter conditions for entries and tasks
+    const entryConditions: string[] = []
+    const taskConditions: string[] = []
+    const params: string[] = []
 
-    const dateParams = [dateFrom, dateTo].filter(Boolean) as string[]
+    if (dateFrom) {
+      entryConditions.push('e.created_at >= ?')
+      taskConditions.push('t.created_at >= ?')
+      params.push(dateFrom)
+    }
+    if (dateTo) {
+      entryConditions.push('e.created_at <= ?')
+      taskConditions.push('t.created_at <= ?')
+      params.push(dateTo)
+    }
 
-    // Get projects with their counts
+    const entryWhere = entryConditions.length > 0 ? ' AND ' + entryConditions.join(' AND ') : ''
+    const taskWhere = taskConditions.length > 0 ? ' AND ' + taskConditions.join(' AND ') : ''
+
+    // Use LEFT JOINs with conditional aggregation instead of correlated subqueries
     const rows = db.prepare(`
       SELECT
         p.id as projectId,
         p.name as projectName,
-        (SELECT COUNT(*) FROM entries e WHERE e.project_id = p.id${dateConditionEntries}) as entryCount,
-        (SELECT COUNT(*) FROM tasks t WHERE t.project_id = p.id${dateConditionTasks}) as taskCount,
-        (SELECT COUNT(*) FROM tasks t WHERE t.project_id = p.id AND t.status = 'done'${dateConditionTasks}) as completedTasks,
-        (SELECT COUNT(*) FROM entries e WHERE e.project_id = p.id AND e.type = 'blocker'${dateConditionEntries}) as blockerCount,
-        (SELECT MAX(e.created_at) FROM entries e WHERE e.project_id = p.id) as lastActivityDate
+        COALESCE(ec.entryCount, 0) as entryCount,
+        COALESCE(tc.taskCount, 0) as taskCount,
+        COALESCE(tc.completedTasks, 0) as completedTasks,
+        COALESCE(ec.blockerCount, 0) as blockerCount,
+        ec.lastActivityDate
       FROM projects p
+      LEFT JOIN (
+        SELECT
+          e.project_id,
+          COUNT(*) as entryCount,
+          SUM(CASE WHEN e.type = 'blocker' THEN 1 ELSE 0 END) as blockerCount,
+          MAX(e.created_at) as lastActivityDate
+        FROM entries e
+        WHERE 1=1${entryWhere}
+        GROUP BY e.project_id
+      ) ec ON ec.project_id = p.id
+      LEFT JOIN (
+        SELECT
+          t.project_id,
+          COUNT(*) as taskCount,
+          SUM(CASE WHEN t.status = 'done' THEN 1 ELSE 0 END) as completedTasks
+        FROM tasks t
+        WHERE 1=1${taskWhere}
+        GROUP BY t.project_id
+      ) tc ON tc.project_id = p.id
       WHERE p.active = 1
-      ORDER BY entryCount + taskCount DESC
-    `).all(...dateParams, ...dateParams, ...dateParams, ...dateParams) as ProjectRanking[]
+      ORDER BY COALESCE(ec.entryCount, 0) + COALESCE(tc.taskCount, 0) DESC
+    `).all(...params, ...params) as ProjectRanking[]
 
     return rows
   }

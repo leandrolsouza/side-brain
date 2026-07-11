@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { ArrowLeft, List, LayoutGrid, Sparkles, X, Download, Video, Plus } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { MarkdownViewer } from './MarkdownViewer'
 import { EntryList } from './EntryList'
 import { KanbanBoard } from './KanbanBoard'
@@ -17,6 +18,7 @@ interface ProjectViewProps {
 }
 
 export function ProjectView({ projectId, projectName, initialTab, onBack, onNavigateToMeeting }: ProjectViewProps) {
+  const { t } = useTranslation('projects')
   const [activeTab, setActiveTab] = useState<ProjectTab>(initialTab || 'entries')
   const [summary, setSummary] = useState<string | null>(null)
   const [isLoadingSummary, setIsLoadingSummary] = useState(false)
@@ -68,7 +70,7 @@ export function ProjectView({ projectId, projectName, initialTab, onBack, onNavi
           <button
             className="icon-button"
             onClick={onBack}
-            title="Voltar aos projetos"
+            title={t('backToProjects')}
             style={{ opacity: 1 }}
           >
             <ArrowLeft size={16} />
@@ -81,7 +83,7 @@ export function ProjectView({ projectId, projectName, initialTab, onBack, onNavi
             style={{ marginLeft: 12 }}
           >
             <Sparkles size={14} />
-            {isLoadingSummary ? 'Gerando...' : 'Me atualiza'}
+            {isLoadingSummary ? t('generatingSummary') : t('generateSummary')}
           </button>
           <div ref={exportMenuRef} style={{ position: 'relative', marginLeft: 8 }}>
             <button
@@ -90,15 +92,15 @@ export function ProjectView({ projectId, projectName, initialTab, onBack, onNavi
               disabled={isExporting}
             >
               <Download size={14} />
-              {isExporting ? 'Exportando...' : 'Exportar'}
+              {isExporting ? t('exporting') : t('export')}
             </button>
             {showExportMenu && (
               <div className="export-dropdown">
                 <button className="export-dropdown-item" onClick={() => handleExport('markdown')}>
-                  Markdown (.md)
+                  {t('exportMarkdown')}
                 </button>
                 <button className="export-dropdown-item" onClick={() => handleExport('pdf')}>
-                  PDF (.pdf)
+                  {t('exportPdf')}
                 </button>
               </div>
             )}
@@ -111,21 +113,21 @@ export function ProjectView({ projectId, projectName, initialTab, onBack, onNavi
             onClick={() => setActiveTab('entries')}
           >
             <List size={14} />
-            Entradas
+            {t('tabEntries')}
           </button>
           <button
             className={`project-tab ${activeTab === 'kanban' ? 'active' : ''}`}
             onClick={() => setActiveTab('kanban')}
           >
             <LayoutGrid size={14} />
-            Kanban
+            {t('tabKanban')}
           </button>
           <button
             className={`project-tab ${activeTab === 'meetings' ? 'active' : ''}`}
             onClick={() => setActiveTab('meetings')}
           >
             <Video size={14} />
-            Reuniões
+            {t('tabMeetings')}
           </button>
         </div>
       </div>
@@ -136,7 +138,7 @@ export function ProjectView({ projectId, projectName, initialTab, onBack, onNavi
           <div className="summary-modal" onClick={(e) => e.stopPropagation()}>
             <div className="summary-modal-header">
               <Sparkles size={16} />
-              <span>Resumo do Projeto</span>
+              <span>{t('projectSummary')}</span>
               <button className="icon-button" onClick={() => setSummary(null)}>
                 <X size={16} />
               </button>
@@ -164,7 +166,7 @@ export function ProjectView({ projectId, projectName, initialTab, onBack, onNavi
                 onClick={() => onNavigateToMeeting(projectId)}
               >
                 <Plus size={14} />
-                Nova Reunião
+                {t('newMeeting')}
               </button>
             </div>
             <MeetingHistory projectId={projectId} />

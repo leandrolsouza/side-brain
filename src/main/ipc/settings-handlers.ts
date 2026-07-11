@@ -3,6 +3,7 @@ import path from 'path'
 import { safeHandle } from './safe-handle'
 import { getContainer } from '../services/container'
 import { enableTray, disableTray } from '../index'
+import { setLocale } from '../i18n'
 
 export function registerSettingsHandlers(): void {
   const { settingsRepo } = getContainer()
@@ -12,6 +13,10 @@ export function registerSettingsHandlers(): void {
   })
 
   safeHandle('settings:update', async (_event, settings: Record<string, any>) => {
+    // Sync main process locale if language changed
+    if (settings.language) {
+      setLocale(settings.language as string)
+    }
     return settingsRepo.update(settings)
   })
 

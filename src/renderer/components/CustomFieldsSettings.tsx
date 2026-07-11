@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Plus, Trash2, GripVertical, Pencil, Check, X, Info, Gavel,
   MessageSquare, Lightbulb, AlertTriangle, RefreshCw, Users,
@@ -25,33 +26,26 @@ const ICON_MAP: Record<string, React.ComponentType<{ size?: number }>> = {
 
 const AVAILABLE_ICONS = Object.keys(ICON_MAP)
 
-const COLOR_OPTIONS = [
-  { value: 'info', label: 'Azul' },
-  { value: 'warning', label: 'Amarelo' },
-  { value: 'error', label: 'Vermelho' },
-  { value: 'success', label: 'Verde' },
-  { value: 'neutral', label: 'Cinza' },
-]
-
 export function CustomFieldsSettings() {
+  const { t } = useTranslation('common')
   const { addToast } = useToast()
   const [activeTab, setActiveTab] = useState<ActiveTab>('entry-types')
 
   return (
     <div className="flex-col" style={{ height: '100%' }}>
       <div className="panel-header">
-        <span className="panel-title">Campos Personalizados</span>
+        <span className="panel-title">{t('customFields.title')}</span>
       </div>
       <p className="panel-description">
-        Configure os tipos de entrada, status de ação e templates de captura do seu workspace.
+        {t('customFields.description')}
       </p>
 
       {/* Tabs */}
       <div className="settings-tabs" style={{ marginBottom: 16 }}>
         {([
-          { id: 'entry-types', label: 'Tipos de Entrada' },
-          { id: 'action-statuses', label: 'Status de Ação' },
-          { id: 'capture-templates', label: 'Templates de Captura' },
+          { id: 'entry-types', label: t('customFields.tabEntryTypes') },
+          { id: 'action-statuses', label: t('customFields.tabActionStatuses') },
+          { id: 'capture-templates', label: t('customFields.tabCaptureTemplates') },
         ] as { id: ActiveTab; label: string }[]).map((tab) => (
           <button
             key={tab.id}
@@ -76,6 +70,7 @@ export function CustomFieldsSettings() {
 // === Entry Types Panel ===
 
 function EntryTypesPanel() {
+  const { t } = useTranslation('common')
   const { addToast } = useToast()
   const [items, setItems] = useState<CustomEntryType[]>([])
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -122,7 +117,7 @@ function EntryTypesPanel() {
 
   const saveEdit = async () => {
     if (!formKey.trim() || !formLabel.trim()) {
-      addToast('Preencha chave e label', 'error')
+      addToast(t('customFields.fillKeyAndLabel'), 'error')
       return
     }
 
@@ -134,7 +129,7 @@ function EntryTypesPanel() {
         color: formColor,
         allowsAction: formAllowsAction,
       })
-      addToast('Tipo atualizado', 'success')
+      addToast(t('customFields.typeUpdated'), 'success')
     } else {
       const maxOrder = items.length > 0 ? Math.max(...items.map(i => i.sortOrder)) + 1 : 0
       await window.electronAPI.createEntryType({
@@ -146,7 +141,7 @@ function EntryTypesPanel() {
         sortOrder: maxOrder,
         allowsAction: formAllowsAction,
       })
-      addToast('Tipo criado', 'success')
+      addToast(t('customFields.typeCreated'), 'success')
     }
     cancelEdit()
     await load()
@@ -156,9 +151,9 @@ function EntryTypesPanel() {
     if (!deleteTarget) return
     const result = await window.electronAPI.deleteEntryType(deleteTarget)
     if (result) {
-      addToast('Tipo removido', 'success')
+      addToast(t('customFields.typeRemoved'), 'success')
     } else {
-      addToast('Não é possível remover tipos padrão', 'error')
+      addToast(t('customFields.cannotRemoveDefault'), 'error')
     }
     setDeleteTarget(null)
     await load()
@@ -168,7 +163,7 @@ function EntryTypesPanel() {
     const newItems = [...items]
     const swapIndex = direction === 'up' ? index - 1 : index + 1
     if (swapIndex < 0 || swapIndex >= newItems.length) return
-    ;[newItems[index], newItems[swapIndex]] = [newItems[swapIndex], newItems[index]]
+      ;[newItems[index], newItems[swapIndex]] = [newItems[swapIndex], newItems[index]]
     setItems(newItems)
     await window.electronAPI.reorderEntryTypes(newItems.map(i => i.id))
   }
@@ -177,11 +172,11 @@ function EntryTypesPanel() {
     <div className="flex-col gap-8">
       <div className="flex-row" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
         <span style={{ fontSize: 12, color: 'var(--vscode-descriptionForeground)' }}>
-          Define quais tipos uma entrada pode ter. A IA usa esses tipos para classificar.
+          {t('customFields.entryTypesDesc')}
         </span>
         <button className="vscode-button" onClick={startAdd} disabled={isAdding}>
           <Plus size={14} />
-          Novo Tipo
+          {t('customFields.newType')}
         </button>
       </div>
 
@@ -195,7 +190,7 @@ function EntryTypesPanel() {
           extraField={
             <label className="custom-fields-checkbox">
               <input type="checkbox" checked={formAllowsAction} onChange={(e) => setFormAllowsAction(e.target.checked)} />
-              <span>Permite ação (entries com este tipo podem ter status de ação)</span>
+              <span>{t('customFields.allowsAction')}</span>
             </label>
           }
           onSave={saveEdit}
@@ -215,7 +210,7 @@ function EntryTypesPanel() {
               extraField={
                 <label className="custom-fields-checkbox">
                   <input type="checkbox" checked={formAllowsAction} onChange={(e) => setFormAllowsAction(e.target.checked)} />
-                  <span>Permite ação</span>
+                  <span>{t('customFields.allowsActionShort')}</span>
                 </label>
               }
               onSave={saveEdit}
@@ -225,25 +220,25 @@ function EntryTypesPanel() {
             <div className="custom-fields-row">
               <div className="custom-fields-row-left">
                 <div className="custom-fields-order-btns">
-                  <button className="inline-action-btn" onClick={() => moveItem(index, 'up')} disabled={index === 0} title="Mover para cima">
+                  <button className="inline-action-btn" onClick={() => moveItem(index, 'up')} disabled={index === 0} title={t('customFields.moveUp')}>
                     <ArrowUp size={12} />
                   </button>
-                  <button className="inline-action-btn" onClick={() => moveItem(index, 'down')} disabled={index === items.length - 1} title="Mover para baixo">
+                  <button className="inline-action-btn" onClick={() => moveItem(index, 'down')} disabled={index === items.length - 1} title={t('customFields.moveDown')}>
                     <ArrowDown size={12} />
                   </button>
                 </div>
                 <IconPreview name={item.icon} />
                 <span className={`vscode-badge ${item.color}`}>{item.label}</span>
                 <span className="custom-fields-key">{item.key}</span>
-                {!item.allowsAction && <span className="custom-fields-tag">sem ação</span>}
-                {item.isDefault && <span className="custom-fields-tag">padrão</span>}
+                {!item.allowsAction && <span className="custom-fields-tag">{t('customFields.noAction')}</span>}
+                {item.isDefault && <span className="custom-fields-tag">{t('customFields.default')}</span>}
               </div>
               <div className="custom-fields-row-right">
-                <button className="inline-action-btn" onClick={() => startEdit(item)} title="Editar">
+                <button className="inline-action-btn" onClick={() => startEdit(item)} title={t('edit')}>
                   <Pencil size={14} />
                 </button>
                 {!item.isDefault && (
-                  <button className="inline-action-btn" onClick={() => setDeleteTarget(item.id)} title="Excluir" style={{ color: 'var(--vscode-errorForeground)' }}>
+                  <button className="inline-action-btn" onClick={() => setDeleteTarget(item.id)} title={t('delete')} style={{ color: 'var(--vscode-errorForeground)' }}>
                     <Trash2 size={14} />
                   </button>
                 )}
@@ -255,10 +250,10 @@ function EntryTypesPanel() {
 
       <ConfirmModal
         isOpen={deleteTarget !== null}
-        title="Excluir tipo de entrada"
-        message="Tem certeza? Entradas existentes com este tipo não serão afetadas, mas o tipo não estará mais disponível para novas entradas."
-        confirmLabel="Excluir"
-        cancelLabel="Cancelar"
+        title={t('customFields.deleteEntryType')}
+        message={t('customFields.deleteEntryTypeMsg')}
+        confirmLabel={t('delete')}
+        cancelLabel={t('cancel')}
         variant="danger"
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
@@ -270,6 +265,7 @@ function EntryTypesPanel() {
 // === Action Statuses Panel ===
 
 function ActionStatusesPanel() {
+  const { t } = useTranslation('common')
   const { addToast } = useToast()
   const [items, setItems] = useState<CustomActionStatus[]>([])
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -316,7 +312,7 @@ function ActionStatusesPanel() {
 
   const saveEdit = async () => {
     if (!formKey.trim() || !formLabel.trim()) {
-      addToast('Preencha chave e label', 'error')
+      addToast(t('customFields.fillKeyAndLabel'), 'error')
       return
     }
 
@@ -328,7 +324,7 @@ function ActionStatusesPanel() {
         color: formColor,
         isFinal: formIsFinal,
       })
-      addToast('Status atualizado', 'success')
+      addToast(t('customFields.statusUpdated'), 'success')
     } else {
       const maxOrder = items.length > 0 ? Math.max(...items.map(i => i.sortOrder)) + 1 : 0
       await window.electronAPI.createActionStatus({
@@ -340,7 +336,7 @@ function ActionStatusesPanel() {
         isFinal: formIsFinal,
         sortOrder: maxOrder,
       })
-      addToast('Status criado', 'success')
+      addToast(t('customFields.statusCreated'), 'success')
     }
     cancelEdit()
     await load()
@@ -350,9 +346,9 @@ function ActionStatusesPanel() {
     if (!deleteTarget) return
     const result = await window.electronAPI.deleteActionStatus(deleteTarget)
     if (result) {
-      addToast('Status removido', 'success')
+      addToast(t('customFields.statusRemoved'), 'success')
     } else {
-      addToast('Não é possível remover status padrão', 'error')
+      addToast(t('customFields.cannotRemoveDefaultStatus'), 'error')
     }
     setDeleteTarget(null)
     await load()
@@ -362,7 +358,7 @@ function ActionStatusesPanel() {
     const newItems = [...items]
     const swapIndex = direction === 'up' ? index - 1 : index + 1
     if (swapIndex < 0 || swapIndex >= newItems.length) return
-    ;[newItems[index], newItems[swapIndex]] = [newItems[swapIndex], newItems[index]]
+      ;[newItems[index], newItems[swapIndex]] = [newItems[swapIndex], newItems[index]]
     setItems(newItems)
     await window.electronAPI.reorderActionStatuses(newItems.map(i => i.id))
   }
@@ -371,11 +367,11 @@ function ActionStatusesPanel() {
     <div className="flex-col gap-8">
       <div className="flex-row" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
         <span style={{ fontSize: 12, color: 'var(--vscode-descriptionForeground)' }}>
-          Define os possíveis status de ação para entradas que permitem ação.
+          {t('customFields.actionStatusesDesc')}
         </span>
         <button className="vscode-button" onClick={startAdd} disabled={isAdding}>
           <Plus size={14} />
-          Novo Status
+          {t('customFields.newStatus')}
         </button>
       </div>
 
@@ -388,7 +384,7 @@ function ActionStatusesPanel() {
           extraField={
             <label className="custom-fields-checkbox">
               <input type="checkbox" checked={formIsFinal} onChange={(e) => setFormIsFinal(e.target.checked)} />
-              <span>Status final (indica conclusão)</span>
+              <span>{t('customFields.isFinal')}</span>
             </label>
           }
           onSave={saveEdit}
@@ -407,7 +403,7 @@ function ActionStatusesPanel() {
               extraField={
                 <label className="custom-fields-checkbox">
                   <input type="checkbox" checked={formIsFinal} onChange={(e) => setFormIsFinal(e.target.checked)} />
-                  <span>Status final</span>
+                  <span>{t('customFields.isFinalShort')}</span>
                 </label>
               }
               onSave={saveEdit}
@@ -417,25 +413,25 @@ function ActionStatusesPanel() {
             <div className="custom-fields-row">
               <div className="custom-fields-row-left">
                 <div className="custom-fields-order-btns">
-                  <button className="inline-action-btn" onClick={() => moveItem(index, 'up')} disabled={index === 0} title="Mover para cima">
+                  <button className="inline-action-btn" onClick={() => moveItem(index, 'up')} disabled={index === 0} title={t('customFields.moveUp')}>
                     <ArrowUp size={12} />
                   </button>
-                  <button className="inline-action-btn" onClick={() => moveItem(index, 'down')} disabled={index === items.length - 1} title="Mover para baixo">
+                  <button className="inline-action-btn" onClick={() => moveItem(index, 'down')} disabled={index === items.length - 1} title={t('customFields.moveDown')}>
                     <ArrowDown size={12} />
                   </button>
                 </div>
                 <IconPreview name={item.icon} />
                 <span className={`vscode-badge ${item.color}`}>{item.label}</span>
                 <span className="custom-fields-key">{item.key}</span>
-                {item.isFinal && <span className="custom-fields-tag">final</span>}
-                {item.isDefault && <span className="custom-fields-tag">padrão</span>}
+                {item.isFinal && <span className="custom-fields-tag">{t('customFields.final')}</span>}
+                {item.isDefault && <span className="custom-fields-tag">{t('customFields.default')}</span>}
               </div>
               <div className="custom-fields-row-right">
-                <button className="inline-action-btn" onClick={() => startEdit(item)} title="Editar">
+                <button className="inline-action-btn" onClick={() => startEdit(item)} title={t('edit')}>
                   <Pencil size={14} />
                 </button>
                 {!item.isDefault && (
-                  <button className="inline-action-btn" onClick={() => setDeleteTarget(item.id)} title="Excluir" style={{ color: 'var(--vscode-errorForeground)' }}>
+                  <button className="inline-action-btn" onClick={() => setDeleteTarget(item.id)} title={t('delete')} style={{ color: 'var(--vscode-errorForeground)' }}>
                     <Trash2 size={14} />
                   </button>
                 )}
@@ -447,10 +443,10 @@ function ActionStatusesPanel() {
 
       <ConfirmModal
         isOpen={deleteTarget !== null}
-        title="Excluir status de ação"
-        message="Tem certeza? Entradas existentes com este status não serão afetadas, mas o status não estará mais disponível."
-        confirmLabel="Excluir"
-        cancelLabel="Cancelar"
+        title={t('customFields.deleteActionStatus')}
+        message={t('customFields.deleteActionStatusMsg')}
+        confirmLabel={t('delete')}
+        cancelLabel={t('cancel')}
         variant="danger"
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
@@ -462,6 +458,7 @@ function ActionStatusesPanel() {
 // === Capture Templates Panel ===
 
 function CaptureTemplatesPanel() {
+  const { t } = useTranslation('common')
   const { addToast } = useToast()
   const [items, setItems] = useState<CustomCaptureTemplate[]>([])
   const [entryTypes, setEntryTypes] = useState<CustomEntryType[]>([])
@@ -513,7 +510,7 @@ function CaptureTemplatesPanel() {
 
   const saveEdit = async () => {
     if (!formLabel.trim()) {
-      addToast('Preencha o label', 'error')
+      addToast(t('customFields.fillLabel'), 'error')
       return
     }
 
@@ -525,7 +522,7 @@ function CaptureTemplatesPanel() {
         icon: formIcon,
         hintType: formHintType,
       })
-      addToast('Template atualizado', 'success')
+      addToast(t('customFields.templateUpdated'), 'success')
     } else {
       const maxOrder = items.length > 0 ? Math.max(...items.map(i => i.sortOrder)) + 1 : 0
       await window.electronAPI.createCaptureTemplate({
@@ -537,7 +534,7 @@ function CaptureTemplatesPanel() {
         isDefault: false,
         sortOrder: maxOrder,
       })
-      addToast('Template criado', 'success')
+      addToast(t('customFields.templateCreated'), 'success')
     }
     cancelEdit()
     await load()
@@ -547,9 +544,9 @@ function CaptureTemplatesPanel() {
     if (!deleteTarget) return
     const result = await window.electronAPI.deleteCaptureTemplate(deleteTarget)
     if (result) {
-      addToast('Template removido', 'success')
+      addToast(t('customFields.templateRemoved'), 'success')
     } else {
-      addToast('Não é possível remover templates padrão', 'error')
+      addToast(t('customFields.cannotRemoveDefaultTemplate'), 'error')
     }
     setDeleteTarget(null)
     await load()
@@ -559,7 +556,7 @@ function CaptureTemplatesPanel() {
     const newItems = [...items]
     const swapIndex = direction === 'up' ? index - 1 : index + 1
     if (swapIndex < 0 || swapIndex >= newItems.length) return
-    ;[newItems[index], newItems[swapIndex]] = [newItems[swapIndex], newItems[index]]
+      ;[newItems[index], newItems[swapIndex]] = [newItems[swapIndex], newItems[index]]
     setItems(newItems)
     await window.electronAPI.reorderCaptureTemplates(newItems.map(i => i.id))
   }
@@ -568,21 +565,21 @@ function CaptureTemplatesPanel() {
     <div className="custom-fields-form">
       <div className="custom-fields-form-row">
         <div className="custom-fields-form-field">
-          <label>Label</label>
+          <label>{t('customFields.templateLabel')}</label>
           <input className="vscode-input" value={formLabel} onChange={(e) => setFormLabel(e.target.value)} placeholder="Ex: Reunião" />
         </div>
         <div className="custom-fields-form-field">
-          <label>Ícone</label>
+          <label>{t('customFields.templateIcon')}</label>
           <IconPicker value={formIcon} onChange={setFormIcon} />
         </div>
       </div>
       <div className="custom-fields-form-row">
         <div className="custom-fields-form-field" style={{ flex: 1 }}>
-          <label>Prefixo</label>
+          <label>{t('customFields.templatePrefix')}</label>
           <input className="vscode-input" value={formPrefix} onChange={(e) => setFormPrefix(e.target.value)} placeholder="Ex: Reunião com " />
         </div>
         <div className="custom-fields-form-field" style={{ flex: 1 }}>
-          <label>Tipo sugerido</label>
+          <label>{t('customFields.templateSuggestedType')}</label>
           <select className="vscode-select" value={formHintType} onChange={(e) => setFormHintType(e.target.value)}>
             {entryTypes.map((et) => (
               <option key={et.key} value={et.key}>{et.label}</option>
@@ -591,12 +588,12 @@ function CaptureTemplatesPanel() {
         </div>
       </div>
       <div className="custom-fields-form-field">
-        <label>Placeholder</label>
+        <label>{t('customFields.templatePlaceholder')}</label>
         <input className="vscode-input" value={formPlaceholder} onChange={(e) => setFormPlaceholder(e.target.value)} placeholder="Ex: [pessoa]: [assunto discutido]" />
       </div>
       <div className="custom-fields-form-actions">
-        <button className="vscode-button" onClick={saveEdit}><Check size={14} /> Salvar</button>
-        <button className="vscode-button secondary" onClick={cancelEdit}><X size={14} /> Cancelar</button>
+        <button className="vscode-button" onClick={saveEdit}><Check size={14} /> {t('save')}</button>
+        <button className="vscode-button secondary" onClick={cancelEdit}><X size={14} /> {t('cancel')}</button>
       </div>
     </div>
   )
@@ -605,11 +602,11 @@ function CaptureTemplatesPanel() {
     <div className="flex-col gap-8">
       <div className="flex-row" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
         <span style={{ fontSize: 12, color: 'var(--vscode-descriptionForeground)' }}>
-          Templates aparecem na tela de captura como atalhos para preencher o texto rapidamente.
+          {t('customFields.captureTemplatesDesc')}
         </span>
         <button className="vscode-button" onClick={startAdd} disabled={isAdding}>
           <Plus size={14} />
-          Novo Template
+          {t('customFields.newTemplate')}
         </button>
       </div>
 
@@ -623,24 +620,24 @@ function CaptureTemplatesPanel() {
             <div className="custom-fields-row">
               <div className="custom-fields-row-left">
                 <div className="custom-fields-order-btns">
-                  <button className="inline-action-btn" onClick={() => moveItem(index, 'up')} disabled={index === 0} title="Mover para cima">
+                  <button className="inline-action-btn" onClick={() => moveItem(index, 'up')} disabled={index === 0} title={t('customFields.moveUp')}>
                     <ArrowUp size={12} />
                   </button>
-                  <button className="inline-action-btn" onClick={() => moveItem(index, 'down')} disabled={index === items.length - 1} title="Mover para baixo">
+                  <button className="inline-action-btn" onClick={() => moveItem(index, 'down')} disabled={index === items.length - 1} title={t('customFields.moveDown')}>
                     <ArrowDown size={12} />
                   </button>
                 </div>
                 <IconPreview name={item.icon} />
                 <span style={{ fontWeight: 500 }}>{item.label}</span>
                 <span className="custom-fields-key">{item.prefix}...</span>
-                {item.isDefault && <span className="custom-fields-tag">padrão</span>}
+                {item.isDefault && <span className="custom-fields-tag">{t('customFields.default')}</span>}
               </div>
               <div className="custom-fields-row-right">
-                <button className="inline-action-btn" onClick={() => startEdit(item)} title="Editar">
+                <button className="inline-action-btn" onClick={() => startEdit(item)} title={t('edit')}>
                   <Pencil size={14} />
                 </button>
                 {!item.isDefault && (
-                  <button className="inline-action-btn" onClick={() => setDeleteTarget(item.id)} title="Excluir" style={{ color: 'var(--vscode-errorForeground)' }}>
+                  <button className="inline-action-btn" onClick={() => setDeleteTarget(item.id)} title={t('delete')} style={{ color: 'var(--vscode-errorForeground)' }}>
                     <Trash2 size={14} />
                   </button>
                 )}
@@ -652,10 +649,10 @@ function CaptureTemplatesPanel() {
 
       <ConfirmModal
         isOpen={deleteTarget !== null}
-        title="Excluir template de captura"
-        message="Tem certeza que deseja excluir este template?"
-        confirmLabel="Excluir"
-        cancelLabel="Cancelar"
+        title={t('customFields.deleteCaptureTemplate')}
+        message={t('customFields.deleteCaptureTemplateMsg')}
+        confirmLabel={t('delete')}
+        cancelLabel={t('cancel')}
         variant="danger"
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
@@ -717,25 +714,35 @@ function FieldForm({
   formIcon, setFormIcon, formColor, setFormColor,
   extraField, onSave, onCancel,
 }: FieldFormProps) {
+  const { t } = useTranslation('common')
+
+  const COLOR_OPTIONS = [
+    { value: 'info', label: t('customFields.colorBlue') },
+    { value: 'warning', label: t('customFields.colorYellow') },
+    { value: 'error', label: t('customFields.colorRed') },
+    { value: 'success', label: t('customFields.colorGreen') },
+    { value: 'neutral', label: t('customFields.colorGray') },
+  ]
+
   return (
     <div className="custom-fields-form">
       <div className="custom-fields-form-row">
         <div className="custom-fields-form-field">
-          <label>Chave (identificador)</label>
+          <label>{t('customFields.keyLabel')}</label>
           <input className="vscode-input" value={formKey} onChange={(e) => setFormKey(e.target.value)} placeholder="Ex: my_type" />
         </div>
         <div className="custom-fields-form-field">
-          <label>Label (exibição)</label>
+          <label>{t('customFields.labelLabel')}</label>
           <input className="vscode-input" value={formLabel} onChange={(e) => setFormLabel(e.target.value)} placeholder="Ex: Meu Tipo" />
         </div>
       </div>
       <div className="custom-fields-form-row">
         <div className="custom-fields-form-field">
-          <label>Ícone</label>
+          <label>{t('customFields.iconLabel')}</label>
           <IconPicker value={formIcon} onChange={setFormIcon} />
         </div>
         <div className="custom-fields-form-field">
-          <label>Cor</label>
+          <label>{t('customFields.colorLabel')}</label>
           <select className="vscode-select" value={formColor} onChange={(e) => setFormColor(e.target.value)}>
             {COLOR_OPTIONS.map((c) => (
               <option key={c.value} value={c.value}>{c.label}</option>
@@ -745,8 +752,8 @@ function FieldForm({
       </div>
       {extraField}
       <div className="custom-fields-form-actions">
-        <button className="vscode-button" onClick={onSave}><Check size={14} /> Salvar</button>
-        <button className="vscode-button secondary" onClick={onCancel}><X size={14} /> Cancelar</button>
+        <button className="vscode-button" onClick={onSave}><Check size={14} /> {t('save')}</button>
+        <button className="vscode-button secondary" onClick={onCancel}><X size={14} /> {t('cancel')}</button>
       </div>
     </div>
   )

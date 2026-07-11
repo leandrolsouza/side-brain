@@ -1,5 +1,6 @@
 import React from 'react'
 import { Brain, Download } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface Props {
   onNewUser: () => void
@@ -7,31 +8,31 @@ interface Props {
 }
 
 export function OnboardingWelcome({ onNewUser, onImport }: Props) {
+  const { t } = useTranslation('common')
+
   return (
     <div className="onboarding-step">
       <div className="onboarding-icon">
         <Brain size={64} strokeWidth={1.5} />
       </div>
-      <h1 className="onboarding-title">Bem-vindo ao SideBrain</h1>
+      <h1 className="onboarding-title">{t('onboarding.welcomeTitle')}</h1>
       <p className="onboarding-description">
-        Organize suas anotações de trabalho com inteligência artificial.
-        Capture pensamentos rápidos durante o dia e deixe a IA categorizar,
-        reescrever e transformar em ações.
+        {t('onboarding.welcomeDescription')}
       </p>
 
       <div className="onboarding-paths">
         <button className="onboarding-path-card" onClick={onNewUser}>
           <span className="onboarding-path-emoji">🚀</span>
-          <h3>Começar do zero</h3>
-          <p>Configurar o app pela primeira vez</p>
+          <h3>{t('onboarding.startFromScratch')}</h3>
+          <p>{t('onboarding.startFromScratchDesc')}</p>
         </button>
 
         <button className="onboarding-path-card" onClick={onImport}>
           <span className="onboarding-path-icon">
             <Download size={24} strokeWidth={1.5} />
           </span>
-          <h3>Já uso o SideBrain</h3>
-          <p>Importar minha base de outra máquina</p>
+          <h3>{t('onboarding.alreadyUse')}</h3>
+          <p>{t('onboarding.alreadyUseDesc')}</p>
         </button>
       </div>
     </div>

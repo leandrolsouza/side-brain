@@ -1,5 +1,6 @@
 import { safeHandle } from './safe-handle'
 import { getContainer } from '../services/container'
+import type { PaginationParams, TaskStatus } from '../../shared/types'
 
 export function registerTaskHandlers(): void {
   const { taskRepo } = getContainer()
@@ -10,6 +11,10 @@ export function registerTaskHandlers(): void {
 
   safeHandle('task:getAll', async () => {
     return taskRepo.getAll()
+  })
+
+  safeHandle('task:getPaginated', async (_event, params: PaginationParams & { projectId?: string; status?: TaskStatus }) => {
+    return taskRepo.getPaginated(params)
   })
 
   safeHandle('task:create', async (_event, data: { projectId: string; title: string; description?: string }) => {

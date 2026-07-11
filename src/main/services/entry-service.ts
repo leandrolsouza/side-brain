@@ -1,4 +1,4 @@
-import { Entry, EntryConfirmRequest, EntryPreviewResult } from '../../shared/types'
+import { Entry, EntryConfirmRequest, EntryPreviewResult, PaginatedResult, PaginationParams } from '../../shared/types'
 import { EntryRepository } from '../database/repositories/entry-repository'
 import { ProjectRepository } from '../database/repositories/project-repository'
 import { TaskRepository } from '../database/repositories/task-repository'
@@ -169,6 +169,10 @@ export class EntryService {
 
   getEntries(projectId?: string): Entry[] {
     return this.entryRepo.getAll(projectId)
+  }
+
+  getEntriesPaginated(params: PaginationParams & { projectId?: string }): PaginatedResult<Entry> {
+    return this.entryRepo.getPaginated(params)
   }
 
   searchEntries(query: string, filters?: { type?: string; projectId?: string; dateFrom?: string; dateTo?: string }): Entry[] {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Briefcase, Plus, ChevronDown, Pencil, Trash2, FolderOpen, Check, X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import type { Workspace } from '../../shared/types'
 
 interface WorkspaceSwitcherProps {
@@ -9,6 +10,7 @@ interface WorkspaceSwitcherProps {
 const EMOJI_OPTIONS = ['🏢', '🏠', '💼', '🎯', '🚀', '📚', '🎨', '🔬', '💡', '🌐', '⚡', '🛠️']
 
 export function WorkspaceSwitcher({ onWorkspaceChanged }: WorkspaceSwitcherProps) {
+  const { t } = useTranslation('common')
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null)
   const [isOpen, setIsOpen] = useState(false)
@@ -70,7 +72,7 @@ export function WorkspaceSwitcher({ onWorkspaceChanged }: WorkspaceSwitcherProps
     const result = await window.electronAPI.switchWorkspace(workspaceId)
     if (!result.success) {
       setSwitching(false)
-      alert(result.error || 'Erro ao trocar workspace')
+      alert(result.error || t('workspace.switchError'))
     }
     // On success, the window reloads automatically
   }
@@ -111,12 +113,12 @@ export function WorkspaceSwitcher({ onWorkspaceChanged }: WorkspaceSwitcherProps
     const ws = workspaces.find((w) => w.id === id)
     if (!ws) return
 
-    const confirmed = confirm(`Remover workspace "${ws.name}"?\n\nO arquivo de dados NÃO será apagado.`)
+    const confirmed = confirm(t('workspace.confirmDelete', { name: ws.name }))
     if (!confirmed) return
 
     const result = await window.electronAPI.deleteWorkspace(id)
     if (!result.success) {
-      alert(result.error || 'Erro ao remover workspace')
+      alert(result.error || t('workspace.deleteError'))
       return
     }
 
@@ -138,7 +140,7 @@ export function WorkspaceSwitcher({ onWorkspaceChanged }: WorkspaceSwitcherProps
         className="workspace-switcher-trigger"
         onClick={() => setIsOpen(!isOpen)}
         disabled={switching}
-        title="Trocar workspace (Ctrl+Shift+W)"
+        title={t('workspace.switchTooltip')}
       >
         <span className="workspace-emoji">{activeWorkspace.emoji}</span>
         <span className="workspace-name">{activeWorkspace.name}</span>
@@ -149,7 +151,7 @@ export function WorkspaceSwitcher({ onWorkspaceChanged }: WorkspaceSwitcherProps
         <div className="workspace-dropdown">
           <div className="workspace-dropdown-header">
             <Briefcase size={14} />
-            <span>Workspaces</span>
+            <span>{t('workspace.title')}</span>
           </div>
 
           <div className="workspace-list">
@@ -175,10 +177,10 @@ export function WorkspaceSwitcher({ onWorkspaceChanged }: WorkspaceSwitcherProps
                           if (e.key === 'Escape') setIsEditing(null)
                         }}
                       />
-                      <button className="workspace-btn-icon" onClick={() => handleUpdate(ws.id)} title="Salvar">
+                      <button className="workspace-btn-icon" onClick={() => handleUpdate(ws.id)} title={t('workspace.save')}>
                         <Check size={14} />
                       </button>
-                      <button className="workspace-btn-icon" onClick={() => setIsEditing(null)} title="Cancelar">
+                      <button className="workspace-btn-icon" onClick={() => setIsEditing(null)} title={t('workspace.cancel')}>
                         <X size={14} />
                       </button>
                     </div>
@@ -207,11 +209,11 @@ export function WorkspaceSwitcher({ onWorkspaceChanged }: WorkspaceSwitcherProps
                       {ws.id === activeWorkspace.id && <Check size={12} className="workspace-check" />}
                     </button>
                     <div className="workspace-item-actions">
-                      <button className="workspace-btn-icon" onClick={() => startEditing(ws)} title="Editar">
+                      <button className="workspace-btn-icon" onClick={() => startEditing(ws)} title={t('workspace.edit')}>
                         <Pencil size={12} />
                       </button>
                       {workspaces.length > 1 && (
-                        <button className="workspace-btn-icon danger" onClick={() => handleDelete(ws.id)} title="Remover">
+                        <button className="workspace-btn-icon danger" onClick={() => handleDelete(ws.id)} title={t('workspace.remove')}>
                           <Trash2 size={12} />
                         </button>
                       )}
@@ -235,7 +237,7 @@ export function WorkspaceSwitcher({ onWorkspaceChanged }: WorkspaceSwitcherProps
                   type="text"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  placeholder="Nome do workspace"
+                  placeholder={t('workspace.namePlaceholder')}
                   className="workspace-input"
                   autoFocus
                   onKeyDown={(e) => {
@@ -243,10 +245,10 @@ export function WorkspaceSwitcher({ onWorkspaceChanged }: WorkspaceSwitcherProps
                     if (e.key === 'Escape') setIsCreating(false)
                   }}
                 />
-                <button className="workspace-btn-icon" onClick={handleCreate} title="Criar e escolher pasta">
+                <button className="workspace-btn-icon" onClick={handleCreate} title={t('workspace.createAndChooseFolder')}>
                   <FolderOpen size={14} />
                 </button>
-                <button className="workspace-btn-icon" onClick={() => setIsCreating(false)} title="Cancelar">
+                <button className="workspace-btn-icon" onClick={() => setIsCreating(false)} title={t('workspace.cancel')}>
                   <X size={14} />
                 </button>
               </div>
@@ -267,7 +269,7 @@ export function WorkspaceSwitcher({ onWorkspaceChanged }: WorkspaceSwitcherProps
           ) : (
             <button className="workspace-add-btn" onClick={() => setIsCreating(true)}>
               <Plus size={14} />
-              <span>Novo workspace</span>
+              <span>{t('workspace.newWorkspace')}</span>
             </button>
           )}
         </div>

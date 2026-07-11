@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { X, RefreshCw, CheckCircle, Download } from 'lucide-react'
 import logo from '../assets/logo.png'
 
@@ -10,6 +11,7 @@ interface AboutModalProps {
 type UpdateCheckState = 'idle' | 'checking' | 'available' | 'not-available' | 'error'
 
 export function AboutModal({ isOpen, onClose }: AboutModalProps) {
+  const { t } = useTranslation('common')
   const [version, setVersion] = useState<string>('')
   const [updateState, setUpdateState] = useState<UpdateCheckState>('idle')
   const [updateVersion, setUpdateVersion] = useState<string>('')
@@ -42,8 +44,8 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content about-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Sobre o SideBrain</h2>
-          <button className="modal-close" onClick={onClose} title="Fechar">
+          <h2>{t('about.title')}</h2>
+          <button className="modal-close" onClick={onClose} title={t('close')}>
             <X size={18} />
           </button>
         </div>
@@ -54,73 +56,72 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
           </div>
 
           <h1 className="about-title">SideBrain</h1>
-          <p className="about-version">Versão {version || '...'}</p>
+          <p className="about-version">{t('about.version', { version: version || '...' })}</p>
 
           <div className="about-update-section">
             {updateState === 'idle' && (
               <button className="about-check-update-btn" onClick={handleCheckUpdates}>
                 <RefreshCw size={14} />
-                Verificar atualizações
+                {t('about.checkUpdates')}
               </button>
             )}
             {updateState === 'checking' && (
               <span className="about-update-status">
                 <RefreshCw size={14} className="update-spinner" />
-                Verificando...
+                {t('about.checking')}
               </span>
             )}
             {updateState === 'not-available' && (
               <span className="about-update-status about-update-ok">
                 <CheckCircle size={14} />
-                Você está na versão mais recente
+                {t('about.upToDate')}
               </span>
             )}
             {updateState === 'available' && (
               <span className="about-update-status about-update-available">
                 <Download size={14} />
-                Nova versão disponível: {updateVersion}
+                {t('about.newVersion', { version: updateVersion })}
               </span>
             )}
             {updateState === 'error' && (
               <span className="about-update-status about-update-error">
-                Não foi possível verificar atualizações
+                {t('about.checkError')}
               </span>
             )}
           </div>
 
           <p className="about-description">
-            Seu segundo cérebro para organizar o trabalho. Capture notas rápidas durante o dia
-            e deixe a IA categorizar, organizar e resumir tudo para você.
+            {t('about.description')}
           </p>
 
           <div className="about-features">
             <div className="about-feature-item">
-              <strong>Captura Inteligente</strong>
-              <span>Texto livre categorizado automaticamente por IA</span>
+              <strong>{t('about.featureCapture')}</strong>
+              <span>{t('about.featureCaptureDesc')}</span>
             </div>
             <div className="about-feature-item">
-              <strong>Projetos & Tarefas</strong>
-              <span>Organização automática com Kanban e status</span>
+              <strong>{t('about.featureProjects')}</strong>
+              <span>{t('about.featureProjectsDesc')}</span>
             </div>
             <div className="about-feature-item">
-              <strong>Resumo Diário</strong>
-              <span>Digest com pendências, atividades e sugestões</span>
+              <strong>{t('about.featureDigest')}</strong>
+              <span>{t('about.featureDigestDesc')}</span>
             </div>
             <div className="about-feature-item">
-              <strong>Modo Reunião</strong>
-              <span>Capture atas e ações durante reuniões</span>
+              <strong>{t('about.featureMeeting')}</strong>
+              <span>{t('about.featureMeetingDesc')}</span>
             </div>
           </div>
 
           <div className="about-tech">
-            <p className="about-tech-label">Desenvolvido com</p>
+            <p className="about-tech-label">{t('about.builtWith')}</p>
             <p className="about-tech-stack">
               Electron 43 &middot; React 19 &middot; TypeScript &middot; SQLite &middot; AWS Bedrock (Claude)
             </p>
           </div>
 
           <div className="about-footer">
-            <p>&copy; 2025 SideBrain. Todos os direitos reservados.</p>
+            <p>{t('about.copyright')}</p>
           </div>
         </div>
       </div>

@@ -4,29 +4,8 @@ import { ProjectRepository } from '../database/repositories/project-repository'
 import { TaskRepository } from '../database/repositories/task-repository'
 import { SettingsRepository } from '../database/repositories/settings-repository'
 import { AIService } from './ai-service'
+import { t, tp } from '../i18n'
 import { v4 as uuid } from 'uuid'
-
-const INSIGHTS_PROMPT = `Você é um assistente de produtividade que analisa dados de trabalho e gera sugestões proativas.
-Dado o contexto abaixo sobre projetos, tarefas e entradas do usuário, gere 1-2 sugestões inteligentes e acionáveis.
-
-Regras:
-- Responda APENAS em português brasileiro
-- Foque em padrões que o usuário talvez não perceba sozinho
-- Seja específico — cite projetos e tarefas pelo nome
-- Cada sugestão deve ter: um título curto e uma descrição com ação concreta
-- Evite conselhos genéricos tipo "priorize suas tarefas"
-- Se não houver nada relevante para sugerir, retorne array vazio
-
-Exemplos de boas sugestões:
-- "Projeto X parado há 8 dias — talvez valha reagendar ou arquivar"
-- "Você tem 3 bloqueios no projeto Y — considere uma reunião de alinhamento"
-- "A tarefa 'Enviar proposta' está em aguardando há 5 dias — quer cobrar?"
-
-Responda APENAS com JSON válido:
-[
-  {"title": "Título curto", "description": "Descrição com ação sugerida", "priority": "high|medium|low"}
-]
-`
 
 interface InsightsCache {
   insights: ProactiveInsight[]
@@ -79,22 +58,23 @@ export class InsightsService {
     const now = new Date()
 
     // Rule 1: Tasks waiting too long (> 4 days)
-    const staleTasks = allTasks.filter((t) => {
-      if (t.status !== 'waiting') return false
-      const updated = new Date(t.updatedAt)
+    const staleTasks = allTasks.filter((task) => {
+      if (task.status !== 'waiting') return false
+      const updated = new Date(task.updatedAt)
       const daysDiff = (now.getTime() - updated.getTime()) / (1000 * 60 * 60 * 24)
       return daysDiff > 4
     })
 
     if (staleTasks.length > 0) {
-      const taskNames = staleTasks.slice(0, 3).map((t) => `"${t.title}"`).join(', ')
+      const taskNames = staleTasks.slice(0, 3).map((task) => `"${task.title}"`).join(', ')
       const projectId = staleTasks[0].projectId
       const projectName = projects.find((p) => p.id === projectId)?.name
+      const extra = staleTasks.length > 3 ? t('prompts.insights.stale_tasks_extra', { count: staleTasks.length - 3 }) : ''
       insights.push({
         id: uuid(),
         type: 'stale_tasks',
-        title: `${staleTasks.length} tarefa${staleTasks.length > 1 ? 's' : ''} aguardando há dias`,
-        description: `${taskNames} ${staleTasks.length > 3 ? `e mais ${staleTasks.length - 3}` : ''} sem atualização. Considere cobrar ou reclassificar.`,
+        title: tp('prompts.insights.stale_tasks_title', { count: staleTasks.length }),
+        description: t('prompts.insights.stale_tasks_description', { taskNames, extra }),
         priority: 'high',
         relatedProjectId: projectId,
         relatedProjectName: projectName,
@@ -109,14 +89,14 @@ export class InsightsService {
       const lastEntry = projectEntries[0] // already sorted DESC
       const daysSinceActivity = (now.getTime() - new Date(lastEntry.createdAt).getTime()) / (1000 * 60 * 60 * 24)
 
-      const projectTasks = allTasks.filter((t) => t.projectId === project.id && t.status !== 'done')
+      const projectTasks = allTasks.filter((task) => task.projectId === project.id && task.status !== 'done')
 
       if (daysSinceActivity > 7 && projectTasks.length > 0) {
         insights.push({
           id: uuid(),
           type: 'idle_project',
-          title: `${project.name} parado há ${Math.floor(daysSinceActivity)} dias`,
-          description: `Ainda tem ${projectTasks.length} tarefa${projectTasks.length > 1 ? 's' : ''} pendente${projectTasks.length > 1 ? 's' : ''}. Precisa de atenção ou pode arquivar?`,
+          title: t('prompts.insights.idle_project_title', { name: project.name, days: Math.floor(daysSinceActivity) }),
+          description: tp('prompts.insights.idle_project_description', { count: projectTasks.length }),
           priority: 'medium',
           relatedProjectId: project.id,
           relatedProjectName: project.name,
@@ -125,13 +105,13 @@ export class InsightsService {
     }
 
     // Rule 3: Tasks without deadline
-    const noDeadlineTasks = allTasks.filter((t) => t.status !== 'done' && !t.dueDate)
+    const noDeadlineTasks = allTasks.filter((task) => task.status !== 'done' && !task.dueDate)
     if (noDeadlineTasks.length >= 5) {
       insights.push({
         id: uuid(),
         type: 'no_deadline',
-        title: `${noDeadlineTasks.length} tarefas sem prazo definido`,
-        description: 'Tarefas sem data tendem a ficar esquecidas. Considere definir prazos para as mais importantes.',
+        title: t('prompts.insights.no_deadline_title', { count: noDeadlineTasks.length }),
+        description: t('prompts.insights.no_deadline_description'),
         priority: 'low',
       })
     }
@@ -150,8 +130,8 @@ export class InsightsService {
         insights.push({
           id: uuid(),
           type: 'recurring_blockers',
-          title: `${recentBlockers.length} bloqueios recentes em ${project.name}`,
-          description: 'Padrão de bloqueios frequentes. Talvez valha uma reunião para resolver a causa raiz.',
+          title: t('prompts.insights.recurring_blockers_title', { count: recentBlockers.length, name: project.name }),
+          description: t('prompts.insights.recurring_blockers_description'),
           priority: 'high',
           relatedProjectId: project.id,
           relatedProjectName: project.name,
@@ -160,13 +140,13 @@ export class InsightsService {
     }
 
     // Rule 5: Overloaded (many pending tasks)
-    const pendingTasks = allTasks.filter((t) => t.status === 'todo' || t.status === 'in_progress')
+    const pendingTasks = allTasks.filter((task) => task.status === 'todo' || task.status === 'in_progress')
     if (pendingTasks.length > 15) {
       insights.push({
         id: uuid(),
         type: 'overloaded',
-        title: `${pendingTasks.length} tarefas ativas — carga alta`,
-        description: 'Volume de tarefas pendentes acima do normal. Considere delegar, adiar ou concluir algumas.',
+        title: t('prompts.insights.overloaded_title', { count: pendingTasks.length }),
+        description: t('prompts.insights.overloaded_description'),
         priority: 'medium',
       })
     }
@@ -198,32 +178,24 @@ export class InsightsService {
 
     // Build context for AI
     const projectsSummary = projects.map((p) => {
-      const pTasks = tasks.filter((t: any) => t.projectId === p.id && t.status !== 'done')
+      const pTasks = tasks.filter((task: any) => task.projectId === p.id && task.status !== 'done')
       const pEntries = entries.filter((e: any) => e.projectId === p.id).slice(0, 5)
-      return `${p.name}: ${pTasks.length} tarefas pendentes, últimas entradas: ${pEntries.map((e: any) => `[${e.type}] ${e.improvedText.slice(0, 50)}`).join('; ')}`
+      return `${p.name}: ${pTasks.length} ${t('prompts.insights.context_pending_tasks')}, ${t('prompts.insights.context_last_entries')} ${pEntries.map((e: any) => `[${e.type}] ${e.improvedText.slice(0, 50)}`).join('; ')}`
     }).join('\n')
 
     const pendingTasks = tasks
-      .filter((t: any) => t.status !== 'done')
+      .filter((task: any) => task.status !== 'done')
       .slice(0, 15)
-      .map((t: any) => {
-        const pName = projects.find((p) => p.id === t.projectId)?.name || '?'
-        const age = Math.floor((Date.now() - new Date(t.updatedAt).getTime()) / (1000 * 60 * 60 * 24))
-        return `[${t.status}][${pName}] ${t.title} (${age}d sem atualizar)`
+      .map((task: any) => {
+        const pName = projects.find((p) => p.id === task.projectId)?.name || '?'
+        const age = Math.floor((Date.now() - new Date(task.updatedAt).getTime()) / (1000 * 60 * 60 * 24))
+        return `[${task.status}][${pName}] ${task.title} (${t('prompts.insights.context_days_without_update', { days: age })})`
       }).join('\n')
 
-    const userMessage = `Contexto atual do usuário:
-
-Projetos:
-${projectsSummary}
-
-Tarefas pendentes:
-${pendingTasks}
-
-Gere sugestões inteligentes baseadas nos padrões que você observa.`
+    const userMessage = t('prompts.insights.user_message', { projectsSummary, pendingTasks })
 
     const responseText = await this.aiService.invokeConverseForChat(
-      INSIGHTS_PROMPT,
+      t('prompts.insights.system'),
       userMessage,
       settings,
       'insights'

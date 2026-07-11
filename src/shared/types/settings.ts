@@ -32,6 +32,7 @@ export interface AppSettings {
   fontSize: string
   dateFormat: DateFormat
   uiDensity: UIDensity
+  language: string
   // Backup settings
   backupFrequency: BackupFrequency
   backupLimit: string
@@ -69,6 +70,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   fontSize: '14',
   dateFormat: 'DD/MM/YYYY',
   uiDensity: 'comfortable',
+  language: 'pt-BR',
   backupFrequency: 'startup',
   backupLimit: '7',
   nativeNotifications: 'true',

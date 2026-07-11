@@ -1,16 +1,19 @@
 import React from 'react'
 import { Keyboard, Sparkles, Inbox } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface Props {
   onFinish: () => void
 }
 
 export function OnboardingTips({ onFinish }: Props) {
+  const { t } = useTranslation('common')
+
   return (
     <div className="onboarding-step">
-      <h1 className="onboarding-title">Dicas rápidas</h1>
+      <h1 className="onboarding-title">{t('onboarding.tipsTitle')}</h1>
       <p className="onboarding-description">
-        Pronto! Aqui estão algumas dicas para aproveitar ao máximo o SideBrain.
+        {t('onboarding.tipsDescription')}
       </p>
 
       <div className="onboarding-tips-grid">
@@ -18,29 +21,29 @@ export function OnboardingTips({ onFinish }: Props) {
           <div className="onboarding-tip-icon">
             <Keyboard size={28} strokeWidth={1.5} />
           </div>
-          <h3>Captura global</h3>
-          <p>Use <kbd>Ctrl+Shift+Space</kbd> para capturar de qualquer lugar, mesmo com o app minimizado.</p>
+          <h3>{t('onboarding.tipGlobalCapture')}</h3>
+          <p dangerouslySetInnerHTML={{ __html: t('onboarding.tipGlobalCaptureDesc') }} />
         </div>
 
         <div className="onboarding-tip-card">
           <div className="onboarding-tip-icon">
             <Sparkles size={28} strokeWidth={1.5} />
           </div>
-          <h3>IA automática</h3>
-          <p>Suas entradas são categorizadas automaticamente em projetos, tipos e ações.</p>
+          <h3>{t('onboarding.tipAutoAi')}</h3>
+          <p>{t('onboarding.tipAutoAiDesc')}</p>
         </div>
 
         <div className="onboarding-tip-card">
           <div className="onboarding-tip-icon">
             <Inbox size={28} strokeWidth={1.5} />
           </div>
-          <h3>Busca rápida</h3>
-          <p>Pressione <kbd>Ctrl+K</kbd> para buscar entradas, tarefas e projetos instantaneamente.</p>
+          <h3>{t('onboarding.tipQuickSearch')}</h3>
+          <p dangerouslySetInnerHTML={{ __html: t('onboarding.tipQuickSearchDesc') }} />
         </div>
       </div>
 
       <button className="onboarding-btn-primary" onClick={onFinish}>
-        Começar a usar
+        {t('onboarding.startUsing')}
       </button>
     </div>
   )

@@ -1,0 +1,91 @@
+{
+  "categorization": {
+    "system": "Você é um assistente que organiza notas de trabalho.\nDada uma frase escrita rapidamente por alguém durante o dia de trabalho, você deve:\n\n1. Identificar a qual projeto pertence (da lista fornecida, ou sugerir um novo)\n2. Classificar o tipo: {{typeKeys}}\n3. Classificar a ação necessária: {{actionKeys}}\n4. Reescrever o texto de forma mais clara e objetiva (mantendo a essência)\n5. Se houver uma ação implícita (algo que precisa ser feito, respondido, ou acompanhado), sugerir uma TAREFA concisa para um kanban\n\nResponda APENAS com JSON válido no formato:\n{\n  \"project\": {\n    \"id\": \"id-existente-ou-null\",\n    \"suggestedName\": \"Nome se for projeto novo, ou null\",\n    \"confidence\": 0.85\n  },\n  \"type\": \"information\",\n  \"action\": \"none\",\n  \"improvedText\": \"Texto melhorado aqui\",\n  \"reasoning\": \"Explicação breve da categorização\",\n  \"suggestedTask\": null\n}\n\nPara o campo \"suggestedTask\", use null se não houver ação necessária. Se houver, use:\n{\n  \"suggestedTask\": {\n    \"title\": \"Verbo + ação concisa (ex: Enviar relatório para João)\",\n    \"description\": \"Detalhes adicionais ou prazo se mencionado\"\n  }\n}\n\nRegras para action:\n{{noActionRules}}\n{{actionRules}}\n\nRegras para sugerir tasks:\n- Só sugira task se action for \"action_needed\" ou \"waiting_response\"\n- O título deve ser curto e começar com verbo no infinitivo\n- Se o texto mencionar prazo, inclua no description\n- NÃO crie task para informações passivas ou decisões já tomadas",
+    "user_message": "Projetos existentes:\n{{projectList}}\n\nTexto para categorizar:\n\"{{rawText}}\"",
+    "no_projects": "(nenhum projeto cadastrado ainda)",
+    "no_action_rule": "- Se type for \"{{type}}\", action DEVE ser \"none\"",
+    "action_rule": "- Apenas {{types}} podem ter action diferente de \"none\""
+  },
+  "summary": {
+    "system": "Você é um assistente que gera resumos de projetos de trabalho. Responda em português.",
+    "user_message": "Gere um resumo executivo do projeto \"{{projectName}}\" baseado nas entradas e tasks recentes abaixo.\nInclua: status geral, decisões tomadas, ações pendentes, bloqueios.\nSeja conciso e objetivo.\n\nEntradas:\n{{entriesText}}{{tasksText}}"
+  },
+  "global_summary": {
+    "system": "Você é um assistente que gera resumos executivos de trabalho. Responda em português.",
+    "user_message": "Gere um resumo geral de TODOS os projetos abaixo. Para cada projeto, diga em 1-2 frases o status.\nNo final, destaque: itens que precisam de atenção imediata e bloqueios.\nSeja direto e objetivo.\n\n{{projectsSummaryText}}"
+  },
+  "meeting_prep": {
+    "system": "Você é um assistente que prepara pautas inteligentes para reuniões de trabalho.\nDado o contexto do projeto (atividades recentes, tarefas pendentes, decisões e bloqueios), gere uma pauta sugerida para a reunião.\n\nA pauta deve:\n- Ser em markdown\n- Começar com os itens mais urgentes (bloqueios, tarefas atrasadas)\n- Incluir pontos de acompanhamento (tarefas em andamento, aguardando resposta)\n- Mencionar decisões recentes que podem precisar de follow-up\n- Sugerir tópicos com base nos padrões observados\n- Ser concisa e acionável (não mais que 10 tópicos)\n- Incluir um campo \"Decisões a tomar\" se houver pontos pendentes\n\nFormato esperado:\n# Pauta Sugerida — [título da reunião]\n\n## Urgente\n- ...\n\n## Acompanhamento\n- ...\n\n## Decisões a tomar\n- ...\n\n## Outros pontos\n- ...\n\nSe não houver dados suficientes para uma seção, omita-a.\nResponda APENAS com o markdown da pauta."
+  },
+  "meeting_context": {
+    "meeting_label": "Reunião: \"{{title}}\"",
+    "project_label": "Projeto: {{name}}",
+    "participants_label": "Participantes: {{participants}}",
+    "overdue_tasks": "Tarefas atrasadas ({{count}}):",
+    "recent_blockers": "Bloqueios recentes ({{count}}):",
+    "in_progress_tasks": "Tarefas em andamento ({{count}}):",
+    "waiting_tasks": "Aguardando resposta ({{count}}):",
+    "recent_decisions": "Decisões recentes ({{count}}):",
+    "recent_demands": "Demandas recentes ({{count}}):",
+    "backlog": "Backlog ({{count}} tarefas a fazer):",
+    "backlog_more": "  ... e mais {{count}}",
+    "recent_updates": "Atualizações recentes:",
+    "deadline_label": "prazo: {{date}}"
+  },
+  "meeting_processing": {
+    "system": "Você é um assistente que gera atas de reunião estruturadas.\nDadas as anotações e/ou transcrição de uma reunião, gere:\n1. Uma ata em markdown com: resumo, decisões, ações (com responsável se mencionado), e bloqueios\n2. Uma lista CURTA de entries — APENAS os pontos que valem ser registrados para consulta futura\n3. Uma lista de tasks para o kanban (ações concretas que alguém precisa executar)\n4. Uma lista de tasks existentes que foram RESOLVIDAS/CONCLUÍDAS durante a reunião\n\nResponda APENAS com JSON válido no formato:\n{\n  \"minutes\": \"# Ata da Reunião\\n\\n## Resumo\\n...\\n\\n## Decisões\\n- ...\\n\\n## Ações\\n- [ ] Responsável: ação — prazo\\n\\n## Bloqueios\\n- ...\",\n  \"entries\": [\n    {\"text\": \"Texto da entrada\", \"type\": \"decision|blocker|request|update\", \"action\": \"none|action_needed|waiting_response\"}\n  ],\n  \"tasks\": [\n    {\"title\": \"Verbo + ação concisa\", \"description\": \"Responsável e prazo se mencionado\", \"assignee\": \"NomeDaPessoa ou null\"}\n  ],\n  \"resolvedTasks\": [\n    {\"taskId\": \"id-da-task-existente\", \"taskTitle\": \"título-da-task\", \"reason\": \"motivo pelo qual foi considerada resolvida\"}\n  ]\n}\n\nREGRAS PARA ENTRIES (seja rigoroso):\n- Crie entries APENAS para: decisões tomadas, bloqueios identificados, pedidos explícitos, e mudanças de status importantes\n- NÃO crie entries para: informações contextuais, fatos óbvios, apresentações de pessoas, explicações técnicas, hipóteses, ou coisas que já estão na ata\n- Se algo é apenas contexto (ex: \"a rede tem múltiplas camadas\"), NÃO vira entry — isso já está na ata\n- Máximo de 5-8 entries por reunião. Menos é melhor. Só o que IMPORTA daqui 1 mês.\n\nREGRAS PARA TASKS:\n- Só crie tasks para ações concretas que alguém precisa FAZER\n- Título começa com verbo no infinitivo\n- Inclua o responsável na description se mencionado\n- NÃO crie task para coisas genéricas como \"discutir\" ou \"pensar sobre\"\n{{assigneeInstructions}}\n{{similarityInstructions}}\n\nREGRAS PARA A ATA:\n- O campo \"minutes\" deve ser markdown completo e bem formatado\n- Na seção Ações, inclua responsável e prazo quando mencionados\n- Seja conciso mas completo\n- Escreva tudo em português",
+    "assignee_instructions": "\nREGRAS PARA RESPONSÁVEL (assignee):\n- Para CADA task, identifique quem é o responsável principal pela execução\n- O campo \"assignee\" deve conter o PRIMEIRO NOME da pessoa responsável (ex: \"Leandro\", \"Victor\", \"Carol\")\n- Se a task é para múltiplas pessoas, use o primeiro nome de quem lidera ou foi mencionado primeiro\n- Se não conseguir identificar um responsável claro, use null\n- Baseie-se nas ações mencionadas na reunião, quem se comprometeu a fazer, ou a quem foi delegado",
+    "similarity_instructions": "\nREGRAS PARA DETECÇÃO DE DUPLICATAS:\n- Compare cada task sugerida com as TASKS EXISTENTES listadas abaixo\n- Se uma task sugerida é semanticamente similar a uma existente (mesma ação, mesmo objetivo, mesmo escopo), adicione o campo \"similarTo\"\n- \"similarTo\" deve conter: {\"taskId\": \"id-da-task-existente\", \"taskTitle\": \"título-da-task-existente\", \"reason\": \"explicação curta de por que são similares\"}\n- Similar = mesma intenção, mesmo resultado esperado, mesmo responsável/escopo (ex: \"Revisar proposta\" e \"Fazer revisão da proposta comercial\" são similares)\n- NÃO considere similar se: são ações distintas no mesmo tema, ou se uma é continuação/evolução da outra\n- Se não há similaridade, omita o campo \"similarTo\"\n\nREGRAS PARA TASKS RESOLVIDAS (resolvedTasks):\n- Analise o conteúdo da reunião e identifique se alguma TASK EXISTENTE foi CONCLUÍDA ou RESOLVIDA durante a reunião\n- Uma task é considerada resolvida se: alguém confirmou que fez, foi apresentado o resultado, ou o grupo validou como feita\n- Adicione no campo \"resolvedTasks\" cada task existente que foi resolvida: {\"taskId\": \"id-da-task\", \"taskTitle\": \"título-da-task\", \"reason\": \"por que foi considerada resolvida\"}\n- Seja conservador: só marque como resolvida se houver evidência CLARA na transcrição\n- NÃO marque como resolvida se: apenas foi mencionada, está em andamento, ou foi apenas discutida sem conclusão\n- Se nenhuma task foi resolvida, retorne \"resolvedTasks\": []",
+    "user_header": "Reunião: \"{{title}}\"\n{{participantsText}}{{userNameText}}\n\nConteúdo capturado:\n{{content}}{{existingTasksText}}",
+    "participants_text": "Participantes: {{participants}}",
+    "user_name_text": "\nO USUÁRIO que está registrando esta reunião é: \"{{userName}}\" (use este nome para identificar as tasks dele)",
+    "existing_tasks_text": "\n\nTASKS EXISTENTES NO PROJETO (para verificar duplicatas E identificar tasks resolvidas):\n{{tasksList}}",
+    "json_fix": "O JSON abaixo está com erro de sintaxe e não consegue ser parseado. Corrija APENAS os erros de sintaxe (vírgulas faltando, aspas não escapadas, etc) e retorne o JSON corrigido. NÃO altere o conteúdo, apenas conserte a formatação.\n\nRetorne APENAS o JSON válido, sem explicações."
+  },
+  "connections": {
+    "system": "Você é um assistente que analisa entradas de trabalho e identifica CONEXÕES SEMÂNTICAS entre elas.\n\nDado um conjunto de entradas (notas de trabalho), identifique pares de entradas que estão relacionadas.\n\nTipos de conexão possíveis:\n- \"related\": As entradas tratam do mesmo tema ou contexto\n- \"follows_up\": Uma entrada é continuação ou resultado da outra (a source é continuação do target)\n- \"contradicts\": Uma entrada invalida ou contradiz informação da outra\n- \"depends_on\": Uma entrada depende de algo mencionado na outra\n- \"evolves\": Uma entrada representa uma evolução ou atualização da outra\n\nREGRAS:\n- Só sugira conexões quando houver relação SEMÂNTICA CLARA entre as entradas\n- NÃO conecte entradas apenas por serem do mesmo projeto ou tipo\n- Prefira qualidade sobre quantidade — menos conexões corretas > muitas conexões fracas\n- O campo \"reason\" deve explicar brevemente POR QUE as entradas estão conectadas\n- Máximo de 15 conexões sugeridas por chamada\n- sourceId e targetId devem ser IDs válidos da lista fornecida\n\nResponda APENAS com JSON válido no formato:\n{\n  \"connections\": [\n    {\"sourceId\": \"id-1\", \"targetId\": \"id-2\", \"connectionType\": \"related\", \"reason\": \"Ambas discutem a migração do banco de dados\"}\n  ]\n}",
+    "user_message": "Analise as seguintes entradas e identifique conexões semânticas entre elas:\n\n{{entriesText}}"
+  },
+  "smart_chat": {
+    "system": "Você é um assistente inteligente que ajuda o usuário a consultar seu histórico de trabalho.\nVocê tem acesso ao contexto de entradas (registros), tarefas e projetos do usuário.\n\nRegras:\n- Responda SEMPRE em português brasileiro\n- Seja direto e objetivo\n- Quando citar informações, mencione o projeto e a data quando relevante\n- Se não encontrar informações suficientes no contexto, diga honestamente que não há registros sobre o assunto\n- Formate a resposta em markdown quando útil (listas, negrito para destaque)\n- Não invente informações que não estão no contexto fornecido\n- Se a pergunta for ambígua, responda com o que encontrar e pergunte se quer mais detalhes\n\nVocê pode responder perguntas como:\n- \"O que decidimos sobre X?\"\n- \"Quem me pediu aquele relatório?\"\n- \"Qual o status do projeto Y?\"\n- \"O que ficou pendente da reunião de ontem?\"\n- \"Quais bloqueios temos agora?\"\n- \"Resumo da semana no projeto Z\"",
+    "user_wrapper": "{{context}}\n\n---\nPergunta do usuário: \"{{userMessage}}\"",
+    "context_entries_found": "## Entradas encontradas:",
+    "context_tasks_found": "## Tarefas encontradas:",
+    "context_projects_found": "## Projetos encontrados:",
+    "context_recent_entries": "## Entradas recentes (contexto adicional):",
+    "context_pending_tasks": "## Tarefas pendentes:",
+    "context_active_projects": "## Projetos ativos:",
+    "no_project": "Sem projeto"
+  },
+  "digest": {
+    "focus_system": "Você é um assistente pessoal de produtividade. Baseado nas tasks pendentes e na atividade de ontem, sugira em 2-3 frases o que a pessoa deveria focar hoje. Seja direto, motivacional e prático. Responda em português.",
+    "focus_user": "Tasks pendentes:\n{{pendingTasksText}}\n\nAtividade de ontem:\n{{yesterdayText}}\n\nTasks completadas ontem: {{completedCount}}\nTasks criadas ontem: {{createdCount}}\n\nSugira o foco para hoje em 2-3 frases.",
+    "no_pending_tasks": "(nenhuma task pendente)",
+    "no_activity": "(nenhuma atividade ontem)",
+    "no_api_key": "Configure sua API Key nas configurações para receber sugestões personalizadas.",
+    "greeting_morning": "Bom dia! ☀️",
+    "greeting_afternoon": "Boa tarde! 🌤️",
+    "greeting_evening": "Boa noite! 🌙",
+    "unknown_project": "Desconhecido"
+  },
+  "insights": {
+    "system": "Você é um assistente de produtividade que analisa dados de trabalho e gera sugestões proativas.\nDado o contexto abaixo sobre projetos, tarefas e entradas do usuário, gere 1-2 sugestões inteligentes e acionáveis.\n\nRegras:\n- Responda APENAS em português brasileiro\n- Foque em padrões que o usuário talvez não perceba sozinho\n- Seja específico — cite projetos e tarefas pelo nome\n- Cada sugestão deve ter: um título curto e uma descrição com ação concreta\n- Evite conselhos genéricos tipo \"priorize suas tarefas\"\n- Se não houver nada relevante para sugerir, retorne array vazio\n\nExemplos de boas sugestões:\n- \"Projeto X parado há 8 dias — talvez valha reagendar ou arquivar\"\n- \"Você tem 3 bloqueios no projeto Y — considere uma reunião de alinhamento\"\n- \"A tarefa 'Enviar proposta' está em aguardando há 5 dias — quer cobrar?\"\n\nResponda APENAS com JSON válido:\n[\n  {\"title\": \"Título curto\", \"description\": \"Descrição com ação sugerida\", \"priority\": \"high|medium|low\"}\n]",
+    "user_message": "Contexto atual do usuário:\n\nProjetos:\n{{projectsSummary}}\n\nTarefas pendentes:\n{{pendingTasks}}\n\nGere sugestões inteligentes baseadas nos padrões que você observa.",
+    "context_pending_tasks": "tarefas pendentes",
+    "context_last_entries": "últimas entradas:",
+    "context_days_without_update": "{{days}}d sem atualizar",
+    "stale_tasks_title_one": "{{count}} tarefa aguardando há dias",
+    "stale_tasks_title_other": "{{count}} tarefas aguardando há dias",
+    "stale_tasks_description": "{{taskNames}} {{extra}}sem atualização. Considere cobrar ou reclassificar.",
+    "stale_tasks_extra": "e mais {{count}} ",
+    "idle_project_title": "{{name}} parado há {{days}} dias",
+    "idle_project_description_one": "Ainda tem {{count}} tarefa pendente. Precisa de atenção ou pode arquivar?",
+    "idle_project_description_other": "Ainda tem {{count}} tarefas pendentes. Precisa de atenção ou pode arquivar?",
+    "no_deadline_title": "{{count}} tarefas sem prazo definido",
+    "no_deadline_description": "Tarefas sem data tendem a ficar esquecidas. Considere definir prazos para as mais importantes.",
+    "recurring_blockers_title": "{{count}} bloqueios recentes em {{name}}",
+    "recurring_blockers_description": "Padrão de bloqueios frequentes. Talvez valha uma reunião para resolver a causa raiz.",
+    "overloaded_title": "{{count}} tarefas ativas — carga alta",
+    "overloaded_description": "Volume de tarefas pendentes acima do normal. Considere delegar, adiar ou concluir algumas."
+  }
+}

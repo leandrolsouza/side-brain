@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Plus, GripVertical, Trash2, ChevronRight, Calendar, User } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface Task {
   id: string
@@ -20,14 +21,22 @@ interface KanbanBoardProps {
   projectId: string
 }
 
-const COLUMNS: { status: TaskStatus; label: string; color: string }[] = [
-  { status: 'todo', label: 'A Fazer', color: 'var(--vscode-notificationsInfoIcon-foreground)' },
-  { status: 'in_progress', label: 'Em Andamento', color: 'var(--vscode-notificationsWarningIcon-foreground)' },
-  { status: 'waiting', label: 'Aguardando', color: '#c586c0' },
-  { status: 'done', label: 'Concluído', color: 'var(--vscode-testing-iconPassed)' },
+const COLUMN_STATUSES: { status: TaskStatus; color: string }[] = [
+  { status: 'todo', color: 'var(--vscode-notificationsInfoIcon-foreground)' },
+  { status: 'in_progress', color: 'var(--vscode-notificationsWarningIcon-foreground)' },
+  { status: 'waiting', color: '#c586c0' },
+  { status: 'done', color: 'var(--vscode-testing-iconPassed)' },
 ]
 
+const COLUMN_LABEL_KEYS: Record<TaskStatus, string> = {
+  todo: 'kanban.todo',
+  in_progress: 'kanban.inProgress',
+  waiting: 'kanban.waiting',
+  done: 'kanban.done',
+}
+
 export function KanbanBoard({ projectId }: KanbanBoardProps) {
+  const { t, i18n } = useTranslation('projects')
   const [tasks, setTasks] = useState<Task[]>([])
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [addingInColumn, setAddingInColumn] = useState<TaskStatus | null>(null)
@@ -105,11 +114,11 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
     const due = new Date(dueDate + 'T00:00:00')
     const diffDays = Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
 
-    const formatted = due.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+    const formatted = due.toLocaleDateString(i18n.language, { day: '2-digit', month: '2-digit' })
 
-    if (diffDays < 0) return { label: `${formatted} (vencida)`, className: 'due-overdue' }
-    if (diffDays === 0) return { label: `${formatted} (hoje)`, className: 'due-today' }
-    if (diffDays === 1) return { label: `${formatted} (amanhã)`, className: 'due-tomorrow' }
+    if (diffDays < 0) return { label: `${formatted} (${t('kanban.overdue')})`, className: 'due-overdue' }
+    if (diffDays === 0) return { label: `${formatted} (${t('kanban.today')})`, className: 'due-today' }
+    if (diffDays === 1) return { label: `${formatted} (${t('kanban.tomorrow')})`, className: 'due-tomorrow' }
     if (diffDays <= 7) return { label: `${formatted} (${diffDays}d)`, className: 'due-soon' }
     return { label: formatted, className: 'due-normal' }
   }
@@ -153,8 +162,9 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
 
   return (
     <div className="kanban-board">
-      {COLUMNS.map((column) => {
+      {COLUMN_STATUSES.map((column) => {
         const columnTasks = getTasksByStatus(column.status)
+        const columnLabel = t(COLUMN_LABEL_KEYS[column.status])
         return (
           <div
             key={column.status}
@@ -164,12 +174,12 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
           >
             <div className="kanban-column-header">
               <span className="kanban-column-dot" style={{ background: column.color }} />
-              <span className="kanban-column-title">{column.label}</span>
+              <span className="kanban-column-title">{columnLabel}</span>
               <span className="kanban-column-count">{columnTasks.length}</span>
               <button
                 className="icon-button"
                 onClick={() => setAddingInColumn(column.status)}
-                title="Adicionar tarefa"
+                title={t('kanban.addTask')}
               >
                 <Plus size={14} />
               </button>
@@ -188,7 +198,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
                       if (e.key === 'Escape') { setAddingInColumn(null); setNewTaskTitle('') }
                     }}
                     onBlur={() => { setAddingInColumn(null); setNewTaskTitle('') }}
-                    placeholder="Título da tarefa..."
+                    placeholder={t('kanban.taskPlaceholder')}
                     autoFocus
                   />
                 </div>
@@ -250,10 +260,10 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
                       <span
                         className={`kanban-card-due ${getDueDateInfo(task.dueDate)?.className || ''}`}
                         onClick={() => setEditingDueDateTaskId(task.id)}
-                        title="Definir prazo"
+                        title={t('kanban.setDueDate')}
                       >
                         <Calendar size={10} />
-                        {getDueDateInfo(task.dueDate)?.label || 'Sem prazo'}
+                        {getDueDateInfo(task.dueDate)?.label || t('kanban.noDueDate')}
                       </span>
                     )}
 
@@ -272,7 +282,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
                         key={nextStatus}
                         className="icon-button"
                         onClick={() => handleMoveTask(task.id, nextStatus)}
-                        title={`Mover para ${COLUMNS.find(c => c.status === nextStatus)?.label}`}
+                        title={t('kanban.moveTo', { column: t(COLUMN_LABEL_KEYS[nextStatus]) })}
                       >
                         <ChevronRight size={12} />
                       </button>
@@ -280,7 +290,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
                     <button
                       className="icon-button"
                       onClick={() => handleDeleteTask(task.id)}
-                      title="Excluir"
+                      title={t('kanban.deleteTask')}
                     >
                       <Trash2 size={12} />
                     </button>
@@ -289,7 +299,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
               ))}
 
               {columnTasks.length === 0 && !addingInColumn && (
-                <div className="kanban-empty">Sem tarefas</div>
+                <div className="kanban-empty">{t('kanban.empty')}</div>
               )}
             </div>
           </div>

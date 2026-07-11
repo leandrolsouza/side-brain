@@ -1,0 +1,16 @@
+{
+  "headerTitle": "Pergunte ao seu histórico",
+  "badge": "IA",
+  "welcomeTitle": "Converse com seus dados",
+  "welcomeSubtitle": "Pergunte sobre decisões, tarefas, bloqueios ou qualquer coisa que você registrou.",
+  "suggestedRecentDecisions": "O que decidimos recentemente?",
+  "suggestedBlockers": "Quais bloqueios temos agora?",
+  "suggestedWeekSummary": "Resumo da semana",
+  "suggestedPending": "O que ficou pendente?",
+  "suggestedOverdueTasks": "Quais tarefas estão atrasadas?",
+  "inputPlaceholder": "Pergunte algo sobre seu trabalho...",
+  "sendMessage": "Enviar mensagem",
+  "typing": "Pesquisando e analisando...",
+  "sources": "Fontes:",
+  "errorMessage": "Desculpe, ocorreu um erro ao processar sua pergunta. Verifique se a IA está configurada nas configurações."
+}

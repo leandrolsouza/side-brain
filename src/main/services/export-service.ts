@@ -1,10 +1,11 @@
 import { dialog } from 'electron'
 import fs from 'fs'
-import { Entry, EntryType, ActionStatus, Task, TaskStatus, TASK_STATUS_LABELS } from '../../shared/types'
+import { Entry, EntryType, ActionStatus, Task, TaskStatus } from '../../shared/types'
 import { EntryRepository } from '../database/repositories/entry-repository'
 import { ProjectRepository } from '../database/repositories/project-repository'
 import { TaskRepository } from '../database/repositories/task-repository'
 import { CustomFieldsRepository } from '../database/repositories/custom-fields-repository'
+import { t, getLocale } from '../i18n'
 
 export type ExportFormat = 'markdown' | 'pdf'
 
@@ -20,8 +21,8 @@ export class ExportService {
   private getEntryTypeLabels(): Record<string, string> {
     const types = this.customFieldsRepo.getEntryTypes()
     const labels: Record<string, string> = {}
-    for (const t of types) {
-      labels[t.key] = t.label
+    for (const type of types) {
+      labels[type.key] = type.label
     }
     return labels
   }
@@ -38,10 +39,20 @@ export class ExportService {
     return labels
   }
 
+  private getTaskStatusLabel(status: TaskStatus): string {
+    switch (status) {
+      case 'todo': return t('export.report.status_todo')
+      case 'in_progress': return t('export.report.status_in_progress')
+      case 'waiting': return t('export.report.status_waiting')
+      case 'done': return t('export.report.status_done')
+      default: return status
+    }
+  }
+
   async exportProject(projectId: string, format: ExportFormat): Promise<{ success: boolean; filePath?: string }> {
     const project = this.projectRepo.getById(projectId)
     if (!project) {
-      throw new Error('Projeto não encontrado')
+      throw new Error(t('notifications.errors.project_not_found'))
     }
 
     const entries = this.entryRepo.getAll(projectId)
@@ -53,11 +64,11 @@ export class ExportService {
     const filterName = format === 'pdf' ? 'PDF' : 'Markdown'
 
     const result = await dialog.showSaveDialog({
-      title: 'Exportar Relatório do Projeto',
-      defaultPath: `${project.name.replace(/[^a-zA-Z0-9àáâãéêíóôõúçÀÁÂÃÉÊÍÓÔÕÚÇ\s-]/g, '')}_relatorio.${extension}`,
+      title: t('export.dialog.title'),
+      defaultPath: `${project.name.replace(/[^a-zA-Z0-9àáâãéêíóôõúçÀÁÂÃÉÊÍÓÔÕÚÇ\s-]/g, '')}${t('export.dialog.default_suffix')}.${extension}`,
       filters: [
         { name: filterName, extensions: [extension] },
-        { name: 'Todos os arquivos', extensions: ['*'] },
+        { name: t('export.dialog.all_files'), extensions: ['*'] },
       ],
     })
 
@@ -80,18 +91,19 @@ export class ExportService {
     entries: Entry[],
     tasks: Task[]
   ): string {
+    const locale = getLocale()
     const now = new Date()
-    const dateStr = now.toLocaleDateString('pt-BR', {
+    const dateStr = now.toLocaleDateString(locale, {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
     })
 
-    let md = `# Relatório: ${projectName}\n\n`
-    md += `**Data de exportação:** ${dateStr}\n\n`
+    let md = `# ${t('export.report.title', { projectName })}\n\n`
+    md += `**${t('export.report.export_date')}** ${dateStr}\n\n`
 
     if (projectDescription) {
-      md += `**Descrição:** ${projectDescription}\n\n`
+      md += `**${t('export.report.description')}** ${projectDescription}\n\n`
     }
 
     md += `---\n\n`
@@ -100,33 +112,33 @@ export class ExportService {
     const tasksByStatus = this.groupTasksByStatus(tasks)
     const entriesByType = this.groupEntriesByType(entries)
 
-    md += `## Resumo\n\n`
-    md += `- **Total de entradas:** ${entries.length}\n`
-    md += `- **Total de tarefas:** ${tasks.length}\n`
+    md += `## ${t('export.report.summary_heading')}\n\n`
+    md += `- **${t('export.report.total_entries')}** ${entries.length}\n`
+    md += `- **${t('export.report.total_tasks')}** ${tasks.length}\n`
 
     if (tasks.length > 0) {
-      md += `  - A Fazer: ${tasksByStatus.todo?.length || 0}\n`
-      md += `  - Em Andamento: ${tasksByStatus.in_progress?.length || 0}\n`
-      md += `  - Aguardando: ${tasksByStatus.waiting?.length || 0}\n`
-      md += `  - Concluído: ${tasksByStatus.done?.length || 0}\n`
+      md += `  - ${t('export.report.status_todo')}: ${tasksByStatus.todo?.length || 0}\n`
+      md += `  - ${t('export.report.status_in_progress')}: ${tasksByStatus.in_progress?.length || 0}\n`
+      md += `  - ${t('export.report.status_waiting')}: ${tasksByStatus.waiting?.length || 0}\n`
+      md += `  - ${t('export.report.status_done')}: ${tasksByStatus.done?.length || 0}\n`
     }
 
     md += `\n`
 
     // Tasks section
     if (tasks.length > 0) {
-      md += `## Tarefas\n\n`
+      md += `## ${t('export.report.tasks_heading')}\n\n`
 
       const statusOrder: TaskStatus[] = ['in_progress', 'todo', 'waiting', 'done']
       for (const status of statusOrder) {
         const statusTasks = tasksByStatus[status]
         if (statusTasks && statusTasks.length > 0) {
-          md += `### ${TASK_STATUS_LABELS[status]}\n\n`
+          md += `### ${this.getTaskStatusLabel(status)}\n\n`
           for (const task of statusTasks) {
             const checkbox = status === 'done' ? '[x]' : '[ ]'
             md += `- ${checkbox} **${task.title}**`
             if (task.dueDate) {
-              md += ` (prazo: ${new Date(task.dueDate).toLocaleDateString('pt-BR')})`
+              md += ` (${t('export.report.deadline_label', { date: new Date(task.dueDate).toLocaleDateString(locale) })})`
             }
             md += `\n`
             if (task.description) {
@@ -140,21 +152,21 @@ export class ExportService {
 
     // Entries section
     if (entries.length > 0) {
-      md += `## Entradas\n\n`
+      md += `## ${t('export.report.entries_heading')}\n\n`
 
       const entryTypeLabels = this.getEntryTypeLabels()
       const actionStatusLabels = this.getActionStatusLabels()
 
       // Use custom field order (sorted by the configured sort_order)
       const entryTypes = this.customFieldsRepo.getEntryTypes()
-      const typeOrder = entryTypes.map((t) => t.key)
+      const typeOrder = entryTypes.map((type) => type.key)
 
       for (const type of typeOrder) {
         const typeEntries = entriesByType[type]
         if (typeEntries && typeEntries.length > 0) {
           md += `### ${entryTypeLabels[type] || type} (${typeEntries.length})\n\n`
           for (const entry of typeEntries) {
-            const date = new Date(entry.createdAt).toLocaleDateString('pt-BR')
+            const date = new Date(entry.createdAt).toLocaleDateString(locale)
             md += `- **[${date}]** ${entry.improvedText || entry.rawText}`
             if (entry.action !== 'none') {
               md += ` _(${actionStatusLabels[entry.action] || entry.action})_`
@@ -171,7 +183,7 @@ export class ExportService {
         if (knownTypes.has(type) || !typeEntries || typeEntries.length === 0) continue
         md += `### ${type} (${typeEntries.length})\n\n`
         for (const entry of typeEntries) {
-          const date = new Date(entry.createdAt).toLocaleDateString('pt-BR')
+          const date = new Date(entry.createdAt).toLocaleDateString(locale)
           md += `- **[${date}]** ${entry.improvedText || entry.rawText}\n`
         }
         md += `\n`
@@ -179,7 +191,7 @@ export class ExportService {
     }
 
     md += `---\n\n`
-    md += `_Relatório gerado pelo SideBrain em ${dateStr}_\n`
+    md += `_${t('export.report.footer', { date: dateStr })}_\n`
 
     return md
   }

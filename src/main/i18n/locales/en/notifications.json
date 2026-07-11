@@ -1,0 +1,46 @@
+{
+  "digest_ready": {
+    "title": "Daily digest ready",
+    "body": "Your daily summary is available. See what happened and what needs attention."
+  },
+  "insight_generated": {
+    "title": "New insights available",
+    "body_one": "{{count}} proactive insight generated for you.",
+    "body_other": "{{count}} proactive insights generated for you."
+  },
+  "ai_error": {
+    "title": "AI Error",
+    "meeting_process_error": "The AI returned a response with invalid format. Try reprocessing."
+  },
+  "meeting_reminder": {
+    "title": "Meeting in progress",
+    "body": "\"{{meetingTitle}}\" is active without new notes for a while."
+  },
+  "task_overdue": {
+    "title": "Overdue tasks",
+    "body_one": "\"{{title}}\" is overdue!",
+    "body_other": "You have {{count}} overdue tasks."
+  },
+  "task_due_today": {
+    "title": "Tasks due today",
+    "body_one": "\"{{title}}\" is due today!",
+    "body_other": "You have {{count}} tasks due today."
+  },
+  "task_due_tomorrow": {
+    "title": "Tasks due tomorrow",
+    "body_one": "\"{{title}}\" is due tomorrow.",
+    "body_other": "You have {{count}} tasks due tomorrow."
+  },
+  "group_title": {
+    "tasks": "Tasks",
+    "meetings": "Meetings",
+    "ai": "Artificial Intelligence",
+    "insights": "Insights"
+  },
+  "errors": {
+    "meeting_process": "Error processing meeting",
+    "meeting_process_detail": "The AI returned a response with invalid format. Try reprocessing.",
+    "meeting_process_ai": "Error processing meeting with AI",
+    "project_not_found": "Project not found"
+  }
+}
