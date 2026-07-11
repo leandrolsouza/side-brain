@@ -5,6 +5,13 @@ Todas as mudanças notáveis do SideBrain serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.4.3] - 2025-07-11
+
+### Adicionado
+- Opção "Usar existente" no diálogo de alterar local da database — quando a pasta de destino já contém um arquivo `.db`, o usuário pode optar por usar esse banco diretamente (sem mover nem criar novo)
+- IPC `database:checkExists` para verificar se já existe um banco no caminho selecionado
+- Suporte a `secondAlternativeLabel` / `onSecondAlternative` no ConfirmModal para diálogos com 3 ações
+
 ## [0.4.1] - 2025-07-10
 
 ### Segurança

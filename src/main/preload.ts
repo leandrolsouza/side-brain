@@ -108,8 +108,9 @@ export interface ElectronAPI {
   // Database Path
   getDatabasePath: () => Promise<{ currentPath: string; defaultPath: string; isCustom: boolean }>
   selectDatabaseFolder: () => Promise<string | null>
-  setDatabasePath: (newPath: string, mode: 'move' | 'new') => Promise<{ success: boolean; error?: string }>
-  resetDatabasePath: (mode: 'move' | 'new') => Promise<{ success: boolean; error?: string }>
+  checkDatabaseExists: (dbPath: string) => Promise<boolean>
+  setDatabasePath: (newPath: string, mode: 'move' | 'new' | 'existing') => Promise<{ success: boolean; error?: string }>
+  resetDatabasePath: (mode: 'move' | 'new' | 'existing') => Promise<{ success: boolean; error?: string }>
 
   // AI Usage
   getAIUsageSummary: (dateFrom?: string, dateTo?: string) => Promise<AIUsageSummary>
@@ -322,9 +323,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('database:getPath'),
   selectDatabaseFolder: () =>
     ipcRenderer.invoke('database:selectFolder'),
-  setDatabasePath: (newPath: string, mode: 'move' | 'new') =>
+  checkDatabaseExists: (dbPath: string) =>
+    ipcRenderer.invoke('database:checkExists', dbPath),
+  setDatabasePath: (newPath: string, mode: 'move' | 'new' | 'existing') =>
     ipcRenderer.invoke('database:setPath', newPath, mode),
-  resetDatabasePath: (mode: 'move' | 'new') =>
+  resetDatabasePath: (mode: 'move' | 'new' | 'existing') =>
     ipcRenderer.invoke('database:resetPath', mode),
 
   // AI Usage

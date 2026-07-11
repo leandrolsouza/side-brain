@@ -139,9 +139,11 @@ export function Settings({ }: SettingsProps) {
     confirmLabel: string
     cancelLabel?: string
     alternativeLabel?: string
+    secondAlternativeLabel?: string
     variant: 'danger' | 'warning' | 'default'
     onConfirm: () => void
     onAlternative?: () => void
+    onSecondAlternative?: () => void
   } | null>(null)
 
   useEffect(() => {
@@ -278,11 +280,18 @@ export function Settings({ }: SettingsProps) {
     const selectedPath = await window.electronAPI.selectDatabaseFolder()
     if (!selectedPath) return
 
+    const existsAtDestination = await window.electronAPI.checkDatabaseExists(selectedPath)
+
+    const message = existsAtDestination
+      ? 'O que deseja fazer com a database atual?\n\n• Mover dados = Transfere a database para o novo local (substituirá a existente)\n• Criar nova = Começa uma database vazia (dados antigos permanecem no local atual)\n• Usar existente = Usa a database que já existe no destino'
+      : 'O que deseja fazer com a database atual?\n\n• Mover dados = Transfere a database para o novo local\n• Criar nova = Começa uma database vazia (dados antigos permanecem no local atual)'
+
     setConfirmModal({
       title: 'Alterar local da database',
-      message: 'O que deseja fazer com a database atual?\n\n• Mover dados = Transfere a database para o novo local\n• Criar nova = Começa uma database vazia (dados antigos permanecem no local atual)',
+      message,
       confirmLabel: 'Mover dados',
       alternativeLabel: 'Criar nova',
+      secondAlternativeLabel: existsAtDestination ? 'Usar existente' : undefined,
       variant: 'warning',
       onConfirm: async () => {
         setConfirmModal(null)
@@ -292,10 +301,16 @@ export function Settings({ }: SettingsProps) {
         setConfirmModal(null)
         await executeDatabasePathChange(selectedPath, 'new')
       },
+      onSecondAlternative: existsAtDestination
+        ? async () => {
+          setConfirmModal(null)
+          await executeDatabasePathChange(selectedPath, 'existing')
+        }
+        : undefined,
     })
   }
 
-  const executeDatabasePathChange = async (path: string, mode: 'move' | 'new') => {
+  const executeDatabasePathChange = async (path: string, mode: 'move' | 'new' | 'existing') => {
     setDbPathLoading(true)
     try {
       const result = await window.electronAPI.setDatabasePath(path, mode)
@@ -314,11 +329,19 @@ export function Settings({ }: SettingsProps) {
   const handleResetDatabasePath = async () => {
     if (!dbPathInfo?.isCustom) return
 
+    const defaultPath = dbPathInfo.defaultPath
+    const existsAtDefault = await window.electronAPI.checkDatabaseExists(defaultPath)
+
+    const message = existsAtDefault
+      ? 'O que deseja fazer com a database atual?\n\n• Mover dados = Transfere de volta para o local padrão (substituirá a existente)\n• Criar nova = Começa uma database vazia no local padrão\n• Usar existente = Usa a database que já existe no local padrão'
+      : 'O que deseja fazer com a database atual?\n\n• Mover dados = Transfere de volta para o local padrão\n• Criar nova = Começa uma database vazia no local padrão'
+
     setConfirmModal({
       title: 'Restaurar local padrão',
-      message: 'O que deseja fazer com a database atual?\n\n• Mover dados = Transfere de volta para o local padrão\n• Criar nova = Começa uma database vazia no local padrão',
+      message,
       confirmLabel: 'Mover dados',
       alternativeLabel: 'Criar nova',
+      secondAlternativeLabel: existsAtDefault ? 'Usar existente' : undefined,
       variant: 'warning',
       onConfirm: async () => {
         setConfirmModal(null)
@@ -328,10 +351,16 @@ export function Settings({ }: SettingsProps) {
         setConfirmModal(null)
         await executeResetDatabasePath('new')
       },
+      onSecondAlternative: existsAtDefault
+        ? async () => {
+          setConfirmModal(null)
+          await executeResetDatabasePath('existing')
+        }
+        : undefined,
     })
   }
 
-  const executeResetDatabasePath = async (mode: 'move' | 'new') => {
+  const executeResetDatabasePath = async (mode: 'move' | 'new' | 'existing') => {
     setDbPathLoading(true)
     try {
       const result = await window.electronAPI.resetDatabasePath(mode)
@@ -1361,10 +1390,12 @@ export function Settings({ }: SettingsProps) {
         confirmLabel={confirmModal?.confirmLabel ?? 'Confirmar'}
         cancelLabel={confirmModal?.cancelLabel ?? 'Cancelar'}
         alternativeLabel={confirmModal?.alternativeLabel}
+        secondAlternativeLabel={confirmModal?.secondAlternativeLabel}
         variant={confirmModal?.variant ?? 'default'}
         onConfirm={confirmModal?.onConfirm ?? (() => { })}
         onCancel={() => setConfirmModal(null)}
         onAlternative={confirmModal?.onAlternative}
+        onSecondAlternative={confirmModal?.onSecondAlternative}
       />
     </div>
   )

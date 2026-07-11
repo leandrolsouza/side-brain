@@ -1,6 +1,7 @@
 import { safeHandle } from './safe-handle'
 import { getContainer } from '../services/container'
 import { getConfigService } from '../services/config-service'
+import fs from 'fs'
 
 export function registerWorkspaceHandlers(): void {
   const configService = getConfigService()
@@ -48,11 +49,15 @@ export function registerWorkspaceHandlers(): void {
     return configService.selectDatabaseFolder()
   })
 
-  safeHandle('database:setPath', async (_event, newPath: string, mode: 'move' | 'new') => {
+  safeHandle('database:checkExists', async (_event, dbPath: string) => {
+    return fs.existsSync(dbPath)
+  })
+
+  safeHandle('database:setPath', async (_event, newPath: string, mode: 'move' | 'new' | 'existing') => {
     return configService.setDatabasePath(newPath, mode)
   })
 
-  safeHandle('database:resetPath', async (_event, mode: 'move' | 'new') => {
+  safeHandle('database:resetPath', async (_event, mode: 'move' | 'new' | 'existing') => {
     return configService.resetToDefaultPath(mode)
   })
 

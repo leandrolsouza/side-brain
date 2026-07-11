@@ -8,10 +8,12 @@ interface ConfirmModalProps {
   confirmLabel?: string
   cancelLabel?: string
   alternativeLabel?: string
+  secondAlternativeLabel?: string
   variant?: 'danger' | 'warning' | 'default'
   onConfirm: () => void
   onCancel: () => void
   onAlternative?: () => void
+  onSecondAlternative?: () => void
 }
 
 export function ConfirmModal({
@@ -21,10 +23,12 @@ export function ConfirmModal({
   confirmLabel = 'Confirmar',
   cancelLabel = 'Cancelar',
   alternativeLabel,
+  secondAlternativeLabel,
   variant = 'default',
   onConfirm,
   onCancel,
   onAlternative,
+  onSecondAlternative,
 }: ConfirmModalProps) {
   useEffect(() => {
     if (!isOpen) return
@@ -61,6 +65,11 @@ export function ConfirmModal({
           {alternativeLabel && onAlternative && (
             <button className="vscode-button secondary" onClick={onAlternative}>
               {alternativeLabel}
+            </button>
+          )}
+          {secondAlternativeLabel && onSecondAlternative && (
+            <button className="vscode-button secondary" onClick={onSecondAlternative}>
+              {secondAlternativeLabel}
             </button>
           )}
           <button className={`vscode-button ${variant}`} onClick={onConfirm}>

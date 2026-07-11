@@ -233,11 +233,11 @@ export class ConfigService {
 
   /**
    * Muda o caminho da database do workspace ativo.
-   * mode: 'move' = move a DB atual pro novo local, 'new' = começa nova DB no local
+   * mode: 'move' = move a DB atual pro novo local, 'new' = começa nova DB no local, 'existing' = usa DB já existente no destino
    */
   async setDatabasePath(
     newPath: string,
-    mode: 'move' | 'new'
+    mode: 'move' | 'new' | 'existing'
   ): Promise<{ success: boolean; error?: string }> {
     const currentDbPath = this.getDatabasePath()
 
@@ -277,6 +277,13 @@ export class ConfigService {
       } else if (mode === 'new') {
         closeDatabase()
         this.releaseLock()
+      } else if (mode === 'existing') {
+        // Apenas reaponta para o DB existente no destino, sem mover nem criar
+        if (!fs.existsSync(newDbPath)) {
+          return { success: false, error: 'Nenhuma database encontrada no destino.' }
+        }
+        closeDatabase()
+        this.releaseLock()
       }
 
       // Atualiza o workspace ativo com o novo caminho
@@ -304,7 +311,7 @@ export class ConfigService {
   /**
    * Reseta o caminho para o padrão (userData).
    */
-  async resetToDefaultPath(mode: 'move' | 'new'): Promise<{ success: boolean; error?: string }> {
+  async resetToDefaultPath(mode: 'move' | 'new' | 'existing'): Promise<{ success: boolean; error?: string }> {
     const defaultPath = this.getDefaultDatabasePath()
     return this.setDatabasePath(defaultPath, mode)
   }
