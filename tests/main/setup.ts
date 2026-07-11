@@ -1,6 +1,65 @@
 import Database from 'better-sqlite3'
 import { vi, beforeEach, afterEach } from 'vitest'
 
+// Mock Electron APIs globally for all main process tests.
+// In Node.js (test environment), the `electron` package exports only the binary path
+// and may throw if the binary isn't downloaded (e.g. CI with --ignore-scripts).
+vi.mock('electron', () => ({
+  app: {
+    getPath: vi.fn(() => '/tmp'),
+    getVersion: vi.fn(() => '0.0.0-test'),
+    getName: vi.fn(() => 'sidebrain-test'),
+    quit: vi.fn(),
+    whenReady: vi.fn(() => Promise.resolve()),
+    requestSingleInstanceLock: vi.fn(() => true),
+    on: vi.fn(),
+  },
+  BrowserWindow: {
+    getAllWindows: vi.fn(() => []),
+  },
+  Notification: {
+    isSupported: vi.fn(() => false),
+    removeGroup: vi.fn(),
+  },
+  safeStorage: {
+    isEncryptionAvailable: vi.fn(() => false),
+    encryptString: vi.fn((str: string) => Buffer.from(str)),
+    decryptString: vi.fn((buf: Buffer) => buf.toString()),
+  },
+  net: {
+    fetch: vi.fn(),
+  },
+  nativeTheme: {
+    themeSource: 'dark',
+    shouldUseDarkColors: true,
+  },
+  shell: {
+    openPath: vi.fn(),
+    openExternal: vi.fn(),
+  },
+  dialog: {
+    showSaveDialog: vi.fn(),
+    showOpenDialog: vi.fn(),
+    showErrorBox: vi.fn(),
+  },
+  ipcMain: {
+    handle: vi.fn(),
+    on: vi.fn(),
+  },
+  session: {
+    defaultSession: {
+      setPermissionRequestHandler: vi.fn(),
+      setPermissionCheckHandler: vi.fn(),
+      webRequest: { onHeadersReceived: vi.fn() },
+    },
+  },
+  globalShortcut: {
+    register: vi.fn(),
+    unregisterAll: vi.fn(),
+    setSuspended: vi.fn(),
+  },
+}))
+
 let testDb: Database.Database | null = null
 
 /**

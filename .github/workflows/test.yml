@@ -18,7 +18,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
           cache: "npm"
 
       - name: Install dependencies
@@ -27,5 +27,8 @@ jobs:
       - name: Build native modules for Node.js
         run: npm rebuild better-sqlite3
 
-      - name: Run tests
+      - name: Run main process tests
         run: npx vitest run --config vitest.config.main.ts
+
+      - name: Run renderer tests
+        run: npx vitest run --config vitest.config.renderer.ts
