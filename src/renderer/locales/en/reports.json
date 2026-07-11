@@ -73,5 +73,13 @@
     "operationInsights": "Insights",
     "operationMeetingPrep": "Meeting Preparation",
     "operationConnectionDiscovery": "Connection Discovery"
-  }
+  },
+  "narrativeTitle": "AI Analysis",
+  "narrativeDescription": "Generate a narrative analysis of your productivity data with personalized insights and suggestions.",
+  "narrativeGenerate": "Generate analysis",
+  "narrativeLoading": "Analyzing your data...",
+  "narrativeError": "Could not generate the analysis. Check if AI is configured.",
+  "narrativeRetry": "Try again",
+  "narrativeRegenerate": "Regenerate",
+  "narrativeView": "View analysis"
 }

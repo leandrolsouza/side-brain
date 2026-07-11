@@ -8,4 +8,8 @@ export function registerReportsHandlers(): void {
   safeHandle('reports:getData', async (_event, period: ReportPeriod) => {
     return reportsService.getReportsData(period)
   })
+
+  safeHandle('reports:generateNarrative', async (_event, period: ReportPeriod) => {
+    return reportsService.generateNarrative(period)
+  })
 }

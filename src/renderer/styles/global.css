@@ -4981,6 +4981,51 @@ kbd {
   opacity: 0.7;
 }
 
+/* Report Narrative Card */
+.report-narrative-card {
+  padding: 14px 18px;
+  border-radius: 8px;
+  background: var(--vscode-sideBar-background, #252526);
+  border: 1px solid var(--vscode-panel-border, #2d2d2d);
+  border-left: 3px solid var(--vscode-notificationsInfoIcon-foreground, #75beff);
+}
+
+.report-narrative-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--vscode-notificationsInfoIcon-foreground, #75beff);
+}
+
+.report-narrative-description {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  margin: 6px 0 0;
+}
+
+.report-narrative-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  margin-top: 8px;
+}
+
+.report-narrative-inline-actions {
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.report-narrative-error {
+  font-size: 12px;
+  color: var(--vscode-errorForeground, #f48771);
+  margin: 6px 0 0;
+}
+
 .reports-content {
   display: flex;
   flex-direction: column;

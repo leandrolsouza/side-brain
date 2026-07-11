@@ -73,5 +73,13 @@
     "operationInsights": "Insights",
     "operationMeetingPrep": "Preparação de Reunião",
     "operationConnectionDiscovery": "Descoberta de Conexões"
-  }
+  },
+  "narrativeTitle": "Análise IA",
+  "narrativeDescription": "Gere uma análise narrativa dos seus dados de produtividade com insights e sugestões personalizadas.",
+  "narrativeGenerate": "Gerar análise",
+  "narrativeLoading": "Analisando seus dados...",
+  "narrativeError": "Não foi possível gerar a análise. Verifique se a IA está configurada.",
+  "narrativeRetry": "Tentar novamente",
+  "narrativeRegenerate": "Regenerar",
+  "narrativeView": "Ver análise"
 }

@@ -145,6 +145,7 @@ export interface ElectronAPI {
 
   // Reports
   getReportsData: (period: ReportPeriod) => Promise<ReportsData>
+  generateReportNarrative: (period: ReportPeriod) => Promise<string>
 
   // Notifications
   getNotifications: () => Promise<AppNotification[]>
@@ -398,6 +399,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Reports
   getReportsData: (period: ReportPeriod) =>
     ipcRenderer.invoke('reports:getData', period),
+  generateReportNarrative: (period: ReportPeriod) =>
+    ipcRenderer.invoke('reports:generateNarrative', period),
 
   // Notifications
   getNotifications: () =>

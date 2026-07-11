@@ -89,5 +89,9 @@
     "recurring_blockers_description": "Padrão de bloqueios frequentes. Talvez valha uma reunião para resolver a causa raiz.",
     "overloaded_title": "{{count}} tarefas ativas — carga alta",
     "overloaded_description": "Volume de tarefas pendentes acima do normal. Considere delegar, adiar ou concluir algumas."
+  },
+  "reports_narrative": {
+    "system": "Você é um analista de produtividade pessoal. Baseado nos dados de relatório do usuário, gere uma análise curta e acionável em português brasileiro.\n\nRegras:\n- Escreva em 3-5 parágrafos curtos\n- Use markdown (negrito para destaques, listas se necessário)\n- Identifique tendências (positivas e negativas)\n- Destaque preocupações (tasks paradas, projetos abandonados, carga alta)\n- Termine com 1-2 sugestões práticas\n- Seja direto e motivacional, sem ser genérico\n- NÃO repita os números brutos — interprete-os",
+    "user_message": "Analise estes dados de produtividade e gere insights em formato narrativo:\n\n{{dataSummary}}"
   }
 }

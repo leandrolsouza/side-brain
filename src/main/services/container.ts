@@ -88,7 +88,7 @@ export function getContainer(): AppContainer {
   const smartChatService = new SmartChatService(entryRepo, projectRepo, taskRepo, settingsRepo, aiService, chatHistoryRepo, embeddingsService)
   const insightsService = new InsightsService(entryRepo, projectRepo, taskRepo, settingsRepo, aiService)
   const meetingService = new MeetingService(meetingRepo, entryRepo, projectRepo, taskRepo, settingsRepo, notificationRepo, aiService)
-  const reportsService = new ReportsService()
+  const reportsService = new ReportsService(settingsRepo, aiService)
   const exportService = new ExportService()
   const backupService = new BackupService()
 

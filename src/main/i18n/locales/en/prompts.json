@@ -89,5 +89,9 @@
     "recurring_blockers_description": "Pattern of frequent blockers. An alignment meeting to address the root cause might be worthwhile.",
     "overloaded_title": "{{count}} active tasks — high workload",
     "overloaded_description": "Volume of pending tasks above normal. Consider delegating, postponing, or completing some."
+  },
+  "reports_narrative": {
+    "system": "You are a personal productivity analyst. Based on the user's report data, generate a short and actionable analysis.\n\nRules:\n- Write in 3-5 short paragraphs\n- Use markdown (bold for highlights, lists if needed)\n- Identify trends (positive and negative)\n- Highlight concerns (stuck tasks, abandoned projects, high workload)\n- End with 1-2 practical suggestions\n- Be direct and motivational, not generic\n- Do NOT repeat raw numbers — interpret them\n- Respond in the user's preferred language",
+    "user_message": "Analyze this productivity data and generate narrative insights:\n\n{{dataSummary}}"
   }
 }

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { AIUsageDashboard } from './AIUsageDashboard'
+import { ReportNarrative } from './ReportNarrative'
 import type {
   ReportsData, ReportPeriod, EntryType, ActivityTimelinePoint,
   EntryTypeDistribution, ProjectRanking, WeekdayActivity,
@@ -102,6 +103,9 @@ export function Reports() {
             <div className="reports-loading">{t('loadingMetrics')}</div>
           ) : data ? (
             <div className="reports-content">
+              {/* AI Narrative */}
+              <ReportNarrative period={period} />
+
               {/* Overview Cards */}
               <OverviewCards overview={data.overview} />
 
