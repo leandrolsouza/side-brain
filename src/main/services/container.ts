@@ -12,6 +12,7 @@ import { NotificationRepository } from '../database/repositories/notification-re
 import { CustomFieldsRepository } from '../database/repositories/custom-fields-repository'
 import { ConnectionRepository } from '../database/repositories/connection-repository'
 import { ChatHistoryRepository } from '../database/repositories/chat-history-repository'
+import { EmbeddingsRepository } from '../database/repositories/embeddings-repository'
 
 import { AIProvider } from './ai-provider'
 import { AIService } from './ai-service'
@@ -23,6 +24,7 @@ import { MeetingService } from './meeting-service'
 import { ReportsService } from './reports-service'
 import { ExportService } from './export-service'
 import { BackupService } from './backup-service'
+import { EmbeddingsService } from './embeddings-service'
 import { setLocale } from '../i18n'
 
 export interface AppContainer {
@@ -37,6 +39,7 @@ export interface AppContainer {
   customFieldsRepo: CustomFieldsRepository
   connectionRepo: ConnectionRepository
   chatHistoryRepo: ChatHistoryRepository
+  embeddingsRepo: EmbeddingsRepository
 
   // Services
   aiProvider: AIProvider
@@ -49,6 +52,7 @@ export interface AppContainer {
   reportsService: ReportsService
   exportService: ExportService
   backupService: BackupService
+  embeddingsService: EmbeddingsService
 }
 
 let container: AppContainer | null = null
@@ -67,6 +71,7 @@ export function getContainer(): AppContainer {
   const customFieldsRepo = new CustomFieldsRepository()
   const connectionRepo = new ConnectionRepository()
   const chatHistoryRepo = new ChatHistoryRepository()
+  const embeddingsRepo = new EmbeddingsRepository()
 
   // Initialize main process i18n from persisted settings
   const settings = settingsRepo.get()
@@ -75,11 +80,12 @@ export function getContainer(): AppContainer {
   // AI layer
   const aiProvider = new AIProvider(aiUsageRepo, settingsRepo)
   const aiService = new AIService(aiProvider, customFieldsRepo)
+  const embeddingsService = new EmbeddingsService(embeddingsRepo, entryRepo, taskRepo, settingsRepo, aiUsageRepo)
 
   // Services (receive dependencies via constructor)
-  const entryService = new EntryService(entryRepo, projectRepo, taskRepo, settingsRepo, aiService)
+  const entryService = new EntryService(entryRepo, projectRepo, taskRepo, settingsRepo, aiService, embeddingsService)
   const digestService = new DigestService(entryRepo, taskRepo, projectRepo, settingsRepo, aiService)
-  const smartChatService = new SmartChatService(entryRepo, projectRepo, taskRepo, settingsRepo, aiService, chatHistoryRepo)
+  const smartChatService = new SmartChatService(entryRepo, projectRepo, taskRepo, settingsRepo, aiService, chatHistoryRepo, embeddingsService)
   const insightsService = new InsightsService(entryRepo, projectRepo, taskRepo, settingsRepo, aiService)
   const meetingService = new MeetingService(meetingRepo, entryRepo, projectRepo, taskRepo, settingsRepo, notificationRepo, aiService)
   const reportsService = new ReportsService()
@@ -97,6 +103,7 @@ export function getContainer(): AppContainer {
     customFieldsRepo,
     connectionRepo,
     chatHistoryRepo,
+    embeddingsRepo,
     aiProvider,
     aiService,
     entryService,
@@ -107,6 +114,7 @@ export function getContainer(): AppContainer {
     reportsService,
     exportService,
     backupService,
+    embeddingsService,
   }
 
   return container

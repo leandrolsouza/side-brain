@@ -4,6 +4,7 @@ import { ProjectRepository } from '../database/repositories/project-repository'
 import { TaskRepository } from '../database/repositories/task-repository'
 import { SettingsRepository } from '../database/repositories/settings-repository'
 import { AIService } from './ai-service'
+import { EmbeddingsService } from './embeddings-service'
 
 export class EntryService {
   constructor(
@@ -11,7 +12,8 @@ export class EntryService {
     private projectRepo: ProjectRepository,
     private taskRepo: TaskRepository,
     private settingsRepo: SettingsRepository,
-    private aiService: AIService
+    private aiService: AIService,
+    private embeddingsService?: EmbeddingsService
   ) { }
 
   async createEntry(rawText: string): Promise<Entry & { autoSuggestedProject?: { id: string; name: string } }> {
@@ -67,15 +69,20 @@ export class EntryService {
       const existing = this.taskRepo.findSimilar(projectId, result.suggestedTask.title)
       if (!existing) {
         const taskStatus = result.action === 'waiting_response' ? 'waiting' : 'todo'
-        this.taskRepo.create({
+        const task = this.taskRepo.create({
           projectId,
           title: result.suggestedTask.title,
           description: result.suggestedTask.description,
           status: taskStatus,
           sourceEntryId: entry.id,
         })
+        // Generate embedding for the new task in background
+        this.indexInBackground('task', task.id)
       }
     }
+
+    // Generate embedding for the new entry in background
+    this.indexInBackground('entry', entry.id)
 
     return { ...entry, autoSuggestedProject }
   }
@@ -154,15 +161,20 @@ export class EntryService {
       const existing = this.taskRepo.findSimilar(projectId, data.suggestedTask.title)
       if (!existing) {
         const taskStatus = data.action === 'waiting_response' ? 'waiting' : 'todo'
-        this.taskRepo.create({
+        const task = this.taskRepo.create({
           projectId,
           title: data.suggestedTask.title,
           description: data.suggestedTask.description,
           status: taskStatus,
           sourceEntryId: entry.id,
         })
+        // Generate embedding for the new task in background
+        this.indexInBackground('task', task.id)
       }
     }
+
+    // Generate embedding for the new entry in background
+    this.indexInBackground('entry', entry.id)
 
     return { ...entry, autoSuggestedProject }
   }
@@ -185,6 +197,8 @@ export class EntryService {
 
   deleteEntry(id: string): void {
     this.entryRepo.delete(id)
+    // Remove embedding when entry is deleted
+    this.embeddingsService?.deleteEmbedding('entry', id)
   }
 
   async generateSummary(projectId: string): Promise<string> {
@@ -229,5 +243,23 @@ export class EntryService {
     }).filter((p) => p.entries.length > 0 || p.tasks.length > 0)
 
     return this.aiService.generateGlobalSummary(projectsData, settings)
+  }
+
+  /**
+   * Fire-and-forget embedding generation for a newly created entity.
+   * Does not block the main flow if it fails.
+   */
+  private indexInBackground(entityType: 'entry' | 'task', entityId: string): void {
+    if (!this.embeddingsService) return
+
+    if (entityType === 'entry') {
+      this.embeddingsService.indexEntry(entityId).catch((err) => {
+        console.error(`Background embedding failed for entry ${entityId}:`, err.message)
+      })
+    } else {
+      this.embeddingsService.indexTask(entityId).catch((err) => {
+        console.error(`Background embedding failed for task ${entityId}:`, err.message)
+      })
+    }
   }
 }

@@ -137,6 +137,12 @@ export interface ElectronAPI {
   generateInsights: (forceRefresh?: boolean) => Promise<ProactiveInsight[]>
   getInsightsLastGeneratedAt: () => Promise<number | null>
 
+  // Embeddings
+  embeddingsGetStatus: () => Promise<{ totalEntries: number; indexedEntries: number; totalTasks: number; indexedTasks: number; isIndexing: boolean }>
+  embeddingsIndexAll: () => Promise<{ indexed: number; failed: number }>
+  embeddingsReindexAll: () => Promise<{ indexed: number; failed: number }>
+  embeddingsSupportsEmbeddings: () => Promise<boolean>
+
   // Reports
   getReportsData: (period: ReportPeriod) => Promise<ReportsData>
 
@@ -378,6 +384,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('insights:generate', forceRefresh),
   getInsightsLastGeneratedAt: () =>
     ipcRenderer.invoke('insights:getLastGeneratedAt'),
+
+  // Embeddings
+  embeddingsGetStatus: () =>
+    ipcRenderer.invoke('embeddings:getStatus'),
+  embeddingsIndexAll: () =>
+    ipcRenderer.invoke('embeddings:indexAll'),
+  embeddingsReindexAll: () =>
+    ipcRenderer.invoke('embeddings:reindexAll'),
+  embeddingsSupportsEmbeddings: () =>
+    ipcRenderer.invoke('embeddings:supportsEmbeddings'),
 
   // Reports
   getReportsData: (period: ReportPeriod) =>

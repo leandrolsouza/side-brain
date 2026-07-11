@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import { CheckCircle2, Download, Upload, Trash2, RotateCcw, HardDrive, AlertTriangle, FolderOpen, Database, Settings as SettingsIcon, Cpu, Cloud, Monitor, Type, Bell, Clock, Keyboard, FileText, Sunrise, Eye, EyeOff, Globe } from 'lucide-react'
+import { CheckCircle2, Download, Upload, Trash2, RotateCcw, HardDrive, AlertTriangle, FolderOpen, Database, Settings as SettingsIcon, Cpu, Cloud, Monitor, Type, Bell, Clock, Keyboard, FileText, Sunrise, Eye, EyeOff, Globe, Search } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { ConfirmModal } from './ConfirmModal'
+import { EmbeddingsStatus } from './EmbeddingsStatus'
 import { useToast } from './ToastContext'
 import { useApp } from './AppContext'
 import { SUPPORTED_LOCALES, type SupportedLocale } from '../i18n'
@@ -451,6 +452,17 @@ export function Settings({ }: SettingsProps) {
     { id: 'avancado', label: t('tabs.avancado'), icon: <Cpu size={14} /> },
   ]
 
+  const getEmbeddingModelLabel = (provider: AIProvider): string => {
+    switch (provider) {
+      case 'openai': return 'text-embedding-3-small'
+      case 'bedrock': return 'amazon.titan-embed-text-v2'
+      case 'gemini': return 'text-embedding-004'
+      case 'local': return settings.localModelId || 'local embedding'
+      case 'grok': return t('geral.embedding_not_supported')
+      default: return '—'
+    }
+  }
+
   const renderGeralTab = () => (
     <div className="settings-tab-content">
       {/* User Identity */}
@@ -519,6 +531,9 @@ export function Settings({ }: SettingsProps) {
               <Monitor size={14} />
               {t('geral.provider_local')}
             </button>
+          </div>
+          <div className="settings-embedding-model-hint">
+            {t('geral.embedding_model_hint')}: <strong>{getEmbeddingModelLabel(settings.aiProvider)}</strong>
           </div>
         </div>
       </div>
@@ -1395,6 +1410,21 @@ export function Settings({ }: SettingsProps) {
               {t('avancado.logs_open_app_folder')}
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Semantic Search (Embeddings) */}
+      <div className="settings-group" style={{ marginTop: 24 }}>
+        <div className="settings-section-title">
+          <Search size={16} />
+          <span>{t('avancado.embeddings_section_title')}</span>
+        </div>
+
+        <div className="settings-item">
+          <div className="settings-item-description">
+            {t('avancado.embeddings_description')}
+          </div>
+          <EmbeddingsStatus />
         </div>
       </div>
 

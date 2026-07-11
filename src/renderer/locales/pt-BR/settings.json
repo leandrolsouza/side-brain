@@ -15,6 +15,8 @@
     "ai_provider_label": "Provedor de IA",
     "ai_provider_description": "Escolha o provedor de IA para categorização e resumos.",
     "provider_local": "LLM Local",
+    "embedding_model_hint": "Modelo de embedding",
+    "embedding_not_supported": "não suportado",
     "aws_region_label": "Região AWS",
     "aws_region_description": "Região do AWS Bedrock para chamadas de IA.",
     "api_key_bedrock_label": "API Key (Bedrock)",
@@ -145,7 +147,18 @@
     "reset_db_description": "Remove todos os dados e começa do zero. A database atual será arquivada automaticamente na pasta de backups e poderá ser restaurada depois.",
     "reset_db_button": "Resetar Database",
     "reset_db_success": "Database resetada! Recarregando...",
-    "reset_db_error": "Erro ao resetar database."
+    "reset_db_error": "Erro ao resetar database.",
+    "embeddings_section_title": "Busca Semântica (Embeddings)",
+    "embeddings_description": "Gera vetores semânticos para suas entradas e tarefas, permitindo buscas inteligentes no Smart Chat que entendem sinônimos e contexto.",
+    "embeddings_unsupported": "Seu provedor de IA atual não suporta geração de embeddings.",
+    "embeddings_complete": "Totalmente indexado",
+    "embeddings_progress": "{{indexed}}/{{total}} indexados ({{percentage}}%)",
+    "embeddings_entries": "Entradas: {{indexed}}/{{total}}",
+    "embeddings_tasks": "Tarefas: {{indexed}}/{{total}}",
+    "embeddings_indexing": "Indexando...",
+    "embeddings_index_missing": "Indexar pendentes",
+    "embeddings_reindex_all": "Reindexar tudo",
+    "embeddings_result": "Concluído: {{indexed}} indexados, {{failed}} falhas"
   },
   "modals": {
     "import_title": "Importar backup",

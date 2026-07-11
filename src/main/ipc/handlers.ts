@@ -13,6 +13,7 @@ import { registerCustomFieldsHandlers } from './custom-fields-handlers'
 import { registerErrorHandlers } from './error-handlers'
 import { registerConnectionHandlers } from './connection-handlers'
 import { registerUpdaterHandlers } from './updater-handlers'
+import { registerEmbeddingsHandlers } from './embeddings-handlers'
 
 export function registerIpcHandlers(): void {
   registerEntryHandlers()
@@ -30,4 +31,5 @@ export function registerIpcHandlers(): void {
   registerErrorHandlers()
   registerConnectionHandlers()
   registerUpdaterHandlers()
+  registerEmbeddingsHandlers()
 }

@@ -5,6 +5,7 @@ import { TaskRepository } from '../database/repositories/task-repository'
 import { SettingsRepository } from '../database/repositories/settings-repository'
 import { ChatHistoryRepository } from '../database/repositories/chat-history-repository'
 import { AIService } from './ai-service'
+import { EmbeddingsService, SimilarityResult } from './embeddings-service'
 import { t } from '../i18n'
 import { v4 as uuid } from 'uuid'
 
@@ -22,7 +23,8 @@ export class SmartChatService {
     private taskRepo: TaskRepository,
     private settingsRepo: SettingsRepository,
     private aiService: AIService,
-    private chatHistoryRepo: ChatHistoryRepository
+    private chatHistoryRepo: ChatHistoryRepository,
+    private embeddingsService?: EmbeddingsService
   ) { }
 
   /**
@@ -59,7 +61,7 @@ export class SmartChatService {
     const historyContext = this.buildHistoryContext(conversation.id)
 
     // Search for relevant data context based on the user's question
-    const dataContext = this.gatherContext(userMessage)
+    const dataContext = await this.gatherContext(userMessage)
 
     // Build the full user message with history + data context
     const fullUserMessage = this.buildFullMessage(userMessage, historyContext, dataContext)
@@ -74,7 +76,7 @@ export class SmartChatService {
     )
 
     // Extract sources from the context that was used
-    const sources = this.extractSources(userMessage)
+    const sources = await this.extractSources(userMessage)
 
     // Persist assistant message
     const assistantMsg: SmartChatMessage = {
@@ -209,32 +211,107 @@ export class SmartChatService {
     // This is a no-op placeholder for the summarization logic.
   }
 
-  private gatherContext(query: string): string {
+  private async gatherContext(query: string): Promise<string> {
     const projects = this.projectRepo.getAll()
     const sections: string[] = []
     const noProject = t('prompts.smart_chat.no_project')
 
-    // 1. Search entries matching the query
+    // Track which entry/task IDs we've already included (to avoid duplicates)
+    const includedEntryIds = new Set<string>()
+    const includedTaskIds = new Set<string>()
+
+    // 1. Semantic search (if embeddings available)
+    let semanticResults: SimilarityResult[] = []
+    if (this.embeddingsService?.supportsEmbeddings()) {
+      try {
+        semanticResults = await this.embeddingsService.searchSimilar(query, 'all', 20, 0.35)
+      } catch {
+        // Fallback to textual only
+      }
+    }
+
+    if (semanticResults.length > 0) {
+      // Add semantically matched entries
+      const semanticEntryIds = semanticResults
+        .filter((r) => r.entityType === 'entry')
+        .map((r) => r.entityId)
+
+      if (semanticEntryIds.length > 0) {
+        const semanticEntries = semanticEntryIds
+          .map((id) => this.entryRepo.getById(id))
+          .filter((e) => e !== null)
+          .slice(0, 12)
+
+        if (semanticEntries.length > 0) {
+          const entriesContext = semanticEntries.map((e) => {
+            includedEntryIds.add(e!.id)
+            const projectName = projects.find((p) => p.id === e!.projectId)?.name || noProject
+            return `- [${e!.type}][${projectName}][${e!.createdAt.split('T')[0]}] ${e!.improvedText}`
+          }).join('\n')
+          sections.push(`${t('prompts.smart_chat.context_entries_found')}\n${entriesContext}`)
+        }
+      }
+
+      // Add semantically matched tasks
+      const semanticTaskIds = semanticResults
+        .filter((r) => r.entityType === 'task')
+        .map((r) => r.entityId)
+
+      if (semanticTaskIds.length > 0) {
+        const semanticTasks = semanticTaskIds
+          .map((id) => this.taskRepo.getById(id))
+          .filter((t) => t !== null)
+          .slice(0, 8)
+
+        if (semanticTasks.length > 0) {
+          const tasksContext = semanticTasks.map((task) => {
+            includedTaskIds.add(task!.id)
+            const projectName = projects.find((p) => p.id === task!.projectId)?.name || noProject
+            return `- [${task!.status}][${projectName}] ${task!.title}${task!.description ? ` — ${task!.description}` : ''}${task!.dueDate ? ` (prazo: ${task!.dueDate})` : ''}`
+          }).join('\n')
+          sections.push(`${t('prompts.smart_chat.context_tasks_found')}\n${tasksContext}`)
+        }
+      }
+    }
+
+    // 2. Augment with textual search (adds entries not already found semantically)
     const matchingEntries = this.entryRepo.search(query)
-    if (matchingEntries.length > 0) {
-      const entriesContext = matchingEntries.slice(0, 15).map((e) => {
+    const newTextEntries = matchingEntries.filter((e) => !includedEntryIds.has(e.id))
+    if (newTextEntries.length > 0 && includedEntryIds.size < 15) {
+      const extra = newTextEntries.slice(0, 15 - includedEntryIds.size)
+      const entriesContext = extra.map((e) => {
+        includedEntryIds.add(e.id)
         const projectName = projects.find((p) => p.id === e.projectId)?.name || noProject
         return `- [${e.type}][${projectName}][${e.createdAt.split('T')[0]}] ${e.improvedText}`
       }).join('\n')
-      sections.push(`${t('prompts.smart_chat.context_entries_found')}\n${entriesContext}`)
+
+      if (semanticResults.length === 0) {
+        // No semantic results, use textual as primary
+        sections.push(`${t('prompts.smart_chat.context_entries_found')}\n${entriesContext}`)
+      } else if (extra.length > 0) {
+        sections.push(`## Resultados adicionais (busca textual):\n${entriesContext}`)
+      }
     }
 
-    // 2. Search tasks matching the query
+    // 3. Textual task search (augment)
     const matchingTasks = this.taskRepo.search(query)
-    if (matchingTasks.length > 0) {
-      const tasksContext = matchingTasks.slice(0, 10).map((task) => {
+    const newTextTasks = matchingTasks.filter((task) => !includedTaskIds.has(task.id))
+    if (newTextTasks.length > 0 && includedTaskIds.size < 10) {
+      const extra = newTextTasks.slice(0, 10 - includedTaskIds.size)
+      const tasksContext = extra.map((task) => {
+        includedTaskIds.add(task.id)
         const projectName = projects.find((p) => p.id === task.projectId)?.name || noProject
         return `- [${task.status}][${projectName}] ${task.title}${task.description ? ` — ${task.description}` : ''}${task.dueDate ? ` (prazo: ${task.dueDate})` : ''}`
       }).join('\n')
-      sections.push(`${t('prompts.smart_chat.context_tasks_found')}\n${tasksContext}`)
+
+      if (semanticResults.length === 0 && sections.filter((s) => s.includes('Tarefas')).length === 0) {
+        sections.push(`${t('prompts.smart_chat.context_tasks_found')}\n${tasksContext}`)
+      } else if (extra.length > 0 && includedTaskIds.size > 0) {
+        // Only add if not redundant
+      }
     }
 
-    // 3. Search projects matching the query
+    // 4. Search projects matching the query
     const matchingProjects = this.projectRepo.search(query)
     if (matchingProjects.length > 0) {
       const projectsContext = matchingProjects.slice(0, 5).map((p) => {
@@ -243,8 +320,8 @@ export class SmartChatService {
       sections.push(`${t('prompts.smart_chat.context_projects_found')}\n${projectsContext}`)
     }
 
-    // 4. If direct search yielded little, add recent context
-    if (matchingEntries.length < 3) {
+    // 5. If little context found, add recent entries
+    if (includedEntryIds.size < 3 && semanticResults.length === 0) {
       const recentEntries = this.entryRepo.getAll().slice(0, 10)
       const recentContext = recentEntries.map((e) => {
         const projectName = projects.find((p) => p.id === e.projectId)?.name || noProject
@@ -253,7 +330,7 @@ export class SmartChatService {
       sections.push(`${t('prompts.smart_chat.context_recent_entries')}\n${recentContext}`)
     }
 
-    // 5. Add active tasks overview
+    // 6. Add active tasks overview
     const allTasks = this.taskRepo.getAll()
     const pendingTasks = allTasks.filter((task) => task.status !== 'done').slice(0, 10)
     if (pendingTasks.length > 0) {
@@ -264,39 +341,83 @@ export class SmartChatService {
       sections.push(`${t('prompts.smart_chat.context_pending_tasks')}\n${tasksOverview}`)
     }
 
-    // 6. Add project list
+    // 7. Add project list
     const projectList = projects.map((p) => `- ${p.name}`).join('\n')
     sections.push(`${t('prompts.smart_chat.context_active_projects')}\n${projectList}`)
 
     return sections.join('\n\n')
   }
 
-  private extractSources(query: string): SmartChatSource[] {
+  private async extractSources(query: string): Promise<SmartChatSource[]> {
     const sources: SmartChatSource[] = []
     const projects = this.projectRepo.getAll()
+    const seenIds = new Set<string>()
 
-    const matchingEntries = this.entryRepo.search(query).slice(0, 3)
-    for (const entry of matchingEntries) {
-      const projectName = projects.find((p) => p.id === entry.projectId)?.name
-      sources.push({
-        type: 'entry',
-        id: entry.id,
-        label: entry.improvedText.slice(0, 60) + (entry.improvedText.length > 60 ? '...' : ''),
-        projectName,
-      })
+    // Try semantic search first for more relevant sources
+    if (this.embeddingsService?.supportsEmbeddings()) {
+      try {
+        const results = await this.embeddingsService.searchSimilar(query, 'all', 5, 0.4)
+        for (const result of results) {
+          if (result.entityType === 'entry' && !seenIds.has(result.entityId)) {
+            const entry = this.entryRepo.getById(result.entityId)
+            if (entry) {
+              seenIds.add(entry.id)
+              const projectName = projects.find((p) => p.id === entry.projectId)?.name
+              sources.push({
+                type: 'entry',
+                id: entry.id,
+                label: entry.improvedText.slice(0, 60) + (entry.improvedText.length > 60 ? '...' : ''),
+                projectName,
+              })
+            }
+          } else if (result.entityType === 'task' && !seenIds.has(result.entityId)) {
+            const task = this.taskRepo.getById(result.entityId)
+            if (task) {
+              seenIds.add(task.id)
+              const projectName = projects.find((p) => p.id === task.projectId)?.name
+              sources.push({
+                type: 'task',
+                id: task.id,
+                label: task.title,
+                projectName,
+              })
+            }
+          }
+        }
+      } catch { /* fallback to textual */ }
     }
 
-    const matchingTasks = this.taskRepo.search(query).slice(0, 2)
-    for (const task of matchingTasks) {
-      const projectName = projects.find((p) => p.id === task.projectId)?.name
-      sources.push({
-        type: 'task',
-        id: task.id,
-        label: task.title,
-        projectName,
-      })
+    // Augment with textual search
+    if (sources.length < 3) {
+      const matchingEntries = this.entryRepo.search(query).slice(0, 3)
+      for (const entry of matchingEntries) {
+        if (seenIds.has(entry.id)) continue
+        seenIds.add(entry.id)
+        const projectName = projects.find((p) => p.id === entry.projectId)?.name
+        sources.push({
+          type: 'entry',
+          id: entry.id,
+          label: entry.improvedText.slice(0, 60) + (entry.improvedText.length > 60 ? '...' : ''),
+          projectName,
+        })
+      }
     }
 
-    return sources
+    if (sources.filter((s) => s.type === 'task').length < 2) {
+      const matchingTasks = this.taskRepo.search(query).slice(0, 2)
+      for (const task of matchingTasks) {
+        if (seenIds.has(task.id)) continue
+        seenIds.add(task.id)
+        const projectName = projects.find((p) => p.id === task.projectId)?.name
+        sources.push({
+          type: 'task',
+          id: task.id,
+          label: task.title,
+          projectName,
+        })
+      }
+    }
+
+    return sources.slice(0, 5)
   }
 }

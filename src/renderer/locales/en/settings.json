@@ -15,6 +15,8 @@
     "ai_provider_label": "AI Provider",
     "ai_provider_description": "Choose the AI provider for categorization and summaries.",
     "provider_local": "Local LLM",
+    "embedding_model_hint": "Embedding model",
+    "embedding_not_supported": "not supported",
     "aws_region_label": "AWS Region",
     "aws_region_description": "AWS Bedrock region for AI calls.",
     "api_key_bedrock_label": "API Key (Bedrock)",
@@ -145,7 +147,18 @@
     "reset_db_description": "Removes all data and starts from scratch. The current database will be automatically archived in the backups folder and can be restored later.",
     "reset_db_button": "Reset Database",
     "reset_db_success": "Database reset! Reloading...",
-    "reset_db_error": "Error resetting database."
+    "reset_db_error": "Error resetting database.",
+    "embeddings_section_title": "Semantic Search (Embeddings)",
+    "embeddings_description": "Generates semantic vectors for your entries and tasks, enabling intelligent searches in Smart Chat that understand synonyms and context.",
+    "embeddings_unsupported": "Your current AI provider does not support embedding generation.",
+    "embeddings_complete": "Fully indexed",
+    "embeddings_progress": "{{indexed}}/{{total}} indexed ({{percentage}}%)",
+    "embeddings_entries": "Entries: {{indexed}}/{{total}}",
+    "embeddings_tasks": "Tasks: {{indexed}}/{{total}}",
+    "embeddings_indexing": "Indexing...",
+    "embeddings_index_missing": "Index missing",
+    "embeddings_reindex_all": "Reindex all",
+    "embeddings_result": "Done: {{indexed}} indexed, {{failed}} failed"
   },
   "modals": {
     "import_title": "Import backup",

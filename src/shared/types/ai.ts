@@ -53,6 +53,7 @@ export type AIOperationType =
   | 'smart_chat'
   | 'insights'
   | 'connection_discovery'
+  | 'embeddings'
 
 export interface AIUsageRecord {
   id: string

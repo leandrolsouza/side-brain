@@ -272,6 +272,31 @@ const migrations: Migration[] = [
       `)
     },
   },
+  {
+    version: 11,
+    name: 'add_embeddings',
+    up: (database) => {
+      database.exec(`
+        -- Embeddings table: stores vector representations of entries and tasks
+        CREATE TABLE IF NOT EXISTS embeddings (
+          id TEXT PRIMARY KEY,
+          entity_type TEXT NOT NULL CHECK(entity_type IN ('entry', 'task')),
+          entity_id TEXT NOT NULL,
+          embedding BLOB NOT NULL,
+          model TEXT NOT NULL,
+          dimensions INTEGER NOT NULL,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          UNIQUE(entity_type, entity_id)
+        );
+
+        -- Index for fast lookup by entity
+        CREATE INDEX IF NOT EXISTS idx_embeddings_entity ON embeddings(entity_type, entity_id);
+
+        -- Index for checking which entries need embeddings
+        CREATE INDEX IF NOT EXISTS idx_embeddings_type ON embeddings(entity_type);
+      `)
+    },
+  },
 ]
 
 function runMigrations(database: Database.Database): void {
