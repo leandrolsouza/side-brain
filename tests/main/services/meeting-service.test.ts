@@ -223,7 +223,7 @@ describe('MeetingService', () => {
           { title: 'Fazer deploy', description: 'Até sexta' },
         ],
       }
-      ;(mockAIService.processMeeting as any) = vi.fn().mockResolvedValue(mockResult)
+        ; (mockAIService.processMeeting as any) = vi.fn().mockResolvedValue(mockResult)
 
       const result = await service.analyze(meeting.id)
 
@@ -247,7 +247,7 @@ describe('MeetingService', () => {
       const meeting = service.create({ projectId, title: 'Meeting' })
       service.end(meeting.id)
 
-      ;(mockAIService.processMeeting as any) = vi.fn().mockRejectedValue(new Error('AI timeout'))
+        ; (mockAIService.processMeeting as any) = vi.fn().mockRejectedValue(new Error('AI timeout'))
 
       await expect(service.analyze(meeting.id)).rejects.toThrow('AI timeout')
 
@@ -310,7 +310,7 @@ describe('MeetingService', () => {
 
     it('deve retornar arrays vazios para meeting inexistente', () => {
       const result = service.saveSelected('fake-id', [{ text: 'X', type: 'info', action: 'none' }], [])
-      expect(result).toEqual({ entryIds: [], taskIds: [] })
+      expect(result).toEqual({ entryIds: [], taskIds: [], resolvedTaskIds: [] })
     })
 
     it('deve salvar com listas vazias', () => {
