@@ -26,15 +26,54 @@ jobs:
         with:
           script: |
             const tag = context.ref.replace('refs/tags/', '');
-            const { data: release } = await github.rest.repos.createRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              tag_name: tag,
-              name: `SideBrain ${tag}`,
-              draft: true,
-              prerelease: tag.includes('beta') || tag.includes('alpha'),
-              generate_release_notes: true,
-            });
+
+            // Check if a release already exists for this tag
+            let release;
+            try {
+              const { data: existing } = await github.rest.repos.getReleaseByTag({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag: tag,
+              });
+              // If it exists and is published, delete it so we can recreate as draft
+              if (!existing.draft) {
+                await github.rest.repos.deleteRelease({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  release_id: existing.id,
+                });
+                const { data: created } = await github.rest.repos.createRelease({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  tag_name: tag,
+                  name: `SideBrain ${tag}`,
+                  draft: true,
+                  prerelease: tag.includes('beta') || tag.includes('alpha'),
+                  generate_release_notes: true,
+                });
+                release = created;
+              } else {
+                // Reuse existing draft release
+                release = existing;
+              }
+            } catch (e) {
+              if (e.status === 404) {
+                // No existing release, create a new one
+                const { data: created } = await github.rest.repos.createRelease({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  tag_name: tag,
+                  name: `SideBrain ${tag}`,
+                  draft: true,
+                  prerelease: tag.includes('beta') || tag.includes('alpha'),
+                  generate_release_notes: true,
+                });
+                release = created;
+              } else {
+                throw e;
+              }
+            }
+
             core.setOutput('release_id', String(release.id));
 
   build-windows:
@@ -215,9 +254,23 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            const releaseId = ${{ needs.create-release.outputs.release_id }};
+
+            // Check current release state before updating
+            const { data: release } = await github.rest.repos.getRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: releaseId,
+            });
+
+            if (!release.draft) {
+              console.log('Release is already published, skipping.');
+              return;
+            }
+
             await github.rest.repos.updateRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              release_id: ${{ needs.create-release.outputs.release_id }},
+              release_id: releaseId,
               draft: false,
             });
