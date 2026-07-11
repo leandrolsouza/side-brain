@@ -143,7 +143,15 @@ REGRAS PARA DETECÇÃO DE DUPLICATAS:
 - "similarTo" deve conter: {"taskId": "id-da-task-existente", "taskTitle": "título-da-task-existente", "reason": "explicação curta de por que são similares"}
 - Similar = mesma intenção, mesmo resultado esperado, mesmo responsável/escopo (ex: "Revisar proposta" e "Fazer revisão da proposta comercial" são similares)
 - NÃO considere similar se: são ações distintas no mesmo tema, ou se uma é continuação/evolução da outra
-- Se não há similaridade, omita o campo "similarTo"`
+- Se não há similaridade, omita o campo "similarTo"
+
+REGRAS PARA TASKS RESOLVIDAS (resolvedTasks):
+- Analise o conteúdo da reunião e identifique se alguma TASK EXISTENTE foi CONCLUÍDA ou RESOLVIDA durante a reunião
+- Uma task é considerada resolvida se: alguém confirmou que fez, foi apresentado o resultado, ou o grupo validou como feita
+- Adicione no campo "resolvedTasks" cada task existente que foi resolvida: {"taskId": "id-da-task", "taskTitle": "título-da-task", "reason": "por que foi considerada resolvida"}
+- Seja conservador: só marque como resolvida se houver evidência CLARA na transcrição
+- NÃO marque como resolvida se: apenas foi mencionada, está em andamento, ou foi apenas discutida sem conclusão
+- Se nenhuma task foi resolvida, retorne "resolvedTasks": []`
       : ''
 
     const assigneeInstructions = `
@@ -159,6 +167,7 @@ Dadas as anotações e/ou transcrição de uma reunião, gere:
 1. Uma ata em markdown com: resumo, decisões, ações (com responsável se mencionado), e bloqueios
 2. Uma lista CURTA de entries — APENAS os pontos que valem ser registrados para consulta futura
 3. Uma lista de tasks para o kanban (ações concretas que alguém precisa executar)
+4. Uma lista de tasks existentes que foram RESOLVIDAS/CONCLUÍDAS durante a reunião
 
 Responda APENAS com JSON válido no formato:
 {
@@ -168,6 +177,9 @@ Responda APENAS com JSON válido no formato:
   ],
   "tasks": [
     {"title": "Verbo + ação concisa", "description": "Responsável e prazo se mencionado", "assignee": "NomeDaPessoa ou null"}
+  ],
+  "resolvedTasks": [
+    {"taskId": "id-da-task-existente", "taskTitle": "título-da-task", "reason": "motivo pelo qual foi considerada resolvida"}
   ]
 }
 
@@ -200,7 +212,7 @@ REGRAS PARA A ATA:
       : ''
 
     const existingTasksText = hasExistingTasks
-      ? `\n\nTASKS EXISTENTES NO PROJETO (para verificar duplicatas):
+      ? `\n\nTASKS EXISTENTES NO PROJETO (para verificar duplicatas E identificar tasks resolvidas):
 ${existingTasks.map((t) => `- [${t.id}] "${t.title}" (status: ${t.status})`).join('\n')}`
       : ''
 

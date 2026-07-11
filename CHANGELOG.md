@@ -5,6 +5,17 @@ Todas as mudanças notáveis do SideBrain serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.3.8] - 2025-07-10
+
+### Adicionado
+- Pesquisa e ordenação na lista de entradas de um projeto (por data, tipo, status)
+- Reuniões agora podem marcar tasks como resolvidas durante a análise da ata
+- Suporte a `resolvedTasks` no fluxo de processamento de reunião
+
+### Corrigido
+- Versão exibida no app mostrava 35.0.0 (Electron) em vez da versão real do app
+- Scroll da lista de entradas não funcionava quando havia muitas entradas
+
 ## [0.3.7] - 2025-07-10
 
 ### Corrigido

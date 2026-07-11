@@ -253,13 +253,15 @@ export class MeetingService {
   saveSelected(
     meetingId: string,
     selectedEntries: { text: string; type: EntryType; action: ActionStatus }[],
-    selectedTasks: { title: string; description?: string; assignee?: string }[]
-  ): { entryIds: string[]; taskIds: string[] } {
+    selectedTasks: { title: string; description?: string; assignee?: string }[],
+    resolvedTaskIds?: string[]
+  ): { entryIds: string[]; taskIds: string[]; resolvedTaskIds: string[] } {
     const meeting = this.meetingRepo.getById(meetingId)
-    if (!meeting) return { entryIds: [], taskIds: [] }
+    if (!meeting) return { entryIds: [], taskIds: [], resolvedTaskIds: [] }
 
     const entryIds: string[] = []
     const taskIds: string[] = []
+    const resolvedIds: string[] = []
 
     // Create selected entries
     for (const entry of selectedEntries) {
@@ -289,7 +291,18 @@ export class MeetingService {
       }
     }
 
-    return { entryIds, taskIds }
+    // Mark resolved tasks as done
+    if (resolvedTaskIds && resolvedTaskIds.length > 0) {
+      for (const taskId of resolvedTaskIds) {
+        const task = this.taskRepo.getById(taskId)
+        if (task && task.status !== 'done') {
+          this.taskRepo.update(taskId, { status: 'done' })
+          resolvedIds.push(taskId)
+        }
+      }
+    }
+
+    return { entryIds, taskIds, resolvedTaskIds: resolvedIds }
   }
 
   private buildMeetingContent(meeting: Meeting): string {

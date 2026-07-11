@@ -35,6 +35,11 @@ export interface MeetingProcessResult {
       reason: string
     }
   }[]
+  resolvedTasks?: {
+    taskId: string
+    taskTitle: string
+    reason: string
+  }[]
 }
 
 // === AI Usage Types ===

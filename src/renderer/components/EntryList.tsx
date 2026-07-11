@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react'
-import { ArrowLeft, Sparkles, X, Trash2, Link2, Search, Plus } from 'lucide-react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import { ArrowLeft, Sparkles, X, Trash2, Link2, Search, Plus, ArrowUpDown } from 'lucide-react'
 import { ConfirmModal } from './ConfirmModal'
 import { MarkdownViewer } from './MarkdownViewer'
 import { CONNECTION_TYPE_LABELS, ConnectionType, ConnectedEntry } from '../../shared/types'
@@ -14,6 +14,9 @@ interface Entry {
   createdAt: string
 }
 
+type SortField = 'date' | 'type' | 'action'
+type SortDirection = 'asc' | 'desc'
+
 interface EntryListProps {
   projectId: string
   onBack: () => void
@@ -24,6 +27,11 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
   const [summary, setSummary] = useState<string | null>(null)
   const [isLoadingSummary, setIsLoadingSummary] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+
+  // Search & sort state
+  const [filterQuery, setFilterQuery] = useState('')
+  const [sortField, setSortField] = useState<SortField>('date')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
 
   // Connections state
   const [connectionsMap, setConnectionsMap] = useState<Record<string, ConnectedEntry[]>>({})
@@ -59,6 +67,49 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
   const loadEntries = async () => {
     const data = await window.electronAPI.getEntries(projectId)
     setEntries(data)
+  }
+
+  // Filtered and sorted entries
+  const filteredEntries = useMemo(() => {
+    let result = entries
+
+    // Filter by search query
+    if (filterQuery.trim()) {
+      const q = filterQuery.toLowerCase()
+      result = result.filter(entry =>
+        entry.improvedText.toLowerCase().includes(q) ||
+        entry.rawText.toLowerCase().includes(q) ||
+        (typeLabels[entry.type] || entry.type).toLowerCase().includes(q)
+      )
+    }
+
+    // Sort
+    result = [...result].sort((a, b) => {
+      let cmp = 0
+      switch (sortField) {
+        case 'date':
+          cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          break
+        case 'type':
+          cmp = (typeLabels[a.type] || a.type).localeCompare(typeLabels[b.type] || b.type)
+          break
+        case 'action':
+          cmp = (actionLabels[a.action] || a.action).localeCompare(actionLabels[b.action] || b.action)
+          break
+      }
+      return sortDirection === 'asc' ? cmp : -cmp
+    })
+
+    return result
+  }, [entries, filterQuery, sortField, sortDirection, typeLabels, actionLabels])
+
+  const handleSortChange = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection(field === 'date' ? 'desc' : 'asc')
+    }
   }
 
   const loadConnectionsForEntry = useCallback(async (entryId: string) => {
@@ -159,7 +210,7 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
   }
 
   return (
-    <div className="flex-col">
+    <div className="flex-col" style={{ height: '100%', minHeight: 0 }}>
       <div className="panel-header">
         <div className="flex-row">
           <button
@@ -181,6 +232,61 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
           {isLoadingSummary ? 'Gerando...' : 'Me atualiza'}
         </button>
       </div>
+
+      {/* Search and Sort toolbar */}
+      {entries.length > 0 && (
+        <div className="entry-list-toolbar">
+          <div className="entry-list-search">
+            <Search size={14} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }} />
+            <input
+              type="text"
+              className="vscode-input"
+              placeholder="Pesquisar entradas..."
+              value={filterQuery}
+              onChange={(e) => setFilterQuery(e.target.value)}
+              style={{ paddingLeft: 28, width: '100%' }}
+            />
+            {filterQuery && (
+              <button
+                className="inline-action-btn"
+                onClick={() => setFilterQuery('')}
+                style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', opacity: 0.6 }}
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
+          <div className="entry-list-sort">
+            <ArrowUpDown size={12} style={{ opacity: 0.6 }} />
+            <button
+              className={`entry-sort-btn ${sortField === 'date' ? 'active' : ''}`}
+              onClick={() => handleSortChange('date')}
+              title="Ordenar por data"
+            >
+              Data {sortField === 'date' && (sortDirection === 'desc' ? '↓' : '↑')}
+            </button>
+            <button
+              className={`entry-sort-btn ${sortField === 'type' ? 'active' : ''}`}
+              onClick={() => handleSortChange('type')}
+              title="Ordenar por tipo"
+            >
+              Tipo {sortField === 'type' && (sortDirection === 'desc' ? '↓' : '↑')}
+            </button>
+            <button
+              className={`entry-sort-btn ${sortField === 'action' ? 'active' : ''}`}
+              onClick={() => handleSortChange('action')}
+              title="Ordenar por status"
+            >
+              Status {sortField === 'action' && (sortDirection === 'desc' ? '↓' : '↑')}
+            </button>
+          </div>
+          {filterQuery && (
+            <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>
+              {filteredEntries.length} de {entries.length} entradas
+            </span>
+          )}
+        </div>
+      )}
 
       {summary && (
         <div className="summary-modal-overlay" onClick={() => setSummary(null)}>
@@ -205,106 +311,114 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
             Nenhuma entrada neste projeto ainda.
           </span>
         </div>
+      ) : filteredEntries.length === 0 ? (
+        <div className="empty-state">
+          <span className="empty-state-text">
+            Nenhuma entrada encontrada para "{filterQuery}".
+          </span>
+        </div>
       ) : (
-        <div className="flex-col gap-4">
-          {entries.map((entry) => (
-            <div key={entry.id} className="vscode-card">
-              <div className="vscode-card-header">
-                <div className="flex-row">
-                  <span className={`vscode-badge ${typeBadgeVariant[entry.type] || 'neutral'}`}>
-                    {typeLabels[entry.type] || entry.type}
-                  </span>
-                  <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>
-                    {new Date(entry.createdAt).toLocaleString('pt-BR')}
-                  </span>
-                </div>
-                <div className="flex-row">
-                  {typesAllowsAction[entry.type] !== false && (
-                    <select
-                      className="vscode-select"
-                      value={entry.action}
-                      onChange={(e) => handleActionChange(entry.id, e.target.value)}
-                      style={{ fontSize: 11, padding: '2px 6px' }}
-                    >
-                      {Object.entries(actionLabels).map(([value, label]) => (
-                        <option key={value} value={value}>{label}</option>
-                      ))}
-                    </select>
-                  )}
-                  <button
-                    className="inline-action-btn"
-                    onClick={() => openConnectModal(entry.id)}
-                    title="Conectar a outra entrada"
-                    style={{ opacity: 0.6 }}
-                  >
-                    <Link2 size={14} />
-                  </button>
-                  <button
-                    className="inline-action-btn"
-                    onClick={() => handleDelete(entry.id)}
-                    title="Excluir entrada"
-                    style={{ opacity: 0.6, color: 'var(--vscode-errorForeground)' }}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
-              <div className="vscode-card-body">
-                {entry.improvedText}
-              </div>
-              {entry.rawText !== entry.improvedText && (
-                <div style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', marginTop: 6, fontStyle: 'italic' }}>
-                  Original: {entry.rawText}
-                </div>
-              )}
-
-              {/* Connections toggle & display */}
-              <div style={{ marginTop: 8, borderTop: '1px solid var(--vscode-widget-border)', paddingTop: 6 }}>
-                <button
-                  className="inline-action-btn"
-                  onClick={() => toggleConnections(entry.id)}
-                  style={{ fontSize: 11, opacity: 0.8, display: 'flex', alignItems: 'center', gap: 4 }}
-                >
-                  <Link2 size={12} />
-                  {expandedConnections.has(entry.id) ? 'Ocultar conexões' : 'Ver conexões'}
-                </button>
-
-                {expandedConnections.has(entry.id) && connectionsMap[entry.id] && (
-                  <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {connectionsMap[entry.id].length === 0 ? (
-                      <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>
-                        Nenhuma conexão ainda.
-                      </span>
-                    ) : (
-                      connectionsMap[entry.id].map((conn) => (
-                        <div
-                          key={conn.connection.id}
-                          className="connection-chip"
-                          title={conn.entry.improvedText}
-                        >
-                          <span className="connection-chip-type">
-                            {CONNECTION_TYPE_LABELS[conn.connection.connectionType] || conn.connection.connectionType}
-                          </span>
-                          <span className="connection-chip-text">
-                            {conn.entry.improvedText.length > 50
-                              ? conn.entry.improvedText.slice(0, 50) + '...'
-                              : conn.entry.improvedText}
-                          </span>
-                          <button
-                            className="connection-chip-remove"
-                            onClick={() => handleDeleteConnection(conn.connection.id, entry.id)}
-                            title="Remover conexão"
-                          >
-                            <X size={10} />
-                          </button>
-                        </div>
-                      ))
+        <div className="entry-list-scroll">
+          <div className="flex-col gap-4">
+            {filteredEntries.map((entry) => (
+              <div key={entry.id} className="vscode-card">
+                <div className="vscode-card-header">
+                  <div className="flex-row">
+                    <span className={`vscode-badge ${typeBadgeVariant[entry.type] || 'neutral'}`}>
+                      {typeLabels[entry.type] || entry.type}
+                    </span>
+                    <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>
+                      {new Date(entry.createdAt).toLocaleString('pt-BR')}
+                    </span>
+                  </div>
+                  <div className="flex-row">
+                    {typesAllowsAction[entry.type] !== false && (
+                      <select
+                        className="vscode-select"
+                        value={entry.action}
+                        onChange={(e) => handleActionChange(entry.id, e.target.value)}
+                        style={{ fontSize: 11, padding: '2px 6px' }}
+                      >
+                        {Object.entries(actionLabels).map(([value, label]) => (
+                          <option key={value} value={value}>{label}</option>
+                        ))}
+                      </select>
                     )}
+                    <button
+                      className="inline-action-btn"
+                      onClick={() => openConnectModal(entry.id)}
+                      title="Conectar a outra entrada"
+                      style={{ opacity: 0.6 }}
+                    >
+                      <Link2 size={14} />
+                    </button>
+                    <button
+                      className="inline-action-btn"
+                      onClick={() => handleDelete(entry.id)}
+                      title="Excluir entrada"
+                      style={{ opacity: 0.6, color: 'var(--vscode-errorForeground)' }}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+                <div className="vscode-card-body">
+                  {entry.improvedText}
+                </div>
+                {entry.rawText !== entry.improvedText && (
+                  <div style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', marginTop: 6, fontStyle: 'italic' }}>
+                    Original: {entry.rawText}
                   </div>
                 )}
+
+                {/* Connections toggle & display */}
+                <div style={{ marginTop: 8, borderTop: '1px solid var(--vscode-widget-border)', paddingTop: 6 }}>
+                  <button
+                    className="inline-action-btn"
+                    onClick={() => toggleConnections(entry.id)}
+                    style={{ fontSize: 11, opacity: 0.8, display: 'flex', alignItems: 'center', gap: 4 }}
+                  >
+                    <Link2 size={12} />
+                    {expandedConnections.has(entry.id) ? 'Ocultar conexões' : 'Ver conexões'}
+                  </button>
+
+                  {expandedConnections.has(entry.id) && connectionsMap[entry.id] && (
+                    <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {connectionsMap[entry.id].length === 0 ? (
+                        <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>
+                          Nenhuma conexão ainda.
+                        </span>
+                      ) : (
+                        connectionsMap[entry.id].map((conn) => (
+                          <div
+                            key={conn.connection.id}
+                            className="connection-chip"
+                            title={conn.entry.improvedText}
+                          >
+                            <span className="connection-chip-type">
+                              {CONNECTION_TYPE_LABELS[conn.connection.connectionType] || conn.connection.connectionType}
+                            </span>
+                            <span className="connection-chip-text">
+                              {conn.entry.improvedText.length > 50
+                                ? conn.entry.improvedText.slice(0, 50) + '...'
+                                : conn.entry.improvedText}
+                            </span>
+                            <button
+                              className="connection-chip-remove"
+                              onClick={() => handleDeleteConnection(conn.connection.id, entry.id)}
+                              title="Remover conexão"
+                            >
+                              <X size={10} />
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 

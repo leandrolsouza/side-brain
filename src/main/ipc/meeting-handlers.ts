@@ -36,8 +36,8 @@ export function registerMeetingHandlers(): void {
     return meetingService.analyze(id)
   })
 
-  safeHandle('meeting:saveSelected', async (_event, meetingId: string, selectedEntries: any[], selectedTasks: any[]) => {
-    return meetingService.saveSelected(meetingId, selectedEntries, selectedTasks)
+  safeHandle('meeting:saveSelected', async (_event, meetingId: string, selectedEntries: any[], selectedTasks: any[], resolvedTaskIds?: string[]) => {
+    return meetingService.saveSelected(meetingId, selectedEntries, selectedTasks, resolvedTaskIds)
   })
 
   safeHandle('meeting:delete', async (_event, id: string) => {

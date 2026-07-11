@@ -91,7 +91,7 @@ export interface ElectronAPI {
   setMeetingTranscription: (id: string, transcription: string) => Promise<Meeting | null>
   endMeeting: (id: string) => Promise<Meeting | null>
   processMeeting: (id: string) => Promise<MeetingProcessResult | null>
-  saveSelectedMeetingItems: (meetingId: string, selectedEntries: any[], selectedTasks: any[]) => Promise<{ entryIds: string[]; taskIds: string[] }>
+  saveSelectedMeetingItems: (meetingId: string, selectedEntries: any[], selectedTasks: any[], resolvedTaskIds?: string[]) => Promise<{ entryIds: string[]; taskIds: string[]; resolvedTaskIds: string[] }>
   deleteMeeting: (id: string) => Promise<void>
   deleteMeetingWithData: (meetingId: string, entryIds: string[], taskIds: string[]) => Promise<void>
   prepareMeeting: (projectId: string, title: string, participants: string[]) => Promise<string>
@@ -292,8 +292,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('meeting:end', id),
   processMeeting: (id: string) =>
     ipcRenderer.invoke('meeting:process', id),
-  saveSelectedMeetingItems: (meetingId: string, selectedEntries: any[], selectedTasks: any[]) =>
-    ipcRenderer.invoke('meeting:saveSelected', meetingId, selectedEntries, selectedTasks),
+  saveSelectedMeetingItems: (meetingId: string, selectedEntries: any[], selectedTasks: any[], resolvedTaskIds?: string[]) =>
+    ipcRenderer.invoke('meeting:saveSelected', meetingId, selectedEntries, selectedTasks, resolvedTaskIds),
   deleteMeeting: (id: string) =>
     ipcRenderer.invoke('meeting:delete', id),
   deleteMeetingWithData: (meetingId: string, entryIds: string[], taskIds: string[]) =>

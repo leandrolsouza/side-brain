@@ -194,7 +194,7 @@ app.whenReady().then(() => {
     // Set CSP via response headers (works correctly with file:// and asar)
     session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
       const csp = process.env.NODE_ENV === 'development'
-        ? "default-src 'self'; script-src 'self' blob:; style-src 'self' 'unsafe-inline'; connect-src 'self' ws://localhost:5173 https:; worker-src 'self' blob:; img-src 'self' data:"
+        ? "default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline'; connect-src 'self' ws://localhost:5173 http://localhost:5173 https:; worker-src 'self' blob:; img-src 'self' data:"
         : "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https:; img-src 'self' data:"
       callback({
         responseHeaders: {

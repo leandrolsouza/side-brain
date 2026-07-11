@@ -41,6 +41,13 @@ interface ProcessedTask {
   selected: boolean
 }
 
+interface ResolvedTask {
+  taskId: string
+  taskTitle: string
+  reason: string
+  selected: boolean
+}
+
 type MeetingStep = 'setup' | 'active' | 'review' | 'select' | 'saved'
 
 interface MeetingModeProps {
@@ -78,9 +85,11 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
   const [generatedMinutes, setGeneratedMinutes] = useState('')
   const [previewEntries, setPreviewEntries] = useState<ProcessedEntry[]>([])
   const [previewTasks, setPreviewTasks] = useState<ProcessedTask[]>([])
+  const [previewResolvedTasks, setPreviewResolvedTasks] = useState<ResolvedTask[]>([])
   const [isSaving, setIsSaving] = useState(false)
   const [savedEntryIds, setSavedEntryIds] = useState<string[]>([])
   const [savedTaskIds, setSavedTaskIds] = useState<string[]>([])
+  const [savedResolvedTaskIds, setSavedResolvedTaskIds] = useState<string[]>([])
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [userName, setUserName] = useState('')
   const [editingEntryIndex, setEditingEntryIndex] = useState<number | null>(null)
@@ -223,6 +232,9 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
         setPreviewTasks(
           (result.tasks || []).map((t: any) => ({ ...t, selected: !t.similarTo }))
         )
+        setPreviewResolvedTasks(
+          (result.resolvedTasks || []).map((rt: any) => ({ ...rt, selected: true }))
+        )
         // Update meeting with minutes
         setMeeting((prev) => prev ? { ...prev, generatedMinutes: result.minutes, status: 'processed' } : null)
       }
@@ -253,9 +265,14 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
         .filter((t) => t.selected)
         .map(({ title, description, assignee }) => ({ title, description, assignee }))
 
-      const result = await window.electronAPI.saveSelectedMeetingItems(meeting.id, selectedE, selectedT)
+      const resolvedIds = previewResolvedTasks
+        .filter((rt) => rt.selected)
+        .map((rt) => rt.taskId)
+
+      const result = await window.electronAPI.saveSelectedMeetingItems(meeting.id, selectedE, selectedT, resolvedIds)
       setSavedEntryIds(result.entryIds || [])
       setSavedTaskIds(result.taskIds || [])
+      setSavedResolvedTaskIds(result.resolvedTaskIds || [])
       setStep('saved')
     } catch (error) {
       console.error('Failed to save selected items:', error)
@@ -282,6 +299,16 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
 
   const selectAllTasks = (value: boolean) => {
     setPreviewTasks((prev) => prev.map((t) => ({ ...t, selected: value })))
+  }
+
+  const toggleResolvedTask = (index: number) => {
+    setPreviewResolvedTasks((prev) =>
+      prev.map((rt, i) => (i === index ? { ...rt, selected: !rt.selected } : rt))
+    )
+  }
+
+  const selectAllResolvedTasks = (value: boolean) => {
+    setPreviewResolvedTasks((prev) => prev.map((rt) => ({ ...rt, selected: value })))
   }
 
   const updateEntryText = (index: number, text: string) => {
@@ -696,6 +723,7 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
 
     const selectedEntriesCount = previewEntries.filter((e) => e.selected).length
     const selectedTasksCount = previewTasks.filter((t) => t.selected).length
+    const selectedResolvedCount = previewResolvedTasks.filter((rt) => rt.selected).length
 
     return (
       <div className="meeting-container meeting-container-wide">
@@ -967,6 +995,39 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
           )
         })()}
 
+        {/* Resolved tasks selection */}
+        {previewResolvedTasks.length > 0 && (
+          <div className="meeting-select-section meeting-select-resolved">
+            <div className="meeting-select-header">
+              <h4>✅ Tasks resolvidas nesta reunião ({previewResolvedTasks.filter((rt) => rt.selected).length}/{previewResolvedTasks.length})</h4>
+              <div className="meeting-select-actions">
+                <button className="vscode-button secondary" onClick={() => selectAllResolvedTasks(true)}>
+                  Todas
+                </button>
+                <button className="vscode-button secondary" onClick={() => selectAllResolvedTasks(false)}>
+                  Nenhuma
+                </button>
+              </div>
+            </div>
+            <p className="meeting-select-hint">Estas tasks serão marcadas como concluídas no kanban.</p>
+            <div className="meeting-select-list">
+              {previewResolvedTasks.map((rt, i) => (
+                <label key={i} className={`meeting-select-item ${rt.selected ? 'selected' : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={rt.selected}
+                    onChange={() => toggleResolvedTask(i)}
+                  />
+                  <span className="meeting-select-text">
+                    <strong>{rt.taskTitle}</strong>
+                    <span className="meeting-resolved-reason"> — {rt.reason}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Save actions */}
         <div className="meeting-actions">
           <button
@@ -975,7 +1036,7 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
             disabled={isSaving || isProcessing}
           >
             <Check size={14} />
-            {isSaving ? 'Salvando...' : `Salvar Selecionados (${selectedEntriesCount} entradas, ${selectedTasksCount} tasks)`}
+            {isSaving ? 'Salvando...' : `Salvar Selecionados (${selectedEntriesCount} entradas, ${selectedTasksCount} tasks${selectedResolvedCount > 0 ? `, ${selectedResolvedCount} resolvidas` : ''})`}
           </button>
           <button
             className="vscode-button secondary"
