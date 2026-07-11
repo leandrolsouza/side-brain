@@ -5,6 +5,14 @@ Todas as mudanças notáveis do SideBrain serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.5.0] - 2025-07-11
+
+### Adicionado
+- Suporte multi-idioma com i18next e react-i18next
+- Idiomas disponíveis: Português (BR), English, Español
+- Seletor de idioma nas configurações
+- Toda a interface traduzida via chaves i18n
+
 ## [0.4.3] - 2025-07-11
 
 ### Adicionado
