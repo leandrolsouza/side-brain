@@ -5,6 +5,23 @@ Todas as mudanças notáveis do SideBrain serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.7.0] - 2025-07-12
+
+### Adicionado
+- **Agent Studio** — interface completa para criar, configurar e executar agentes de IA
+- Runtime de agentes com execução autônoma e ciclo de vida gerenciado
+- Gerenciador MCP (Model Context Protocol) para conectar agentes a ferramentas externas
+- Sistema de equipes (Teams) para orquestrar múltiplos agentes em tarefas complexas
+- Repositórios de dados para agentes e equipes (CRUD completo)
+- Tool Registry com ferramentas internas do SideBrain acessíveis pelos agentes
+- IPC handlers dedicados para agentes, equipes e MCP
+- Tipos compartilhados (`src/shared/types/agents.ts`) para todo o domínio de agentes
+
+### Alterado
+- Grafo de conexões agora respeita o tema ativo (cores adaptativas para dark/light)
+- Lista de entradas simplificada com melhor performance
+- AI Provider expandido com suporte a streaming e tool calling para agentes
+
 ## [0.6.0] - 2025-07-11
 
 ### Adicionado
