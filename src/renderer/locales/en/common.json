@@ -167,6 +167,7 @@
     "featureMeeting": "Meeting Mode",
     "featureMeetingDesc": "Capture meeting notes and action items",
     "builtWith": "Built with",
+    "author": "Developer",
     "copyright": "© 2025 SideBrain. All rights reserved."
   },
   "connectionGraph": {

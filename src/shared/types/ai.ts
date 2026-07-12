@@ -103,6 +103,7 @@ export interface SmartChatMessage {
   role: 'user' | 'assistant'
   content: string
   sources?: SmartChatSource[]
+  actions?: ChatActionResult[]
   createdAt: string
 }
 
@@ -111,6 +112,17 @@ export interface SmartChatSource {
   id: string
   label: string
   projectName?: string
+}
+
+// === Chat Actions Types ===
+
+export type ChatActionType = 'create_task' | 'update_task_status' | 'create_entry' | 'generate_summary' | 'list_tasks'
+
+export interface ChatActionResult {
+  type: ChatActionType
+  success: boolean
+  description: string
+  data?: Record<string, any>
 }
 
 // === Proactive Insights Types ===

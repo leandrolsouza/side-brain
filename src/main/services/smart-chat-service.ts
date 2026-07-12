@@ -6,6 +6,7 @@ import { SettingsRepository } from '../database/repositories/settings-repository
 import { ChatHistoryRepository } from '../database/repositories/chat-history-repository'
 import { AIService } from './ai-service'
 import { EmbeddingsService, SimilarityResult } from './embeddings-service'
+import { ChatActionExecutor } from './chat-action-executor'
 import { t } from '../i18n'
 import { v4 as uuid } from 'uuid'
 
@@ -17,6 +18,8 @@ const HISTORY_CHAR_LIMIT = 6000
 const SUMMARIZE_THRESHOLD = 30
 
 export class SmartChatService {
+  private actionExecutor: ChatActionExecutor
+
   constructor(
     private entryRepo: EntryRepository,
     private projectRepo: ProjectRepository,
@@ -25,7 +28,9 @@ export class SmartChatService {
     private aiService: AIService,
     private chatHistoryRepo: ChatHistoryRepository,
     private embeddingsService?: EmbeddingsService
-  ) { }
+  ) {
+    this.actionExecutor = new ChatActionExecutor(entryRepo, projectRepo, taskRepo)
+  }
 
   /**
    * Send a message within a conversation. If no conversationId is provided,
@@ -68,23 +73,35 @@ export class SmartChatService {
 
     const systemPrompt = t('prompts.smart_chat.system')
 
+    // Add action instructions to the system prompt
+    const actionsPrompt = this.getActionsSystemPrompt()
+    const fullSystemPrompt = systemPrompt + '\n\n' + actionsPrompt
+
     const responseText = await this.aiService.invokeConverseForChat(
-      systemPrompt,
+      fullSystemPrompt,
       fullUserMessage,
       settings,
       'smart_chat'
     )
 
+    // Parse and execute any actions from the response
+    const { cleanText, payloads } = this.actionExecutor.parseActions(responseText)
+    let actions = undefined
+    if (payloads.length > 0) {
+      actions = await this.actionExecutor.executeActions(payloads)
+    }
+
     // Extract sources from the context that was used
     const sources = await this.extractSources(userMessage)
 
-    // Persist assistant message
+    // Persist assistant message (with clean text, without action markers)
     const assistantMsg: SmartChatMessage = {
       id: uuid(),
       conversationId: conversation.id,
       role: 'assistant',
-      content: responseText,
+      content: cleanText || responseText,
       sources,
+      actions: actions && actions.length > 0 ? actions : undefined,
       createdAt: new Date().toISOString(),
     }
     this.chatHistoryRepo.addMessage(conversation.id, assistantMsg)
@@ -164,6 +181,41 @@ export class SmartChatService {
     }
 
     return historyText.trim()
+  }
+
+  /**
+   * Returns the action instructions appended to the system prompt.
+   * Teaches the AI how to emit action markers when the user requests an action.
+   */
+  private getActionsSystemPrompt(): string {
+    const projects = this.projectRepo.getAll()
+    const projectNames = projects.slice(0, 10).map((p) => p.name).join(', ')
+
+    return `## Ações disponíveis
+
+Quando o usuário pedir para EXECUTAR algo (criar task, mover task, registrar entrada), você pode incluir um bloco de ação na sua resposta.
+
+Formato: [ACTION]{"action":"tipo_acao", ...parâmetros}[/ACTION]
+
+Ações disponíveis:
+1. create_task — Criar uma tarefa
+   Params: {"action":"create_task", "title":"...", "description":"...", "projectName":"...", "dueDate":"YYYY-MM-DD"}
+
+2. update_task_status — Mudar status de uma tarefa
+   Params: {"action":"update_task_status", "taskTitle":"...", "status":"todo|in_progress|waiting|done", "projectName":"..."}
+
+3. create_entry — Criar uma entrada/registro
+   Params: {"action":"create_entry", "text":"...", "projectName":"...", "type":"information|decision|demand|idea|blocker|update"}
+
+4. list_tasks — Listar tarefas
+   Params: {"action":"list_tasks", "projectName":"...", "status":"todo|in_progress|waiting|done"}
+
+Regras para ações:
+- Só emita ação quando o usuário EXPLICITAMENTE pedir para fazer algo (criar, mover, registrar, listar)
+- Perguntas informativas (o que decidimos, qual status, etc.) NÃO devem gerar ações
+- Sempre inclua uma resposta textual explicando o que fez
+- Projetos disponíveis: ${projectNames || '(nenhum)'}
+- Se o usuário não especificar projeto, use o mais relevante do contexto`
   }
 
   /**

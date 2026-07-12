@@ -5,57 +5,58 @@
 </p>
 
 <p align="center">
-  <strong>Seu segundo cérebro para organizar o trabalho.</strong>
+  <strong>Your second brain for organizing work.</strong>
 </p>
 
-Aplicativo desktop para organização de notas de trabalho com categorização automática por IA. Capture textos rápidos durante o dia e deixe a IA organizar em projetos, classificar por tipo e status, e reescrever para maior clareza.
+A desktop application for organizing work notes with automatic AI categorization. Capture free-text throughout your day and let AI organize it into projects, classify by type and status, and rewrite for clarity.
 
-## Funcionalidades
+## Features
 
-- **Captura Rápida** — Input de texto livre que é automaticamente categorizado em projetos, tipos de entrada e itens de ação
-- **Projetos e Entradas** — Entradas organizadas por projeto com tipos customizáveis (informação, decisão, solicitação, ideia, bloqueio, atualização) e status de ação
-- **Inbox de Revisão** — Sugestões da IA passam por workflow de revisão (auto-aprovado, pendente, aprovado, corrigido)
-- **Kanban de Tarefas** — Tarefas derivadas das entradas com status (a fazer, em progresso, aguardando, concluído)
-- **Resumo Diário (Digest)** — Resumo gerado por IA ao abrir o app com tarefas atrasadas, atividade do dia anterior e sugestões
-- **Busca Global** — Ctrl+K para buscar em entradas, tarefas e projetos
-- **Smart Chat** — Chat conversacional com contexto dos seus dados para perguntas sobre seu trabalho
-- **Reuniões** — Modo de reunião para captura de notas com processamento por IA
-- **Conexões** — Grafo visual de relações entre entradas e projetos
-- **Relatórios** — Relatórios e insights sobre produtividade e atividade
-- **Dashboard de Uso de IA** — Acompanhamento de consumo e custos da API de IA
-- **Campos Customizáveis** — Tipos de entrada e status de ação personalizáveis
-- **Auto-atualização** — Atualizações automáticas via GitHub Releases
-- **Backup Automático** — Backups periódicos do banco de dados SQLite
+- **Quick Capture** — Free-text input automatically categorized into projects, entry types, and action items
+- **Projects & Entries** — Entries organized by project with customizable types (information, decision, request, idea, blocker, update) and action statuses
+- **Review Inbox** — AI suggestions go through a review workflow (auto-approved, pending, approved, corrected)
+- **Task Kanban** — Tasks derived from entries with statuses (todo, in-progress, waiting, done)
+- **Daily Digest** — AI-generated summary on app launch with overdue tasks, previous day activity, and suggestions
+- **Global Search** — Ctrl+K to search across entries, tasks, and projects
+- **Smart Chat** — Conversational AI with context from your data for questions about your work
+- **Meetings** — Meeting mode for note capture with AI processing
+- **Connections** — Visual graph of relationships between entries and projects
+- **Reports** — Productivity insights and activity reports
+- **AI Usage Dashboard** — API consumption and cost tracking
+- **Custom Fields** — Customizable entry types and action statuses
+- **Auto-update** — Automatic updates via GitHub Releases
+- **Automatic Backup** — Periodic SQLite database backups
 
-## Stack Tecnológica
+## Tech Stack
 
-| Camada | Tecnologia |
-|--------|-----------|
-| Runtime | Electron 43 |
-| Linguagem | TypeScript 5.8 (strict mode) |
-| Frontend | React 19 + Vite 8 |
-| Banco de Dados | better-sqlite3 (SQLite com WAL mode) |
-| IA | Multi-provider (Bedrock, OpenAI, Gemini, Grok, LLM Local) |
-| Ícones | lucide-react |
-| Empacotamento | electron-builder |
-| Testes | Vitest |
+| Layer | Technology |
+|-------|-----------|
+| Runtime | Electron 43.1 |
+| Language | TypeScript 7.0 (strict mode) |
+| Frontend | React 19.2 + Vite 8.1 |
+| Database | better-sqlite3 12.11 (SQLite with WAL mode) |
+| AI | Multi-provider (Bedrock, OpenAI, Gemini, Grok, Local LLM) |
+| i18n | i18next + react-i18next |
+| Icons | lucide-react |
+| Packaging | electron-builder |
+| Testing | Vitest + @testing-library/react |
 
-## Provedores de IA Suportados
+## Supported AI Providers
 
-| Provedor | Modelo Padrão |
-|----------|---------------|
+| Provider | Default Model |
+|----------|--------------|
 | AWS Bedrock | Claude Sonnet 4 |
 | OpenAI | GPT-4.1 |
 | Google Gemini | Gemini 3.5 Flash |
 | Grok | Grok 4.3 |
-| Local (OpenAI-compatível) | Configurável (ex: LM Studio) |
+| Local (OpenAI-compatible) | Configurable (e.g., LM Studio) |
 
-## Pré-requisitos
+## Prerequisites
 
 - Node.js 20+
 - npm
 
-## Instalação
+## Installation
 
 ```bash
 git clone https://github.com/leandrolsouza/my-agent.git
@@ -63,84 +64,91 @@ cd my-agent
 npm install
 ```
 
-O `postinstall` executa `electron-rebuild` para compilar os módulos nativos (better-sqlite3).
+The `postinstall` script runs `electron-rebuild` to compile native modules (better-sqlite3).
 
-## Desenvolvimento
+## Development
 
 ```bash
 npm run dev
 ```
 
-Isso inicia em paralelo:
-- Vite dev server (porta 5173) para o renderer
-- TypeScript compiler em watch mode para o main process
-- Electron apontando para o dev server
+This starts in parallel:
+- Vite dev server (port 5173) for the renderer
+- TypeScript compiler in watch mode for the main process
+- Electron pointing to the dev server
 
-### Scripts Disponíveis
+### Available Scripts
 
-| Comando | Descrição |
-|---------|-----------|
-| `npm run dev` | Ambiente completo de desenvolvimento |
-| `npm run build` | Build de produção (renderer + main) |
-| `npm run build:renderer` | Build Vite do renderer |
-| `npm run build:main` | Compilação TypeScript do main process |
-| `npm run start` | Executa o app compilado |
-| `npm test` | Executa testes com Vitest |
-| `npm run test:watch` | Testes em watch mode |
-| `npm run test:coverage` | Testes com cobertura |
-| `npm run pack` | Empacota com electron-builder (sem distribuição) |
-| `npm run dist` | Empacota para distribuição |
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Full development environment |
+| `npm run build` | Production build (renderer + main) |
+| `npm run build:renderer` | Vite build of the renderer |
+| `npm run build:main` | TypeScript compilation of the main process |
+| `npm run start` | Run the compiled app |
+| `npm test` | Run tests with Vitest |
+| `npm run test:watch` | Tests in watch mode |
+| `npm run test:coverage` | Tests with coverage |
+| `npm run pack` | Package with electron-builder (no distribution) |
+| `npm run dist` | Package for distribution |
 
-## Arquitetura
+## Architecture
 
 ```
 src/
 ├── main/                    # Electron main process
-│   ├── index.ts             # Entry point, criação de janela, shortcuts globais
+│   ├── index.ts             # Entry point, window creation, global shortcuts
 │   ├── preload.ts           # Preload script (context bridge)
 │   ├── database/
-│   │   ├── schema.ts        # Schema SQLite, migrações, singleton do DB
-│   │   └── repositories/    # Camada de acesso a dados (um arquivo por entidade)
+│   │   ├── schema.ts        # SQLite schema, migrations, DB singleton
+│   │   └── repositories/    # Data access layer (one file per entity)
 │   ├── ipc/
-│   │   └── handlers.ts      # Registro de handlers IPC (+ arquivos por domínio)
-│   └── services/            # Lógica de negócio
+│   │   └── handlers.ts      # IPC handler registration (+ domain-specific files)
+│   └── services/            # Business logic
 ├── renderer/                # React frontend (Vite-bundled)
-│   ├── App.tsx              # Componente raiz, roteamento de views
-│   ├── components/          # Componentes UI (um por arquivo)
+│   ├── App.tsx              # Root component, view routing
+│   ├── components/          # UI components (one per file)
 │   └── styles/
-│       └── global.css       # Estilos globais (tema inspirado no VS Code)
+│       └── global.css       # Global styles (VS Code-inspired theme)
 └── shared/
-    └── types/               # Tipos de domínio compartilhados entre main e renderer
+    └── types/               # Domain types shared between main and renderer
 ```
 
-### Padrões Arquiteturais
+### Architectural Patterns
 
-- **Separação Main/Renderer** — Comunicação estrita via IPC. Sem acesso direto ao Node.js no renderer (`contextIsolation: true`, `nodeIntegration: false`)
-- **Repository Pattern** — Acesso ao banco abstraído em classes por entidade
-- **Service Layer** — Lógica de negócio em serviços que coordenam repositories e IA
-- **IPC Handlers** — Handlers mapeiam canais IPC para métodos de serviços/repositories
-- **Tipos Compartilhados** — Interfaces de domínio em `src/shared/types/`, consumidos por ambos os processos
-- **Canais IPC** — Seguem o padrão `entidade:ação` (ex: `entry:create`, `task:getAll`)
-- **IDs** — UUIDs para todas as entidades
+- **Main/Renderer Separation** — Strict IPC communication. No direct Node.js access in the renderer (`contextIsolation: true`, `nodeIntegration: false`)
+- **Repository Pattern** — Database access abstracted into per-entity classes
+- **Service Layer** — Business logic in services that coordinate repositories and AI
+- **IPC Handlers** — Handlers map IPC channels to service/repository methods
+- **Shared Types** — Domain interfaces in `src/shared/types/`, consumed by both processes
+- **IPC Channels** — Follow the `entity:action` naming pattern (e.g., `entry:create`, `task:getAll`)
+- **IDs** — UUIDs for all entities
 
-## Build e Distribuição
+## Build & Distribution
 
-O projeto usa `electron-builder` e GitHub Actions para CI/CD:
+The project uses `electron-builder` and GitHub Actions for CI/CD:
 
-- **CI (Tests)** — Executa testes automaticamente em push/PR para main
-- **Release** — Build automático para Windows (NSIS), macOS (DMG) e Linux (AppImage) ao criar uma tag `v*`
-- **Auto-update** — `electron-updater` verifica novas versões via GitHub Releases
+- **CI (Tests)** — Runs tests automatically on push/PR to main
+- **Release** — Automated builds for Windows (NSIS), macOS (DMG), and Linux (AppImage) when a `v*` tag is created
+- **Auto-update** — `electron-updater` checks for new versions via GitHub Releases
 
-### Criar uma release
+### Creating a Release
 
 ```bash
-# Bump a versão no package.json, commit, e crie a tag
+# Bump the version in package.json, commit, and create a tag
 git tag v0.2.0
 git push origin v0.2.0
 ```
 
-O workflow de release cria builds para todas as plataformas e publica no GitHub Releases.
+The release workflow builds for all platforms and publishes to GitHub Releases.
 
-## Licença
+## Author
 
-Projeto privado.
+**Leandro Souza**
+
+- [LinkedIn](https://www.linkedin.com/in/leandrolsouza/)
+- [GitHub](https://github.com/leandrolsouza/)
+
+## License
+
+Private project.

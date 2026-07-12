@@ -9,6 +9,7 @@ interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
   sources?: { type: string; id: string; label: string; projectName?: string }[]
+  actions?: { type: string; success: boolean; description: string; data?: Record<string, any> }[]
   createdAt: string
 }
 
@@ -42,6 +43,14 @@ export function SmartChat() {
     t('suggestedWeekSummary'),
     t('suggestedPending'),
     t('suggestedOverdueTasks'),
+    t('suggestedOpenRequests'),
+    t('suggestedRequestsByProject'),
+    t('suggestedUrgentRequests'),
+    t('suggestedRequestsWaiting'),
+    t('suggestedRecentIdeas'),
+    t('suggestedProjectProgress'),
+    t('suggestedUpdatesToday'),
+    t('suggestedNextActions'),
   ]
 
   // Load conversations on mount
@@ -312,6 +321,16 @@ export function SmartChat() {
                             <span className="smart-chat-source-project">{source.projectName}</span>
                           )}
                         </span>
+                      ))}
+                    </div>
+                  )}
+                  {msg.actions && msg.actions.length > 0 && (
+                    <div className="smart-chat-actions">
+                      {msg.actions.map((action, i) => (
+                        <div key={i} className={`smart-chat-action-chip ${action.success ? 'success' : 'error'}`}>
+                          <span className="smart-chat-action-icon">{action.success ? '✓' : '✗'}</span>
+                          <span>{action.description}</span>
+                        </div>
                       ))}
                     </div>
                   )}
