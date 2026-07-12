@@ -5,6 +5,18 @@ Todas as mudanças notáveis do SideBrain serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.6.0] - 2025-07-11
+
+### Adicionado
+- Vector embeddings para busca semântica potenciada por IA
+- Histórico de conversas persistente no Smart Chat
+- Geração de narrativa por IA nos relatórios de produtividade
+- Sistema de feedback de categorização para aprendizado few-shot
+- Executor de ações no Smart Chat (criar tarefas, entradas, etc. via conversa)
+
+### Alterado
+- README traduzido para inglês
+
 ## [0.5.0] - 2025-07-11
 
 ### Adicionado
