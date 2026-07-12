@@ -32,6 +32,16 @@ import type {
   PaginatedResult,
   PaginationParams,
   TaskStatus,
+  AgentDefinition,
+  AgentExecution,
+  AgentExecutionSummary,
+  AgentTemplate,
+  AgentSkill,
+  AgentExecutionEvent,
+  ToolDefinition,
+  AgentTeam,
+  TeamExecution,
+  TeamExecutionSummary,
 } from '../shared/types'
 
 export interface ElectronAPI {
@@ -210,6 +220,50 @@ export interface ElectronAPI {
   // System
   openLogsFolder: () => Promise<void>
   openUserDataFolder: () => Promise<void>
+
+  // Agent Studio
+  agentGetAll: () => Promise<AgentDefinition[]>
+  agentGetById: (id: string) => Promise<AgentDefinition | null>
+  agentCreate: (data: any) => Promise<AgentDefinition>
+  agentCreateFromTemplate: (templateId: string, overrides?: any) => Promise<AgentDefinition>
+  agentUpdate: (id: string, data: any) => Promise<AgentDefinition | null>
+  agentDelete: (id: string) => Promise<boolean>
+  agentToggleActive: (id: string) => Promise<AgentDefinition | null>
+  agentRun: (agentId: string, input: string) => Promise<any>
+  agentCancelExecution: (executionId: string) => Promise<{ success: boolean }>
+  agentGetExecutions: (agentId: string, limit?: number) => Promise<AgentExecutionSummary[]>
+  agentGetRecentExecutions: (limit?: number) => Promise<AgentExecutionSummary[]>
+  agentGetExecutionDetails: (executionId: string) => Promise<AgentExecution | null>
+  agentGetTemplates: () => Promise<AgentTemplate[]>
+  agentGetAvailableSkills: () => Promise<{ skill: AgentSkill; description: string }[]>
+  agentGetToolDefinitions: () => Promise<ToolDefinition[]>
+  agentCleanup: (olderThanDays?: number) => Promise<number>
+  agentGenerateFromDescription: (description: string) => Promise<{ name: string; description: string; persona: string; icon: string; color: string; skills: string[]; maxSteps: number }>
+  onAgentExecutionEvent: (callback: (event: AgentExecutionEvent) => void) => void
+
+  // Agent Teams
+  teamGetAll: () => Promise<AgentTeam[]>
+  teamGetById: (id: string) => Promise<AgentTeam | null>
+  teamCreate: (data: any) => Promise<AgentTeam>
+  teamUpdate: (id: string, data: any) => Promise<AgentTeam | null>
+  teamDelete: (id: string) => Promise<boolean>
+  teamRunDiscussion: (teamId: string, input: string) => Promise<TeamExecution>
+  teamGetExecutions: (teamId: string, limit?: number) => Promise<TeamExecutionSummary[]>
+  teamGetRecentExecutions: (limit?: number) => Promise<TeamExecutionSummary[]>
+  teamGetExecutionDetails: (executionId: string) => Promise<TeamExecution | null>
+  onTeamExecutionEvent: (callback: (event: any) => void) => void
+
+  // MCP (Model Context Protocol)
+  mcpGetServers: () => Promise<any[]>
+  mcpAddServer: (data: { name: string; command: string; args: string[]; env?: Record<string, string>; enabled: boolean }) => Promise<any>
+  mcpUpdateServer: (id: string, updates: any) => Promise<any>
+  mcpRemoveServer: (id: string) => Promise<boolean>
+  mcpConnect: (id: string) => Promise<{ success: boolean }>
+  mcpDisconnect: (id: string) => Promise<{ success: boolean }>
+  mcpConnectAll: () => Promise<{ success: boolean }>
+  mcpGetStatuses: () => Promise<any[]>
+  mcpGetTools: () => Promise<any[]>
+  onMCPStatusChanged: (callback: (event: any) => void) => void
 }
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -516,4 +570,86 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('system:openLogsFolder'),
   openUserDataFolder: () =>
     ipcRenderer.invoke('system:openUserDataFolder'),
+
+  // Agent Studio
+  agentGetAll: () =>
+    ipcRenderer.invoke('agent:getAll'),
+  agentGetById: (id: string) =>
+    ipcRenderer.invoke('agent:getById', id),
+  agentCreate: (data: any) =>
+    ipcRenderer.invoke('agent:create', data),
+  agentCreateFromTemplate: (templateId: string, overrides?: any) =>
+    ipcRenderer.invoke('agent:createFromTemplate', templateId, overrides),
+  agentUpdate: (id: string, data: any) =>
+    ipcRenderer.invoke('agent:update', id, data),
+  agentDelete: (id: string) =>
+    ipcRenderer.invoke('agent:delete', id),
+  agentToggleActive: (id: string) =>
+    ipcRenderer.invoke('agent:toggleActive', id),
+  agentRun: (agentId: string, input: string) =>
+    ipcRenderer.invoke('agent:run', agentId, input),
+  agentCancelExecution: (executionId: string) =>
+    ipcRenderer.invoke('agent:cancelExecution', executionId),
+  agentGetExecutions: (agentId: string, limit?: number) =>
+    ipcRenderer.invoke('agent:getExecutions', agentId, limit),
+  agentGetRecentExecutions: (limit?: number) =>
+    ipcRenderer.invoke('agent:getRecentExecutions', limit),
+  agentGetExecutionDetails: (executionId: string) =>
+    ipcRenderer.invoke('agent:getExecutionDetails', executionId),
+  agentGetTemplates: () =>
+    ipcRenderer.invoke('agent:getTemplates'),
+  agentGetAvailableSkills: () =>
+    ipcRenderer.invoke('agent:getAvailableSkills'),
+  agentGetToolDefinitions: () =>
+    ipcRenderer.invoke('agent:getToolDefinitions'),
+  agentCleanup: (olderThanDays?: number) =>
+    ipcRenderer.invoke('agent:cleanup', olderThanDays),
+  agentGenerateFromDescription: (description: string) =>
+    ipcRenderer.invoke('agent:generateFromDescription', description),
+  onAgentExecutionEvent: (callback: (event: AgentExecutionEvent) => void) =>
+    ipcRenderer.on('agent:execution-event', (_event, data) => callback(data)),
+
+  // Agent Teams
+  teamGetAll: () =>
+    ipcRenderer.invoke('team:getAll'),
+  teamGetById: (id: string) =>
+    ipcRenderer.invoke('team:getById', id),
+  teamCreate: (data: any) =>
+    ipcRenderer.invoke('team:create', data),
+  teamUpdate: (id: string, data: any) =>
+    ipcRenderer.invoke('team:update', id, data),
+  teamDelete: (id: string) =>
+    ipcRenderer.invoke('team:delete', id),
+  teamRunDiscussion: (teamId: string, input: string) =>
+    ipcRenderer.invoke('team:runDiscussion', teamId, input),
+  teamGetExecutions: (teamId: string, limit?: number) =>
+    ipcRenderer.invoke('team:getExecutions', teamId, limit),
+  teamGetRecentExecutions: (limit?: number) =>
+    ipcRenderer.invoke('team:getRecentExecutions', limit),
+  teamGetExecutionDetails: (executionId: string) =>
+    ipcRenderer.invoke('team:getExecutionDetails', executionId),
+  onTeamExecutionEvent: (callback: (event: any) => void) =>
+    ipcRenderer.on('team:execution-event', (_event, data) => callback(data)),
+
+  // MCP (Model Context Protocol)
+  mcpGetServers: () =>
+    ipcRenderer.invoke('mcp:getServers'),
+  mcpAddServer: (data: { name: string; command: string; args: string[]; env?: Record<string, string>; enabled: boolean }) =>
+    ipcRenderer.invoke('mcp:addServer', data),
+  mcpUpdateServer: (id: string, updates: any) =>
+    ipcRenderer.invoke('mcp:updateServer', id, updates),
+  mcpRemoveServer: (id: string) =>
+    ipcRenderer.invoke('mcp:removeServer', id),
+  mcpConnect: (id: string) =>
+    ipcRenderer.invoke('mcp:connect', id),
+  mcpDisconnect: (id: string) =>
+    ipcRenderer.invoke('mcp:disconnect', id),
+  mcpConnectAll: () =>
+    ipcRenderer.invoke('mcp:connectAll'),
+  mcpGetStatuses: () =>
+    ipcRenderer.invoke('mcp:getStatuses'),
+  mcpGetTools: () =>
+    ipcRenderer.invoke('mcp:getTools'),
+  onMCPStatusChanged: (callback: (event: any) => void) =>
+    ipcRenderer.on('mcp:status-changed', (_event, data) => callback(data)),
 } satisfies ElectronAPI)

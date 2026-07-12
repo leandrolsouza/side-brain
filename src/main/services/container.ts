@@ -14,6 +14,8 @@ import { ConnectionRepository } from '../database/repositories/connection-reposi
 import { ChatHistoryRepository } from '../database/repositories/chat-history-repository'
 import { EmbeddingsRepository } from '../database/repositories/embeddings-repository'
 import { CategorizationFeedbackRepository } from '../database/repositories/categorization-feedback-repository'
+import { AgentRepository } from '../database/repositories/agent-repository'
+import { TeamRepository } from '../database/repositories/team-repository'
 
 import { AIProvider } from './ai-provider'
 import { AIService } from './ai-service'
@@ -26,6 +28,11 @@ import { ReportsService } from './reports-service'
 import { ExportService } from './export-service'
 import { BackupService } from './backup-service'
 import { EmbeddingsService } from './embeddings-service'
+import { AgentToolRegistry } from './agent-tool-registry'
+import { AgentRuntime } from './agent-runtime'
+import { AgentService } from './agent-service'
+import { TeamExecutionService } from './team-execution-service'
+import { MCPManager } from './mcp-manager'
 import { setLocale } from '../i18n'
 
 export interface AppContainer {
@@ -42,6 +49,8 @@ export interface AppContainer {
   chatHistoryRepo: ChatHistoryRepository
   embeddingsRepo: EmbeddingsRepository
   feedbackRepo: CategorizationFeedbackRepository
+  agentRepo: AgentRepository
+  teamRepo: TeamRepository
 
   // Services
   aiProvider: AIProvider
@@ -55,6 +64,11 @@ export interface AppContainer {
   exportService: ExportService
   backupService: BackupService
   embeddingsService: EmbeddingsService
+  agentToolRegistry: AgentToolRegistry
+  agentRuntime: AgentRuntime
+  agentService: AgentService
+  teamExecutionService: TeamExecutionService
+  mcpManager: MCPManager
 }
 
 let container: AppContainer | null = null
@@ -75,6 +89,8 @@ export function getContainer(): AppContainer {
   const chatHistoryRepo = new ChatHistoryRepository()
   const embeddingsRepo = new EmbeddingsRepository()
   const feedbackRepo = new CategorizationFeedbackRepository()
+  const agentRepo = new AgentRepository()
+  const teamRepo = new TeamRepository()
 
   // Initialize main process i18n from persisted settings
   const settings = settingsRepo.get()
@@ -95,6 +111,13 @@ export function getContainer(): AppContainer {
   const exportService = new ExportService()
   const backupService = new BackupService()
 
+  // Agent Studio layer
+  const agentToolRegistry = new AgentToolRegistry(entryRepo, projectRepo, taskRepo, meetingRepo, notificationRepo, settingsRepo, embeddingsService, aiService)
+  const mcpManager = new MCPManager(settingsRepo)
+  const agentRuntime = new AgentRuntime(aiProvider, agentToolRegistry, agentRepo, settingsRepo, mcpManager)
+  const agentService = new AgentService(agentRepo, agentRuntime, agentToolRegistry)
+  const teamExecutionService = new TeamExecutionService(teamRepo, agentRepo, agentRuntime, aiProvider, settingsRepo)
+
   container = {
     entryRepo,
     projectRepo,
@@ -108,6 +131,8 @@ export function getContainer(): AppContainer {
     chatHistoryRepo,
     embeddingsRepo,
     feedbackRepo,
+    agentRepo,
+    teamRepo,
     aiProvider,
     aiService,
     entryService,
@@ -119,6 +144,11 @@ export function getContainer(): AppContainer {
     exportService,
     backupService,
     embeddingsService,
+    agentToolRegistry,
+    agentRuntime,
+    agentService,
+    teamExecutionService,
+    mcpManager,
   }
 
   return container

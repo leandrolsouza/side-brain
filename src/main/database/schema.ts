@@ -321,6 +321,107 @@ const migrations: Migration[] = [
       `)
     },
   },
+  {
+    version: 13,
+    name: 'add_agent_studio',
+    up: (database) => {
+      database.exec(`
+        -- Agent definitions: user-created agents with persona, skills, and scope
+        CREATE TABLE IF NOT EXISTS agents (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          description TEXT NOT NULL DEFAULT '',
+          persona TEXT NOT NULL,
+          icon TEXT NOT NULL DEFAULT 'Bot',
+          color TEXT NOT NULL DEFAULT 'blue',
+          skills TEXT NOT NULL DEFAULT '[]',
+          scope TEXT NOT NULL DEFAULT '{"projectIds":"all"}',
+          triggers TEXT NOT NULL DEFAULT '[]',
+          can_delegate TEXT NOT NULL DEFAULT '[]',
+          max_steps INTEGER NOT NULL DEFAULT 5,
+          is_active INTEGER NOT NULL DEFAULT 1,
+          requires_approval INTEGER NOT NULL DEFAULT 1,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_agents_active ON agents(is_active);
+
+        -- Agent executions: each run of an agent
+        CREATE TABLE IF NOT EXISTS agent_executions (
+          id TEXT PRIMARY KEY,
+          agent_id TEXT NOT NULL,
+          trigger TEXT NOT NULL DEFAULT 'manual',
+          input TEXT NOT NULL,
+          delegated_by_agent_id TEXT,
+          status TEXT NOT NULL DEFAULT 'running',
+          result TEXT,
+          error TEXT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          completed_at TEXT,
+          FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_agent_executions_agent ON agent_executions(agent_id);
+        CREATE INDEX IF NOT EXISTS idx_agent_executions_status ON agent_executions(status);
+        CREATE INDEX IF NOT EXISTS idx_agent_executions_created ON agent_executions(created_at DESC);
+
+        -- Agent execution steps: individual tool calls within an execution
+        CREATE TABLE IF NOT EXISTS agent_steps (
+          id TEXT PRIMARY KEY,
+          execution_id TEXT NOT NULL,
+          step_number INTEGER NOT NULL,
+          skill TEXT NOT NULL,
+          input TEXT NOT NULL DEFAULT '{}',
+          output TEXT,
+          reasoning TEXT NOT NULL DEFAULT '',
+          delegated_to_agent_id TEXT,
+          status TEXT NOT NULL DEFAULT 'pending',
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          completed_at TEXT,
+          FOREIGN KEY (execution_id) REFERENCES agent_executions(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_agent_steps_execution ON agent_steps(execution_id, step_number);
+      `)
+    },
+  },
+  {
+    version: 14,
+    name: 'add_agent_teams',
+    up: (database) => {
+      database.exec(`
+        -- Agent teams: groups of agents that collaborate
+        CREATE TABLE IF NOT EXISTS agent_teams (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          description TEXT NOT NULL DEFAULT '',
+          member_ids TEXT NOT NULL DEFAULT '[]',
+          collaboration_mode TEXT NOT NULL DEFAULT 'sequential',
+          generate_synthesis INTEGER NOT NULL DEFAULT 1,
+          synthesis_prompt TEXT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        -- Team executions: a discussion run
+        CREATE TABLE IF NOT EXISTS team_executions (
+          id TEXT PRIMARY KEY,
+          team_id TEXT NOT NULL,
+          input TEXT NOT NULL,
+          entries TEXT NOT NULL DEFAULT '[]',
+          synthesis TEXT,
+          status TEXT NOT NULL DEFAULT 'running',
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          completed_at TEXT,
+          FOREIGN KEY (team_id) REFERENCES agent_teams(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_team_executions_team ON team_executions(team_id);
+        CREATE INDEX IF NOT EXISTS idx_team_executions_created ON team_executions(created_at DESC);
+      `)
+    },
+  },
 ]
 
 function runMigrations(database: Database.Database): void {

@@ -9,6 +9,7 @@ export type NotificationType =
   | 'insight_generated'
   | 'digest_ready'
   | 'ai_error'
+  | 'agent_message'
 
 export interface AppNotification {
   id: string

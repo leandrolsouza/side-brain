@@ -1,5 +1,5 @@
 import React from 'react'
-import { LayoutDashboard, PenLine, FolderOpen, Video, Settings, Sun, Moon, BarChart3, Info, MessageCircle, SlidersHorizontal, Network } from 'lucide-react'
+import { LayoutDashboard, PenLine, FolderOpen, Video, Settings, Sun, Moon, BarChart3, Info, MessageCircle, SlidersHorizontal, Network, Bot } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { View, Theme } from '../App'
 
@@ -22,6 +22,7 @@ export function ActivityBar({ currentView, onViewChange, theme, onThemeChange, o
     { view: 'reports', icon: <BarChart3 size={24} />, tooltip: t('activityBar.reports') },
     { view: 'smart-chat', icon: <MessageCircle size={24} />, tooltip: t('activityBar.smartChat') },
     { view: 'connection-graph', icon: <Network size={24} />, tooltip: t('activityBar.connectionGraph') },
+    { view: 'agents', icon: <Bot size={24} />, tooltip: t('activityBar.agents', { defaultValue: 'Agentes' }) },
   ]
 
   const isActive = (view: View) =>

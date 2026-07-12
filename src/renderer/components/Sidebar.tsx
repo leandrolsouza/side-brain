@@ -67,6 +67,8 @@ export function Sidebar({ currentView, onViewChange, onProjectSelect, refreshKey
       case 'entries': return t('sidebar.explorer')
       case 'meeting': return t('sidebar.meeting')
       case 'settings': return t('sidebar.settings')
+      case 'agents': return 'Agentes'
+      default: return ''
     }
   }
 

@@ -257,6 +257,12 @@ app.whenReady().then(() => {
 
     registerIpcHandlers()
 
+    // Auto-connect enabled MCP servers
+    const { mcpManager } = getContainer()
+    mcpManager.connectAll().catch((err) => {
+      console.error('MCP auto-connect failed:', err)
+    })
+
     // Grant microphone permission for speech recognition
     session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
       const allowedPermissions = ['media', 'audioCapture', 'microphone']
@@ -345,6 +351,8 @@ app.on('will-quit', () => {
     tray.destroy()
     tray = null
   }
+  // Disconnect MCP servers
+  try { getContainer().mcpManager.disconnectAll() } catch { /* ignore */ }
   getConfigService().releaseLock()
   closeDatabase()
 })

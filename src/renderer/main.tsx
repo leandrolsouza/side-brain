@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { App } from './App'
 import { initI18n } from './i18n'
 import './styles/global.css'
+import './styles/agent-studio.css'
 
 async function bootstrap() {
   try {

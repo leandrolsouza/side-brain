@@ -54,6 +54,7 @@ export type AIOperationType =
   | 'insights'
   | 'connection_discovery'
   | 'embeddings'
+  | 'agent_execution'
 
 export interface AIUsageRecord {
   id: string

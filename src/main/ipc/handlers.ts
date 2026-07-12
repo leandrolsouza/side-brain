@@ -14,6 +14,9 @@ import { registerErrorHandlers } from './error-handlers'
 import { registerConnectionHandlers } from './connection-handlers'
 import { registerUpdaterHandlers } from './updater-handlers'
 import { registerEmbeddingsHandlers } from './embeddings-handlers'
+import { registerAgentHandlers } from './agent-handlers'
+import { registerTeamHandlers } from './team-handlers'
+import { registerMCPHandlers } from './mcp-handlers'
 
 export function registerIpcHandlers(): void {
   registerEntryHandlers()
@@ -32,4 +35,7 @@ export function registerIpcHandlers(): void {
   registerConnectionHandlers()
   registerUpdaterHandlers()
   registerEmbeddingsHandlers()
+  registerAgentHandlers()
+  registerTeamHandlers()
+  registerMCPHandlers()
 }

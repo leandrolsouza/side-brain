@@ -37,6 +37,7 @@ export function safeHandle(
 export function inferCategory(channel: string): ErrorCategory {
   if (channel.startsWith('ai:') || channel.startsWith('digest:') || channel.startsWith('smart-chat:') || channel.startsWith('insights:')) return 'ai'
   if (channel === 'meeting:process' || channel === 'meeting:prepare') return 'ai'
+  if (channel.startsWith('agent:run') || channel.startsWith('agent:')) return 'ai'
   if (channel.startsWith('entry:') || channel.startsWith('project:') || channel.startsWith('task:') || channel.startsWith('search:') || channel.startsWith('connection:')) return 'database'
   if (channel.startsWith('meeting:')) return 'database'
   if (channel.startsWith('backup:') || channel.startsWith('database:') || channel.startsWith('workspace:')) return 'database'

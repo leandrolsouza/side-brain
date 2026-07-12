@@ -27,8 +27,9 @@ import { CustomFieldsSettings } from './components/CustomFieldsSettings'
 import { ConnectionGraph } from './components/ConnectionGraph'
 import { UpdateNotification } from './components/UpdateNotification'
 import { OnboardingFlow } from './components/OnboardingFlow'
+import { AgentStudio } from './components/AgentStudio'
 
-export type View = 'dashboard' | 'capture' | 'projects' | 'entries' | 'meeting' | 'settings' | 'reports' | 'smart-chat' | 'error-center' | 'custom-fields' | 'connection-graph'
+export type View = 'dashboard' | 'capture' | 'projects' | 'entries' | 'meeting' | 'settings' | 'reports' | 'smart-chat' | 'error-center' | 'custom-fields' | 'connection-graph' | 'agents'
 export type Theme = 'dark' | 'light'
 
 const MODEL_LABELS: Record<string, string> = {
@@ -218,6 +219,7 @@ function AppContent() {
       case 'error-center': return t('tabs.errorCenter')
       case 'custom-fields': return t('tabs.customFields')
       case 'connection-graph': return t('tabs.connectionGraph')
+      case 'agents': return t('tabs.agents', { defaultValue: 'Agentes' })
     }
   }
 
@@ -260,6 +262,8 @@ function AppContent() {
         return <CustomFieldsSettings />
       case 'connection-graph':
         return <ConnectionGraph />
+      case 'agents':
+        return <AgentStudio />
     }
   }
 
