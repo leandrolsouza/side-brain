@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import ForceGraph2D from 'react-force-graph-2d'
 import { RefreshCw, Info, X, Sparkles, Search, Filter, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react'
 import { Entry, EntryConnection, ConnectionType, CONNECTION_TYPE_LABELS, Project, CustomEntryType } from '../../shared/types'
+import { useApp } from './AppContext'
 
 interface GraphNode {
   id: string
@@ -79,6 +80,22 @@ const PERIOD_OPTIONS = [
 
 export function ConnectionGraph() {
   const { t } = useTranslation('common')
+  const { state } = useApp()
+  const isLight = state.theme === 'light'
+
+  // Theme-aware colors for canvas rendering
+  const canvasColors = useMemo(() => ({
+    background: isLight ? '#ffffff' : '#1e1e1e',
+    labelText: isLight ? '#333333' : '#cccccc',
+    selectedStroke: isLight ? '#000000' : '#ffffff',
+    tooltipBg: isLight ? '#f3f3f3' : '#252526',
+    tooltipBorder: isLight ? '#cecece' : '#474747',
+    tooltipText: isLight ? '#333333' : '#cccccc',
+    tooltipSecondary: isLight ? '#717171' : '#969696',
+    tooltipShadow: isLight ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.5)',
+    dimmedLink: isLight ? 'rgba(86, 156, 214, 0.12)' : 'rgba(86, 156, 214, 0.08)',
+  }), [isLight])
+
   const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] })
   const [isLoading, setIsLoading] = useState(true)
   const [isTruncated, setIsTruncated] = useState(false)
@@ -334,7 +351,7 @@ export function ConnectionGraph() {
 
     // Draw border for selected node
     if (selectedNode && selectedNode.id === node.id) {
-      ctx.strokeStyle = '#ffffff'
+      ctx.strokeStyle = canvasColors.selectedStroke
       ctx.lineWidth = 2 / globalScale
       ctx.stroke()
     }
@@ -344,13 +361,13 @@ export function ConnectionGraph() {
       ctx.font = `${fontSize}px -apple-system, BlinkMacSystemFont, sans-serif`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'top'
-      ctx.fillStyle = '#cccccc'
+      ctx.fillStyle = canvasColors.labelText
       ctx.globalAlpha = opacity
       ctx.fillText(label, node.x, node.y + nodeRadius + 2)
     }
 
     ctx.globalAlpha = 1
-  }, [selectedNode, highlightNodes])
+  }, [selectedNode, highlightNodes, canvasColors])
 
   const nodePointerAreaPaint = useCallback((node: any, color: string, ctx: CanvasRenderingContext2D) => {
     const degree = node.degree || 1
@@ -365,8 +382,8 @@ export function ConnectionGraph() {
     const baseColor = CONNECTION_COLORS[link.connectionType as ConnectionType] || '#569cd6'
     if (highlightLinks.size === 0) return baseColor
     if (highlightLinks.has(link.id)) return baseColor
-    return 'rgba(86, 156, 214, 0.08)'
-  }, [highlightLinks])
+    return canvasColors.dimmedLink
+  }, [highlightLinks, canvasColors])
 
   const linkWidth = useCallback((link: any) => {
     if (highlightLinks.size > 0 && highlightLinks.has(link.id)) return 2.5
@@ -578,9 +595,9 @@ export function ConnectionGraph() {
               const typeName = typeLabels[node.type] || node.type
               const project = node.projectName || ''
               const date = new Date(node.createdAt).toLocaleDateString('pt-BR')
-              return `<div style="max-width:300px;font-size:12px;line-height:1.4;padding:6px 8px;background:#252526;border:1px solid #474747;border-radius:4px;color:#cccccc;box-shadow:0 2px 8px rgba(0,0,0,0.5)">
+              return `<div style="max-width:300px;font-size:12px;line-height:1.4;padding:6px 8px;background:${canvasColors.tooltipBg};border:1px solid ${canvasColors.tooltipBorder};border-radius:4px;color:${canvasColors.tooltipText};box-shadow:0 2px 8px ${canvasColors.tooltipShadow}">
                 <div style="font-weight:500;margin-bottom:4px">${node.fullText}</div>
-                <div style="font-size:10px;color:#969696">${typeName} · ${project} · ${date} · ${node.degree} conexão(ões)</div>
+                <div style="font-size:10px;color:${canvasColors.tooltipSecondary}">${typeName} · ${project} · ${date} · ${node.degree} conexão(ões)</div>
               </div>`
             }}
             onNodeClick={handleNodeClick}
@@ -590,7 +607,7 @@ export function ConnectionGraph() {
             linkDirectionalParticles={2}
             linkDirectionalParticleWidth={2}
             linkDirectionalParticleSpeed={0.004}
-            backgroundColor="#1e1e1e"
+            backgroundColor={canvasColors.background}
             cooldownTicks={80}
             warmupTicks={30}
             d3AlphaDecay={0.05}

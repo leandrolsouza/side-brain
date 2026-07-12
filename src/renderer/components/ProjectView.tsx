@@ -153,7 +153,7 @@ export function ProjectView({ projectId, projectName, initialTab, onBack, onNavi
       {/* Tab content */}
       <div className="project-view-content">
         {activeTab === 'entries' && (
-          <EntryList projectId={projectId} onBack={onBack} />
+          <EntryList projectId={projectId} />
         )}
         {activeTab === 'kanban' && (
           <KanbanBoard projectId={projectId} />

@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import { ArrowLeft, Sparkles, X, Trash2, Link2, Search, Plus, ArrowUpDown, ChevronDown } from 'lucide-react'
+import { X, Trash2, Link2, Search, Plus, ArrowUpDown, ChevronDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { ConfirmModal } from './ConfirmModal'
-import { MarkdownViewer } from './MarkdownViewer'
 import { CONNECTION_TYPE_LABELS, ConnectionType, ConnectedEntry } from '../../shared/types'
 
 interface Entry {
@@ -22,17 +21,15 @@ const PAGE_SIZE = 50
 
 interface EntryListProps {
   projectId: string
-  onBack: () => void
 }
 
-export function EntryList({ projectId, onBack }: EntryListProps) {
+export function EntryList({ projectId }: EntryListProps) {
   const { t, i18n } = useTranslation('projects')
   const [entries, setEntries] = useState<Entry[]>([])
   const [totalEntries, setTotalEntries] = useState(0)
   const [currentPage, setCurrentPage] = useState(1)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
-  const [summary, setSummary] = useState<string | null>(null)
-  const [isLoadingSummary, setIsLoadingSummary] = useState(false)
+
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
   // Search & sort state
@@ -162,16 +159,6 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
     setExpandedConnections(newExpanded)
   }
 
-  const handleGenerateSummary = async () => {
-    setIsLoadingSummary(true)
-    try {
-      const result = await window.electronAPI.generateSummary(projectId)
-      setSummary(result)
-    } finally {
-      setIsLoadingSummary(false)
-    }
-  }
-
   const handleActionChange = async (entryId: string, newAction: string) => {
     await window.electronAPI.updateEntry(entryId, { action: newAction })
     await loadEntries()
@@ -245,24 +232,8 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
     <div className="flex-col" style={{ height: '100%', minHeight: 0 }}>
       <div className="panel-header">
         <div className="flex-row">
-          <button
-            className="inline-action-btn"
-            onClick={onBack}
-            title={t('entryList.backToProjects')}
-            style={{ opacity: 1 }}
-          >
-            <ArrowLeft size={16} />
-          </button>
           <span className="panel-title">{t('entryList.title')}</span>
         </div>
-        <button
-          className="vscode-button"
-          onClick={handleGenerateSummary}
-          disabled={isLoadingSummary}
-        >
-          <Sparkles size={14} />
-          {isLoadingSummary ? t('entryList.generatingSummary') : t('entryList.generateSummary')}
-        </button>
       </div>
 
       {/* Search and Sort toolbar */}
@@ -322,23 +293,6 @@ export function EntryList({ projectId, onBack }: EntryListProps) {
               {t('entryList.loadedCount', { loaded: entries.length, total: totalEntries })}
             </span>
           )}
-        </div>
-      )}
-
-      {summary && (
-        <div className="summary-modal-overlay" onClick={() => setSummary(null)}>
-          <div className="summary-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="summary-modal-header">
-              <Sparkles size={16} />
-              <span>{t('entryList.summaryTitle')}</span>
-              <button className="icon-button" onClick={() => setSummary(null)}>
-                <X size={16} />
-              </button>
-            </div>
-            <div className="summary-modal-body">
-              <MarkdownViewer content={summary} />
-            </div>
-          </div>
         </div>
       )}
 
