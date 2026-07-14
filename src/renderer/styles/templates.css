@@ -1,0 +1,469 @@
+/* === Structured Templates & Snippets === */
+
+/* Structured template chips in capture */
+.capture-template-chip.structured {
+  border: 1px dashed var(--vscode-focusBorder);
+  background: transparent;
+}
+
+.capture-template-chip.structured:hover:not(:disabled) {
+  background: var(--vscode-list-hoverBackground);
+  border-style: solid;
+}
+
+.capture-templates-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* === Template Form Modal === */
+
+.template-form-modal {
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-widget-border);
+  border-radius: 8px;
+  width: 560px;
+  max-width: 90vw;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.template-form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.template-form-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--vscode-editor-foreground);
+}
+
+.template-form-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.template-form-description {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  margin: 0 0 16px 0;
+}
+
+.template-form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.template-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.template-field-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--vscode-editor-foreground);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.template-field-required {
+  color: var(--vscode-errorForeground);
+}
+
+.template-field-ai-icon {
+  color: var(--vscode-textLink-foreground);
+  opacity: 0.7;
+}
+
+.template-field-textarea {
+  min-height: 60px;
+  resize: vertical;
+}
+
+.template-field-select {
+  padding: 6px 8px;
+}
+
+.template-field-date {
+  width: auto;
+}
+
+.template-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+  padding-top: 12px;
+  border-top: 1px solid var(--vscode-widget-border);
+}
+
+/* === Snippet Autocomplete === */
+
+.snippet-autocomplete {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 12px;
+  min-width: 280px;
+  max-width: 400px;
+  background: var(--vscode-editorSuggestWidget-background, var(--vscode-editor-background));
+  border: 1px solid var(--vscode-editorSuggestWidget-border, var(--vscode-widget-border));
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+  overflow: hidden;
+}
+
+.snippet-autocomplete-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  border-bottom: 1px solid var(--vscode-widget-border);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.snippet-autocomplete-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.snippet-autocomplete-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  color: var(--vscode-editor-foreground);
+  font-size: 13px;
+}
+
+.snippet-autocomplete-item.selected,
+.snippet-autocomplete-item:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.snippet-trigger {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 12px;
+  color: var(--vscode-textLink-foreground);
+  white-space: nowrap;
+  min-width: 50px;
+}
+
+.snippet-label {
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.snippet-autocomplete-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  border-top: 1px solid var(--vscode-widget-border);
+  opacity: 0.7;
+}
+
+.snippet-autocomplete-hint kbd {
+  font-size: 10px;
+  padding: 1px 4px;
+  border-radius: 2px;
+  background: var(--vscode-keybindingLabel-background);
+  border: 1px solid var(--vscode-keybindingLabel-border);
+}
+
+/* === Template Manager === */
+
+.template-manager {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 16px;
+}
+
+.template-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.template-panel-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.template-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.template-list-item {
+  border: 1px solid var(--vscode-widget-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.template-list-item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.template-list-item-header:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.template-list-item-name {
+  font-weight: 500;
+  font-size: 13px;
+  flex: 1;
+}
+
+.template-list-item-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+}
+
+.template-list-item-fields {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.template-list-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.template-list-item-details {
+  padding: 8px 12px 12px;
+  border-top: 1px solid var(--vscode-widget-border);
+  background: var(--vscode-editor-inactiveSelectionBackground);
+}
+
+.template-detail-description {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  margin: 0 0 8px 0;
+}
+
+.template-detail-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.template-detail-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 8px;
+  background: var(--vscode-editor-background);
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+.template-detail-field-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.template-detail-field-type {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  font-family: var(--vscode-editor-font-family, monospace);
+}
+
+.template-detail-output {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.template-detail-output code {
+  font-size: 11px;
+  background: var(--vscode-textCodeBlock-background);
+  padding: 2px 4px;
+  border-radius: 2px;
+}
+
+.text-required {
+  color: var(--vscode-errorForeground);
+  margin-left: 2px;
+}
+
+.text-ai {
+  margin-left: 4px;
+  font-size: 10px;
+}
+
+/* === Template Editor (inline form) === */
+
+.template-editor,
+.snippet-editor {
+  padding: 12px;
+  border: 1px solid var(--vscode-focusBorder);
+  border-radius: 6px;
+  background: var(--vscode-editor-background);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.template-editor-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.template-editor-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.template-editor-field label {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  font-weight: 500;
+}
+
+.template-editor-fields-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.template-editor-fields-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.template-editor-fields-header label {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  font-weight: 500;
+}
+
+.template-editor-field-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.template-editor-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.template-editor-checkbox input[type="checkbox"] {
+  width: 12px;
+  height: 12px;
+}
+
+.template-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--vscode-widget-border);
+}
+
+/* === Snippet List === */
+
+.snippet-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.snippet-list-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  transition: background 0.1s;
+}
+
+.snippet-list-item:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.snippet-list-trigger {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 12px;
+  color: var(--vscode-textLink-foreground);
+  min-width: 60px;
+  font-weight: 500;
+}
+
+.snippet-list-label {
+  flex: 1;
+  font-size: 13px;
+  color: var(--vscode-editor-foreground);
+}
+
+.snippet-list-usage {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  min-width: 30px;
+  text-align: right;
+}
+
+.snippet-list-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.snippet-list-item:hover .snippet-list-actions {
+  opacity: 1;
+}
+
+/* Make capture input wrapper relative for snippet positioning */
+.capture-input-wrapper {
+  position: relative;
+}

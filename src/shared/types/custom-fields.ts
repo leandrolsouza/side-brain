@@ -36,6 +36,174 @@ export interface CustomCaptureTemplate {
 // Legacy alias
 export type CaptureTemplate = CustomCaptureTemplate
 
+// === Structured Templates & Snippets ===
+
+/**
+ * Field type for structured template forms.
+ */
+export type TemplateFieldType = 'text' | 'textarea' | 'select' | 'date' | 'mention'
+
+/**
+ * A single field definition within a structured template.
+ */
+export interface TemplateField {
+  id: string
+  key: string                    // machine-readable identifier (e.g. 'context', 'decision')
+  label: string                  // display label (e.g. 'Contexto', 'Decisão tomada')
+  type: TemplateFieldType
+  placeholder?: string
+  required: boolean
+  options?: string[]             // for type 'select'
+  aiAutoFill?: boolean           // AI attempts to fill this field based on other fields
+  sortOrder: number
+}
+
+/**
+ * Category for structured templates.
+ */
+export type TemplateCategory = 'meeting' | 'decision' | 'bug' | 'oneOnOne' | 'brainstorm' | 'standup' | 'custom'
+
+/**
+ * A structured template with typed fields for guided capture.
+ */
+export interface StructuredTemplate {
+  id: string
+  name: string
+  description: string
+  icon: string                   // lucide icon name
+  color: string                  // badge color variant
+  category: TemplateCategory
+  fields: TemplateField[]
+  outputFormat: string           // handlebars-like format string (e.g. '{{subject}}: {{decision}}')
+  hintType: string               // suggested entry type key
+  hintAction: string             // suggested action status key
+  projectId?: string             // optionally lock to a project
+  isDefault: boolean
+  sortOrder: number
+  createdAt: string
+  updatedAt: string
+}
+
+/**
+ * A capture snippet — a text shortcut triggered by typing /<trigger>.
+ */
+export interface CaptureSnippet {
+  id: string
+  triggerKey: string             // shortcut (e.g. 'dec', '1on1', 'bug')
+  label: string                  // display name
+  content: string                // expanded text (supports {{cursor}} for positioning)
+  category: string
+  usageCount: number
+  isDefault: boolean
+  createdAt: string
+}
+
+// Default structured templates (seeded on first run)
+export const DEFAULT_STRUCTURED_TEMPLATES: Omit<StructuredTemplate, 'id' | 'createdAt' | 'updatedAt'>[] = [
+  {
+    name: 'Decisão',
+    description: 'Registrar uma decisão tomada com contexto e alternativas',
+    icon: 'Gavel',
+    color: 'warning',
+    category: 'decision',
+    fields: [
+      { id: 'f1', key: 'subject', label: 'Assunto', type: 'text', required: true, placeholder: 'Sobre o que é a decisão', sortOrder: 0 },
+      { id: 'f2', key: 'decision', label: 'Decisão tomada', type: 'textarea', required: true, placeholder: 'O que foi decidido', sortOrder: 1 },
+      { id: 'f3', key: 'context', label: 'Contexto', type: 'textarea', required: false, placeholder: 'O que motivou a decisão', aiAutoFill: true, sortOrder: 2 },
+      { id: 'f4', key: 'alternatives', label: 'Alternativas consideradas', type: 'textarea', required: false, placeholder: 'Opções descartadas e por quê', aiAutoFill: true, sortOrder: 3 },
+      { id: 'f5', key: 'responsible', label: 'Responsável', type: 'mention', required: false, placeholder: 'Quem vai executar', sortOrder: 4 },
+      { id: 'f6', key: 'deadline', label: 'Prazo', type: 'date', required: false, sortOrder: 5 },
+    ],
+    outputFormat: 'Decisão sobre {{subject}}: {{decision}}. Contexto: {{context}}. Alternativas: {{alternatives}}. Responsável: {{responsible}}. Prazo: {{deadline}}.',
+    hintType: 'decision',
+    hintAction: 'action_needed',
+    isDefault: true,
+    sortOrder: 0,
+  },
+  {
+    name: '1:1',
+    description: 'Notas de reunião individual',
+    icon: 'Users',
+    color: 'info',
+    category: 'oneOnOne',
+    fields: [
+      { id: 'f1', key: 'person', label: 'Com quem', type: 'text', required: true, placeholder: 'Nome da pessoa', sortOrder: 0 },
+      { id: 'f2', key: 'discussed', label: 'O que discutimos', type: 'textarea', required: true, placeholder: 'Temas abordados', sortOrder: 1 },
+      { id: 'f3', key: 'actions', label: 'Ações combinadas', type: 'textarea', required: false, placeholder: 'O que ficou acordado', sortOrder: 2 },
+      { id: 'f4', key: 'followUp', label: 'Follow-up', type: 'text', required: false, placeholder: 'Próximo passo ou data', aiAutoFill: true, sortOrder: 3 },
+    ],
+    outputFormat: '1:1 com {{person}}: {{discussed}}. Ações: {{actions}}. Follow-up: {{followUp}}.',
+    hintType: 'information',
+    hintAction: 'action_needed',
+    isDefault: true,
+    sortOrder: 1,
+  },
+  {
+    name: 'Bug Report',
+    description: 'Registrar um bug encontrado',
+    icon: 'Bug',
+    color: 'error',
+    category: 'bug',
+    fields: [
+      { id: 'f1', key: 'component', label: 'Componente', type: 'text', required: true, placeholder: 'Onde ocorre o bug', sortOrder: 0 },
+      { id: 'f2', key: 'description', label: 'Descrição', type: 'textarea', required: true, placeholder: 'O que acontece de errado', sortOrder: 1 },
+      { id: 'f3', key: 'steps', label: 'Passos para reproduzir', type: 'textarea', required: false, placeholder: '1. ...\n2. ...\n3. ...', sortOrder: 2 },
+      { id: 'f4', key: 'impact', label: 'Impacto', type: 'select', required: false, options: ['Crítico', 'Alto', 'Médio', 'Baixo'], sortOrder: 3 },
+      { id: 'f5', key: 'expected', label: 'Comportamento esperado', type: 'textarea', required: false, placeholder: 'O que deveria acontecer', aiAutoFill: true, sortOrder: 4 },
+    ],
+    outputFormat: 'Bug em {{component}}: {{description}}. Passos: {{steps}}. Impacto: {{impact}}. Esperado: {{expected}}.',
+    hintType: 'blocker',
+    hintAction: 'action_needed',
+    isDefault: true,
+    sortOrder: 2,
+  },
+  {
+    name: 'Brainstorm',
+    description: 'Capturar ideias de uma sessão de brainstorm',
+    icon: 'Lightbulb',
+    color: 'success',
+    category: 'brainstorm',
+    fields: [
+      { id: 'f1', key: 'topic', label: 'Tema', type: 'text', required: true, placeholder: 'Tema do brainstorm', sortOrder: 0 },
+      { id: 'f2', key: 'ideas', label: 'Ideias', type: 'textarea', required: true, placeholder: 'Liste as ideias geradas (uma por linha)', sortOrder: 1 },
+      { id: 'f3', key: 'nextSteps', label: 'Próximos passos', type: 'textarea', required: false, placeholder: 'O que fazer com essas ideias', aiAutoFill: true, sortOrder: 2 },
+    ],
+    outputFormat: 'Brainstorm sobre {{topic}}: {{ideas}}. Próximos passos: {{nextSteps}}.',
+    hintType: 'idea',
+    hintAction: 'none',
+    isDefault: true,
+    sortOrder: 3,
+  },
+  {
+    name: 'Standup',
+    description: 'Nota rápida de daily standup',
+    icon: 'Coffee',
+    color: 'neutral',
+    category: 'standup',
+    fields: [
+      { id: 'f1', key: 'yesterday', label: 'Ontem', type: 'textarea', required: true, placeholder: 'O que fiz ontem', sortOrder: 0 },
+      { id: 'f2', key: 'today', label: 'Hoje', type: 'textarea', required: true, placeholder: 'O que vou fazer hoje', sortOrder: 1 },
+      { id: 'f3', key: 'blockers', label: 'Bloqueios', type: 'textarea', required: false, placeholder: 'Impedimentos (se houver)', sortOrder: 2 },
+    ],
+    outputFormat: 'Standup — Ontem: {{yesterday}}. Hoje: {{today}}. Bloqueios: {{blockers}}.',
+    hintType: 'update',
+    hintAction: 'none',
+    isDefault: true,
+    sortOrder: 4,
+  },
+]
+
+// Default capture snippets (seeded on first run)
+export const DEFAULT_CAPTURE_SNIPPETS: Omit<CaptureSnippet, 'id' | 'createdAt'>[] = [
+  { triggerKey: 'dec', label: 'Decisão rápida', content: 'Decisão sobre [assunto]: [o que foi decidido]. Contexto: {{cursor}}', category: 'decision', usageCount: 0, isDefault: true },
+  { triggerKey: 'dem', label: 'Demanda', content: 'Demanda de [pessoa/área]: [o que foi solicitado]. Prazo: {{cursor}}', category: 'demand', usageCount: 0, isDefault: true },
+  { triggerKey: '1on1', label: 'Nota de 1:1', content: '1:1 com [pessoa]: [temas discutidos]. Ações: {{cursor}}', category: 'oneOnOne', usageCount: 0, isDefault: true },
+  { triggerKey: 'bug', label: 'Bug report', content: 'Bug em [componente]: [descrição]. Passos: 1. {{cursor}}', category: 'bug', usageCount: 0, isDefault: true },
+  { triggerKey: 'upd', label: 'Atualização', content: 'Atualização [projeto]: [progresso feito]. Próximos passos: {{cursor}}', category: 'update', usageCount: 0, isDefault: true },
+  { triggerKey: 'blk', label: 'Bloqueio', content: 'Bloqueio em [tarefa]: [impedimento]. Preciso de: {{cursor}}', category: 'blocker', usageCount: 0, isDefault: true },
+  { triggerKey: 'idea', label: 'Ideia', content: 'Ideia: [descrição]. Benefício esperado: {{cursor}}', category: 'idea', usageCount: 0, isDefault: true },
+]
+
 // Default entry types (seeded on first run)
 export const DEFAULT_ENTRY_TYPES: Omit<CustomEntryType, 'id'>[] = [
   { key: 'information', label: 'Informação', icon: 'Info', color: 'info', isDefault: true, sortOrder: 0, allowsAction: false },

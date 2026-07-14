@@ -422,6 +422,76 @@ const migrations: Migration[] = [
       `)
     },
   },
+  {
+    version: 15,
+    name: 'add_structured_templates_and_snippets',
+    up: (database) => {
+      database.exec(`
+        -- Structured templates: guided capture with typed fields
+        CREATE TABLE IF NOT EXISTS structured_templates (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          description TEXT NOT NULL DEFAULT '',
+          icon TEXT NOT NULL DEFAULT 'FileText',
+          color TEXT NOT NULL DEFAULT 'neutral',
+          category TEXT NOT NULL DEFAULT 'custom',
+          fields TEXT NOT NULL DEFAULT '[]',
+          output_format TEXT NOT NULL DEFAULT '',
+          hint_type TEXT NOT NULL DEFAULT 'information',
+          hint_action TEXT NOT NULL DEFAULT 'none',
+          project_id TEXT,
+          is_default INTEGER NOT NULL DEFAULT 0,
+          sort_order INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_structured_templates_category ON structured_templates(category);
+        CREATE INDEX IF NOT EXISTS idx_structured_templates_sort ON structured_templates(sort_order);
+
+        -- Capture snippets: text shortcuts triggered by /<key>
+        CREATE TABLE IF NOT EXISTS capture_snippets (
+          id TEXT PRIMARY KEY,
+          trigger_key TEXT NOT NULL UNIQUE,
+          label TEXT NOT NULL,
+          content TEXT NOT NULL,
+          category TEXT NOT NULL DEFAULT 'general',
+          usage_count INTEGER NOT NULL DEFAULT 0,
+          is_default INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_snippets_trigger ON capture_snippets(trigger_key);
+        CREATE INDEX IF NOT EXISTS idx_snippets_usage ON capture_snippets(usage_count DESC);
+      `)
+
+      // Seed default structured templates
+      const { DEFAULT_STRUCTURED_TEMPLATES, DEFAULT_CAPTURE_SNIPPETS } = require('../../shared/types/custom-fields')
+
+      const insertTemplate = database.prepare(
+        `INSERT INTO structured_templates (id, name, description, icon, color, category, fields, output_format, hint_type, hint_action, is_default, sort_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      for (const tpl of DEFAULT_STRUCTURED_TEMPLATES) {
+        insertTemplate.run(
+          uuidv4(), tpl.name, tpl.description, tpl.icon, tpl.color, tpl.category,
+          JSON.stringify(tpl.fields), tpl.outputFormat, tpl.hintType, tpl.hintAction,
+          tpl.isDefault ? 1 : 0, tpl.sortOrder
+        )
+      }
+
+      // Seed default snippets
+      const insertSnippet = database.prepare(
+        `INSERT INTO capture_snippets (id, trigger_key, label, content, category, usage_count, is_default)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`
+      )
+      for (const snp of DEFAULT_CAPTURE_SNIPPETS) {
+        insertSnippet.run(
+          uuidv4(), snp.triggerKey, snp.label, snp.content, snp.category, 0, snp.isDefault ? 1 : 0
+        )
+      }
+    },
+  },
 ]
 
 function runMigrations(database: Database.Database): void {

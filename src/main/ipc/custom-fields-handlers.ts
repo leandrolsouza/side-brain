@@ -1,6 +1,6 @@
 import { safeHandle } from './safe-handle'
 import { getContainer } from '../services/container'
-import type { CustomEntryType, CustomActionStatus, CustomCaptureTemplate } from '../../shared/types'
+import type { CustomEntryType, CustomActionStatus, CustomCaptureTemplate, StructuredTemplate, CaptureSnippet } from '../../shared/types'
 
 export function registerCustomFieldsHandlers(): void {
   const { customFieldsRepo } = getContainer()
@@ -66,5 +66,61 @@ export function registerCustomFieldsHandlers(): void {
 
   safeHandle('custom-fields:reorderCaptureTemplates', async (_event, orderedIds: string[]) => {
     return customFieldsRepo.reorderCaptureTemplates(orderedIds)
+  })
+
+  // Structured Templates
+  safeHandle('custom-fields:getStructuredTemplates', async () => {
+    return customFieldsRepo.getStructuredTemplates()
+  })
+
+  safeHandle('custom-fields:getStructuredTemplateById', async (_event, id: string) => {
+    return customFieldsRepo.getStructuredTemplateById(id)
+  })
+
+  safeHandle('custom-fields:createStructuredTemplate', async (_event, data: Omit<StructuredTemplate, 'id' | 'createdAt' | 'updatedAt'>) => {
+    return customFieldsRepo.createStructuredTemplate(data)
+  })
+
+  safeHandle('custom-fields:updateStructuredTemplate', async (_event, id: string, updates: Partial<Omit<StructuredTemplate, 'id' | 'isDefault' | 'createdAt' | 'updatedAt'>>) => {
+    return customFieldsRepo.updateStructuredTemplate(id, updates)
+  })
+
+  safeHandle('custom-fields:deleteStructuredTemplate', async (_event, id: string) => {
+    return customFieldsRepo.deleteStructuredTemplate(id)
+  })
+
+  safeHandle('custom-fields:reorderStructuredTemplates', async (_event, orderedIds: string[]) => {
+    return customFieldsRepo.reorderStructuredTemplates(orderedIds)
+  })
+
+  // Capture Snippets
+  safeHandle('custom-fields:getCaptureSnippets', async () => {
+    return customFieldsRepo.getCaptureSnippets()
+  })
+
+  safeHandle('custom-fields:searchCaptureSnippets', async (_event, query: string) => {
+    return customFieldsRepo.searchCaptureSnippets(query)
+  })
+
+  safeHandle('custom-fields:createCaptureSnippet', async (_event, data: Omit<CaptureSnippet, 'id' | 'createdAt' | 'usageCount'>) => {
+    return customFieldsRepo.createCaptureSnippet(data)
+  })
+
+  safeHandle('custom-fields:updateCaptureSnippet', async (_event, id: string, updates: Partial<Omit<CaptureSnippet, 'id' | 'isDefault' | 'createdAt' | 'usageCount'>>) => {
+    return customFieldsRepo.updateCaptureSnippet(id, updates)
+  })
+
+  safeHandle('custom-fields:deleteCaptureSnippet', async (_event, id: string) => {
+    return customFieldsRepo.deleteCaptureSnippet(id)
+  })
+
+  safeHandle('custom-fields:incrementSnippetUsage', async (_event, id: string) => {
+    return customFieldsRepo.incrementSnippetUsage(id)
+  })
+
+  // AI Auto-fill for structured template fields
+  safeHandle('custom-fields:autoFillTemplateFields', async (_event, templateId: string, filledFields: Record<string, string>) => {
+    const { aiService } = getContainer()
+    return aiService.autoFillTemplateFields(templateId, filledFields)
   })
 }

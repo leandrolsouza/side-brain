@@ -405,4 +405,67 @@ export class AIService {
       return []
     }
   }
+
+  /**
+   * AI-powered auto-fill for structured template fields.
+   * Given the filled fields, suggests values for fields marked with aiAutoFill.
+   */
+  async autoFillTemplateFields(
+    templateId: string,
+    filledFields: Record<string, string>
+  ): Promise<Record<string, string>> {
+    const template = this.customFieldsRepo.getStructuredTemplates().find(t => t.id === templateId)
+    if (!template) return {}
+
+    const { settingsRepo } = require('./container').getContainer()
+    const settings = settingsRepo.get()
+
+    const autoFillFields = template.fields.filter(f => f.aiAutoFill && !filledFields[f.key])
+    if (autoFillFields.length === 0) return {}
+
+    const filledContext = Object.entries(filledFields)
+      .filter(([_, v]) => v.trim())
+      .map(([key, value]) => {
+        const field = template.fields.find(f => f.key === key)
+        return `${field?.label || key}: ${value}`
+      })
+      .join('\n')
+
+    const fieldsToFill = autoFillFields.map(f => `- ${f.key} (${f.label}): ${f.placeholder || 'sem dica'}`).join('\n')
+
+    const systemPrompt = `Você é um assistente de produtividade que ajuda a preencher campos de formulários com base no contexto fornecido.
+Responda APENAS com um JSON válido contendo os campos preenchidos, sem explicações adicionais.
+O formato deve ser: {"campo1": "valor1", "campo2": "valor2"}
+Se não houver informação suficiente para preencher um campo, use uma string vazia.
+Seja conciso e direto nos valores sugeridos.`
+
+    const userMessage = `Template: "${template.name}"
+
+Campos já preenchidos:
+${filledContext}
+
+Campos para preencher automaticamente:
+${fieldsToFill}
+
+Preencha os campos listados acima com base no contexto dos campos já preenchidos. Responda somente com o JSON.`
+
+    try {
+      const responseText = await this.provider.invoke(systemPrompt, userMessage, settings, 'categorization')
+
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) return {}
+
+      const parsed = JSON.parse(jsonMatch[0])
+      // Only return keys that match actual auto-fill fields
+      const result: Record<string, string> = {}
+      for (const field of autoFillFields) {
+        if (parsed[field.key] && typeof parsed[field.key] === 'string') {
+          result[field.key] = parsed[field.key]
+        }
+      }
+      return result
+    } catch {
+      return {}
+    }
+  }
 }

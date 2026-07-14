@@ -5,12 +5,15 @@ import {
   FolderPlus, ChevronDown, PenLine, Info, Clock, Minus, AlertCircle,
   Circle, Tag, Zap, Archive, Star, Flag, Heart, Shield, Bell,
   Bookmark, Coffee, FileText, Globe, Home, Key, Link, Lock,
-  Mail, Map, Phone, Search, Settings, Smile, Target, Truck, Wifi
+  Mail, Map, Phone, Search, Settings, Smile, Target, Truck, Wifi,
+  Bug, LayoutTemplate
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { CaptureTemplate, EntryPreviewResult, CustomEntryType, CustomActionStatus } from '@shared/types'
+import { CaptureTemplate, EntryPreviewResult, CustomEntryType, CustomActionStatus, StructuredTemplate, CaptureSnippet } from '@shared/types'
 import { CustomSelect } from './CustomSelect'
 import { useToast } from './ToastContext'
+import { TemplateFormModal } from './TemplateFormModal'
+import { SnippetAutocomplete, useSnippetTrigger } from './SnippetAutocomplete'
 import type { SelectOption } from './CustomSelect'
 
 interface CaptureInputProps {
@@ -32,6 +35,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ size?: number }>> = {
   Bookmark, Coffee, FileText, Globe, Home, Key, Link, Lock,
   Mail, Map, Phone, Search, Settings, Smile, Target, Truck, Wifi,
   Send, Mic, MicOff, Sparkles, X, Eye, Edit3, FolderPlus, ChevronDown,
+  Bug, LayoutTemplate,
 }
 
 export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
@@ -71,9 +75,18 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
   // UI state
   const [projects, setProjects] = useState<ProjectOption[]>([])
 
+  // Structured templates & snippets
+  const [structuredTemplates, setStructuredTemplates] = useState<StructuredTemplate[]>([])
+  const [snippets, setSnippets] = useState<CaptureSnippet[]>([])
+  const [activeStructuredTemplate, setActiveStructuredTemplate] = useState<StructuredTemplate | null>(null)
+  const [cursorPosition, setCursorPosition] = useState(0)
+
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
   const baseTextRef = useRef('')
+
+  // Snippet trigger detection
+  const isSnippetTriggered = useSnippetTrigger(text, cursorPosition)
 
   const speechSupported = false // Speech Recognition não funciona em Electron (requer chave Google embutida no Chrome)
 
@@ -81,6 +94,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
   useEffect(() => {
     loadProjects()
     loadCustomFields()
+    loadStructuredData()
   }, [])
 
   const loadProjects = async () => {
@@ -97,6 +111,15 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
     setCaptureTemplates(templates)
     setEntryTypes(types)
     setActionStatuses(statuses)
+  }
+
+  const loadStructuredData = async () => {
+    const [stTemplates, snps] = await Promise.all([
+      window.electronAPI.getStructuredTemplates(),
+      window.electronAPI.getCaptureSnippets(),
+    ])
+    setStructuredTemplates(stTemplates)
+    setSnippets(snps)
   }
 
   const handleTemplateSelect = useCallback((template: CaptureTemplate) => {
@@ -347,6 +370,10 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Don't handle Enter when snippet autocomplete is open
+    if (isSnippetTriggered && (e.key === 'Enter' || e.key === 'Tab' || e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      return // Let SnippetAutocomplete handle it
+    }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handlePreview()
@@ -356,6 +383,87 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
       handlePreview()
     }
   }
+
+  // Track cursor position for snippet autocomplete
+  const handleTextareaSelect = useCallback(() => {
+    if (inputRef.current) {
+      setCursorPosition(inputRef.current.selectionStart)
+    }
+  }, [])
+
+  // Handle snippet selection (replace /trigger with snippet content)
+  const handleSnippetSelect = useCallback((snippet: CaptureSnippet, replacementRange: { start: number; end: number }) => {
+    const before = text.slice(0, replacementRange.start)
+    const after = text.slice(replacementRange.end)
+    let content = snippet.content
+
+    // Handle {{cursor}} placeholder — position cursor there
+    const cursorPlaceholder = '{{cursor}}'
+    const cursorIndex = content.indexOf(cursorPlaceholder)
+    if (cursorIndex !== -1) {
+      content = content.replace(cursorPlaceholder, '')
+    }
+
+    const newText = before + content + after
+    setText(newText)
+
+    // Position cursor
+    setTimeout(() => {
+      if (inputRef.current) {
+        const newCursorPos = cursorIndex !== -1
+          ? before.length + cursorIndex
+          : before.length + content.length
+        inputRef.current.setSelectionRange(newCursorPos, newCursorPos)
+        inputRef.current.focus()
+        setCursorPosition(newCursorPos)
+      }
+    }, 0)
+  }, [text])
+
+  // Handle structured template form submission
+  const handleTemplateFormSubmit = useCallback((outputText: string, hintType: string, hintAction: string) => {
+    // Set the text from the template output and trigger preview
+    setText(outputText)
+    setActiveStructuredTemplate(null)
+
+    // Auto-submit for preview after a brief delay (let state settle)
+    setTimeout(async () => {
+      if (!outputText.trim()) return
+      setCaptureState('processing')
+      window.dispatchEvent(new Event('ai:start'))
+      try {
+        const result = await window.electronAPI.previewEntry(outputText, selectedProjectId || undefined)
+        setPreview(result)
+        setBatchPreviews([])
+        setEditedImprovedText(result.improvedText)
+        // Use template hints as defaults but respect AI's categorization
+        setEditedType(result.type || hintType)
+        setEditedAction(result.action || hintAction)
+        setIncludeSuggestedTask(!!result.suggestedTask)
+
+        if (result.project.id) {
+          setEditedProjectId(result.project.id)
+          setIsCreatingProject(false)
+          setNewProjectName('')
+        } else if (result.project.suggestedName) {
+          setEditedProjectId('')
+          setIsCreatingProject(true)
+          setNewProjectName(result.project.suggestedName)
+        } else {
+          setEditedProjectId('')
+          setIsCreatingProject(false)
+          setNewProjectName('')
+        }
+
+        setCaptureState('previewing')
+        window.dispatchEvent(new Event('ai:end'))
+      } catch (error) {
+        console.error('Failed to preview entry:', error)
+        setCaptureState('idle')
+        window.dispatchEvent(new Event('ai:error'))
+      }
+    }, 100)
+  }, [selectedProjectId])
 
   const isIdle = captureState === 'idle'
   const isProcessing = captureState === 'processing'
@@ -376,7 +484,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
 
       {/* Main capture card */}
       <div className="capture-main-card">
-        {/* Templates */}
+        {/* Quick Templates (prefix-based) */}
         <div className="capture-templates">
           <span className="capture-templates-label">{t('templates_label')}</span>
           <div className="capture-templates-list">
@@ -398,6 +506,33 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
           </div>
         </div>
 
+        {/* Structured Templates (form-based) */}
+        {structuredTemplates.length > 0 && (
+          <div className="capture-templates">
+            <span className="capture-templates-label">
+              <LayoutTemplate size={12} />
+              {t('structured_templates_label', { defaultValue: 'Formulários' })}
+            </span>
+            <div className="capture-templates-list">
+              {structuredTemplates.map((stpl) => {
+                const Icon = ICON_MAP[stpl.icon] || FileText
+                return (
+                  <button
+                    key={stpl.id}
+                    className={`capture-template-chip structured`}
+                    onClick={() => setActiveStructuredTemplate(stpl)}
+                    disabled={!isIdle}
+                    title={stpl.description || stpl.name}
+                  >
+                    <Icon size={12} />
+                    <span>{stpl.name}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Textarea input */}
         <div className="capture-input-wrapper">
           <textarea
@@ -407,11 +542,14 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
             onChange={(e) => {
               const val = e.target.value
               setText(val)
+              setCursorPosition(e.target.selectionStart)
               // Detect batch mode: multiple paragraphs separated by blank lines
               const paragraphs = val.split(/\n\s*\n/).filter((p) => p.trim().length > 0)
               setIsBatchMode(paragraphs.length > 1)
             }}
             onKeyDown={handleKeyDown}
+            onSelect={handleTextareaSelect}
+            onClick={handleTextareaSelect}
             placeholder={activeTemplate
               ? `${activeTemplate.prefix}${activeTemplate.placeholder}`
               : t('placeholder_default')}
@@ -425,6 +563,17 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
               <span>{t('listening')}</span>
             </div>
           )}
+
+          {/* Snippet Autocomplete */}
+          <SnippetAutocomplete
+            text={text}
+            cursorPosition={cursorPosition}
+            snippets={snippets}
+            isVisible={isSnippetTriggered && isIdle}
+            onSelect={handleSnippetSelect}
+            onClose={() => setCursorPosition(0)}
+            anchorRef={inputRef}
+          />
         </div>
 
         {/* Bottom bar: project + actions */}
@@ -479,6 +628,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
         <span><kbd>Enter</kbd> {t('hint_enter')}</span>
         <span><kbd>Shift+Enter</kbd> {t('hint_shift_enter')}</span>
         <span><kbd>Ctrl+N</kbd> {t('hint_ctrl_n')}</span>
+        <span><kbd>/</kbd> {t('hint_snippets', { defaultValue: 'snippets' })}</span>
       </div>
 
       {/* Preview Card */}
@@ -700,6 +850,16 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Structured Template Form Modal */}
+      {activeStructuredTemplate && (
+        <TemplateFormModal
+          isOpen={!!activeStructuredTemplate}
+          template={activeStructuredTemplate}
+          onSubmit={handleTemplateFormSubmit}
+          onClose={() => setActiveStructuredTemplate(null)}
+        />
       )}
 
     </div>

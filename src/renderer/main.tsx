@@ -4,6 +4,7 @@ import { App } from './App'
 import { initI18n } from './i18n'
 import './styles/global.css'
 import './styles/agent-studio.css'
+import './styles/templates.css'
 
 async function bootstrap() {
   try {

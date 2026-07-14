@@ -26,6 +26,8 @@ import type {
   CustomEntryType,
   CustomActionStatus,
   CustomCaptureTemplate,
+  StructuredTemplate,
+  CaptureSnippet,
   EntryConnection,
   ConnectedEntry,
   ConnectionType,
@@ -192,6 +194,25 @@ export interface ElectronAPI {
   updateCaptureTemplate: (id: string, updates: Partial<Omit<CustomCaptureTemplate, 'id' | 'isDefault'>>) => Promise<CustomCaptureTemplate | null>
   deleteCaptureTemplate: (id: string) => Promise<boolean>
   reorderCaptureTemplates: (orderedIds: string[]) => Promise<void>
+
+  // Structured Templates
+  getStructuredTemplates: () => Promise<StructuredTemplate[]>
+  getStructuredTemplateById: (id: string) => Promise<StructuredTemplate | null>
+  createStructuredTemplate: (data: Omit<StructuredTemplate, 'id' | 'createdAt' | 'updatedAt'>) => Promise<StructuredTemplate>
+  updateStructuredTemplate: (id: string, updates: Partial<Omit<StructuredTemplate, 'id' | 'isDefault' | 'createdAt' | 'updatedAt'>>) => Promise<StructuredTemplate | null>
+  deleteStructuredTemplate: (id: string) => Promise<boolean>
+  reorderStructuredTemplates: (orderedIds: string[]) => Promise<void>
+
+  // Capture Snippets
+  getCaptureSnippets: () => Promise<CaptureSnippet[]>
+  searchCaptureSnippets: (query: string) => Promise<CaptureSnippet[]>
+  createCaptureSnippet: (data: Omit<CaptureSnippet, 'id' | 'createdAt' | 'usageCount'>) => Promise<CaptureSnippet>
+  updateCaptureSnippet: (id: string, updates: Partial<Omit<CaptureSnippet, 'id' | 'isDefault' | 'createdAt' | 'usageCount'>>) => Promise<CaptureSnippet | null>
+  deleteCaptureSnippet: (id: string) => Promise<boolean>
+  incrementSnippetUsage: (id: string) => Promise<void>
+
+  // AI Auto-fill
+  autoFillTemplateFields: (templateId: string, filledFields: Record<string, string>) => Promise<Record<string, string>>
 
   // Events
   onFocusCaptureInput: (callback: () => void) => void
@@ -524,6 +545,38 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('custom-fields:deleteCaptureTemplate', id),
   reorderCaptureTemplates: (orderedIds: string[]) =>
     ipcRenderer.invoke('custom-fields:reorderCaptureTemplates', orderedIds),
+
+  // Structured Templates
+  getStructuredTemplates: () =>
+    ipcRenderer.invoke('custom-fields:getStructuredTemplates'),
+  getStructuredTemplateById: (id: string) =>
+    ipcRenderer.invoke('custom-fields:getStructuredTemplateById', id),
+  createStructuredTemplate: (data: Omit<StructuredTemplate, 'id' | 'createdAt' | 'updatedAt'>) =>
+    ipcRenderer.invoke('custom-fields:createStructuredTemplate', data),
+  updateStructuredTemplate: (id: string, updates: Partial<Omit<StructuredTemplate, 'id' | 'isDefault' | 'createdAt' | 'updatedAt'>>) =>
+    ipcRenderer.invoke('custom-fields:updateStructuredTemplate', id, updates),
+  deleteStructuredTemplate: (id: string) =>
+    ipcRenderer.invoke('custom-fields:deleteStructuredTemplate', id),
+  reorderStructuredTemplates: (orderedIds: string[]) =>
+    ipcRenderer.invoke('custom-fields:reorderStructuredTemplates', orderedIds),
+
+  // Capture Snippets
+  getCaptureSnippets: () =>
+    ipcRenderer.invoke('custom-fields:getCaptureSnippets'),
+  searchCaptureSnippets: (query: string) =>
+    ipcRenderer.invoke('custom-fields:searchCaptureSnippets', query),
+  createCaptureSnippet: (data: Omit<CaptureSnippet, 'id' | 'createdAt' | 'usageCount'>) =>
+    ipcRenderer.invoke('custom-fields:createCaptureSnippet', data),
+  updateCaptureSnippet: (id: string, updates: Partial<Omit<CaptureSnippet, 'id' | 'isDefault' | 'createdAt' | 'usageCount'>>) =>
+    ipcRenderer.invoke('custom-fields:updateCaptureSnippet', id, updates),
+  deleteCaptureSnippet: (id: string) =>
+    ipcRenderer.invoke('custom-fields:deleteCaptureSnippet', id),
+  incrementSnippetUsage: (id: string) =>
+    ipcRenderer.invoke('custom-fields:incrementSnippetUsage', id),
+
+  // AI Auto-fill
+  autoFillTemplateFields: (templateId: string, filledFields: Record<string, string>) =>
+    ipcRenderer.invoke('custom-fields:autoFillTemplateFields', templateId, filledFields),
 
   // Events
   onFocusCaptureInput: (callback: () => void) => {

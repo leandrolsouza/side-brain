@@ -2,6 +2,7 @@
   "hero_title": "Captura Rápida",
   "hero_subtitle": "Digite o que aconteceu. A IA organiza, categoriza e sugere ações.",
   "templates_label": "Templates:",
+  "structured_templates_label": "Formulários:",
   "placeholder_default": "Ex: João falou que o prazo do projeto X mudou pra semana que vem...",
   "listening": "Ouvindo...",
   "project_auto": "🤖 IA identifica o projeto",
@@ -13,6 +14,7 @@
   "hint_enter": "enviar",
   "hint_shift_enter": "nova linha",
   "hint_ctrl_n": "foco aqui",
+  "hint_snippets": "snippets",
   "preview_header": "Prévia da IA",
   "preview_cancel_title": "Cancelar",
   "preview_improved_label": "Texto melhorado:",
@@ -34,5 +36,34 @@
   "confirm_success": "Registrado com sucesso!",
   "batch_preview_header": "{{count}} entradas detectadas",
   "batch_confirm_button": "Confirmar {{count}} entradas",
-  "batch_confirm_success": "{{count}} entradas registradas com sucesso!"
+  "batch_confirm_success": "{{count}} entradas registradas com sucesso!",
+  "template_form": {
+    "fill_required_first": "Preencha os campos obrigatórios primeiro",
+    "autofill_success": "Campos preenchidos pela IA",
+    "autofill_empty": "Não foi possível preencher automaticamente",
+    "autofill_error": "Erro ao preencher com IA",
+    "autofill_tooltip": "Preencher campos opcionais com IA",
+    "autofill_button": "Completar com IA",
+    "submit_button": "Enviar para análise",
+    "missing_required": "Preencha: {{fields}}"
+  },
+  "template_manager": {
+    "title": "Formulários & Snippets",
+    "description": "Gerencie templates de formulário estruturado e snippets de texto rápido.",
+    "tab_templates": "Formulários",
+    "tab_snippets": "Snippets",
+    "add_template": "Novo formulário",
+    "add_snippet": "Novo snippet",
+    "template_created": "Formulário criado",
+    "template_updated": "Formulário atualizado",
+    "template_deleted": "Template excluído",
+    "snippet_created": "Snippet criado",
+    "snippet_updated": "Snippet atualizado",
+    "snippet_deleted": "Snippet excluído",
+    "cannot_delete_default": "Itens padrão não podem ser excluídos",
+    "delete_confirm_title": "Excluir formulário",
+    "delete_confirm_message": "Tem certeza que deseja excluir este formulário? Esta ação não pode ser desfeita.",
+    "delete_snippet_title": "Excluir snippet",
+    "delete_snippet_message": "Tem certeza que deseja excluir este snippet?"
+  }
 }

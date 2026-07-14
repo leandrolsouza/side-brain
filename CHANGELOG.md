@@ -5,6 +5,29 @@ Todas as mudanças notáveis do SideBrain serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.8.0] - 2025-07-14
+
+### Adicionado
+- **Entry Templates & Snippets** — sistema completo de templates estruturados e snippets de texto
+- Formulários guiados com campos tipados (texto, textarea, seleção, data, menção) para captura estruturada
+- 5 templates padrão: Decisão, 1:1, Bug Report, Brainstorm, Standup
+- **AI Auto-fill** — campos opcionais marcados com `aiAutoFill` são preenchidos automaticamente pela IA com base nos campos já informados
+- **Snippets de captura rápida** — atalhos de texto ativados por `/` no textarea (ex: `/dec`, `/bug`, `/1on1`)
+- 7 snippets padrão cobrindo decisões, demandas, bugs, atualizações, bloqueios e ideias
+- Menu autocomplete inline com navegação por teclado (↑↓ Enter Esc) e tracking de uso
+- `TemplateFormModal` — formulário dinâmico renderizado a partir da definição do template
+- `SnippetAutocomplete` — componente de sugestão inline com filtragem em tempo real
+- `TemplateManager` — interface de gerenciamento (CRUD) para templates e snippets customizados
+- Migração #15 com tabelas `structured_templates` e `capture_snippets` + seeding automático
+- IPC handlers dedicados para operações de templates/snippets (13 canais novos)
+- Suporte completo a i18n (pt-BR e en) para toda a feature
+- CSS dedicado (`templates.css`) para os novos componentes
+
+### Alterado
+- `CaptureInput` expandido com row de "Formulários", snippet autocomplete, e integração com TemplateFormModal
+- Preload atualizado com 15 novos métodos na ElectronAPI
+- AI Service expandido com método `autoFillTemplateFields`
+
 ## [0.7.0] - 2025-07-12
 
 ### Adicionado
