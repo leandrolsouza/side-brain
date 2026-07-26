@@ -1,5 +1,6 @@
 import { safeHandle } from './safe-handle'
 import { getContainer } from '../services/container'
+import type { AgentCreateData, AgentUpdateData, AgentTemplateOverrides } from '../../shared/types'
 
 export function registerAgentHandlers(): void {
   const { agentService } = getContainer()
@@ -14,15 +15,15 @@ export function registerAgentHandlers(): void {
     return agentService.getById(id)
   })
 
-  safeHandle('agent:create', async (_event, data: any) => {
+  safeHandle('agent:create', async (_event, data: AgentCreateData) => {
     return agentService.create(data)
   })
 
-  safeHandle('agent:createFromTemplate', async (_event, templateId: string, overrides?: any) => {
+  safeHandle('agent:createFromTemplate', async (_event, templateId: string, overrides?: AgentTemplateOverrides) => {
     return agentService.createFromTemplate(templateId, overrides)
   })
 
-  safeHandle('agent:update', async (_event, id: string, data: any) => {
+  safeHandle('agent:update', async (_event, id: string, data: AgentUpdateData) => {
     return agentService.update(id, data)
   })
 

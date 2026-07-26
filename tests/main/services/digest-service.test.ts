@@ -5,7 +5,7 @@ import { EntryRepository } from '../../../src/main/database/repositories/entry-r
 import { TaskRepository } from '../../../src/main/database/repositories/task-repository'
 import { ProjectRepository } from '../../../src/main/database/repositories/project-repository'
 import { SettingsRepository } from '../../../src/main/database/repositories/settings-repository'
-import { AIService } from '../../../src/main/services/ai-service'
+import type { AIService } from '../../../src/main/services/ai-service'
 
 vi.mock('../../../src/main/database/schema', async () => {
   const setup = await import('../setup')
@@ -118,7 +118,16 @@ describe('DigestService', () => {
       db.prepare(`
         INSERT INTO entries (id, raw_text, improved_text, project_id, type, action, review_status, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(uuidv4(), 'Nota de ontem', 'Nota de ontem melhorada', project.id, 'information', 'none', 'auto_approved', yesterdayStr)
+      `).run(
+        uuidv4(),
+        'Nota de ontem',
+        'Nota de ontem melhorada',
+        project.id,
+        'information',
+        'none',
+        'auto_approved',
+        yesterdayStr
+      )
 
       // Cria entry com data de hoje (não deve aparecer)
       entryRepo.create({

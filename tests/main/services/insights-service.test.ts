@@ -5,7 +5,7 @@ import { EntryRepository } from '../../../src/main/database/repositories/entry-r
 import { TaskRepository } from '../../../src/main/database/repositories/task-repository'
 import { ProjectRepository } from '../../../src/main/database/repositories/project-repository'
 import { SettingsRepository } from '../../../src/main/database/repositories/settings-repository'
-import { AIService } from '../../../src/main/services/ai-service'
+import type { AIService } from '../../../src/main/services/ai-service'
 
 vi.mock('../../../src/main/database/schema', async () => {
   const setup = await import('../setup')
@@ -64,7 +64,7 @@ describe('InsightsService', () => {
 
         const insights = await service.generateInsights()
 
-        const staleInsight = insights.find(i => i.type === 'stale_tasks')
+        const staleInsight = insights.find((i) => i.type === 'stale_tasks')
         expect(staleInsight).toBeDefined()
         expect(staleInsight!.priority).toBe('high')
         expect(staleInsight!.title).toContain('aguardando')
@@ -76,7 +76,7 @@ describe('InsightsService', () => {
 
         const insights = await service.generateInsights()
 
-        const staleInsight = insights.find(i => i.type === 'stale_tasks')
+        const staleInsight = insights.find((i) => i.type === 'stale_tasks')
         expect(staleInsight).toBeUndefined()
       })
     })
@@ -93,14 +93,23 @@ describe('InsightsService', () => {
         db.prepare(`
           INSERT INTO entries (id, raw_text, improved_text, project_id, type, action, review_status, created_at)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(uuidv4(), 'Última nota', 'Última nota melhorada', project.id, 'information', 'none', 'auto_approved', tenDaysAgo)
+        `).run(
+          uuidv4(),
+          'Última nota',
+          'Última nota melhorada',
+          project.id,
+          'information',
+          'none',
+          'auto_approved',
+          tenDaysAgo
+        )
 
         // Cria task pendente
         taskRepo.create({ projectId: project.id, title: 'Task pendente' })
 
         const insights = await service.generateInsights()
 
-        const idleInsight = insights.find(i => i.type === 'idle_project')
+        const idleInsight = insights.find((i) => i.type === 'idle_project')
         expect(idleInsight).toBeDefined()
         expect(idleInsight!.priority).toBe('medium')
         expect(idleInsight!.title).toContain('Projeto Parado')
@@ -113,7 +122,7 @@ describe('InsightsService', () => {
 
         const insights = await service.generateInsights()
 
-        const idleInsight = insights.find(i => i.type === 'idle_project')
+        const idleInsight = insights.find((i) => i.type === 'idle_project')
         expect(idleInsight).toBeUndefined()
       })
 
@@ -131,7 +140,7 @@ describe('InsightsService', () => {
 
         const insights = await service.generateInsights()
 
-        const idleInsight = insights.find(i => i.type === 'idle_project')
+        const idleInsight = insights.find((i) => i.type === 'idle_project')
         expect(idleInsight).toBeUndefined()
       })
     })
@@ -146,7 +155,7 @@ describe('InsightsService', () => {
 
         const insights = await service.generateInsights()
 
-        const noDeadlineInsight = insights.find(i => i.type === 'no_deadline')
+        const noDeadlineInsight = insights.find((i) => i.type === 'no_deadline')
         expect(noDeadlineInsight).toBeDefined()
         expect(noDeadlineInsight!.priority).toBe('low')
         expect(noDeadlineInsight!.title).toContain('6')
@@ -161,7 +170,7 @@ describe('InsightsService', () => {
 
         const insights = await service.generateInsights()
 
-        const noDeadlineInsight = insights.find(i => i.type === 'no_deadline')
+        const noDeadlineInsight = insights.find((i) => i.type === 'no_deadline')
         expect(noDeadlineInsight).toBeUndefined()
       })
 
@@ -175,7 +184,7 @@ describe('InsightsService', () => {
 
         const insights = await service.generateInsights()
 
-        const noDeadlineInsight = insights.find(i => i.type === 'no_deadline')
+        const noDeadlineInsight = insights.find((i) => i.type === 'no_deadline')
         expect(noDeadlineInsight).toBeUndefined()
       })
     })
@@ -197,7 +206,7 @@ describe('InsightsService', () => {
 
         const insights = await service.generateInsights()
 
-        const blockerInsight = insights.find(i => i.type === 'recurring_blockers')
+        const blockerInsight = insights.find((i) => i.type === 'recurring_blockers')
         expect(blockerInsight).toBeDefined()
         expect(blockerInsight!.priority).toBe('high')
         expect(blockerInsight!.title).toContain('3')
@@ -220,7 +229,7 @@ describe('InsightsService', () => {
 
         const insights = await service.generateInsights()
 
-        const blockerInsight = insights.find(i => i.type === 'recurring_blockers')
+        const blockerInsight = insights.find((i) => i.type === 'recurring_blockers')
         expect(blockerInsight).toBeUndefined()
       })
 
@@ -236,12 +245,21 @@ describe('InsightsService', () => {
           db.prepare(`
             INSERT INTO entries (id, raw_text, improved_text, project_id, type, action, review_status, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-          `).run(uuidv4(), `Bloqueio antigo ${i}`, `Bloqueio antigo ${i}`, project.id, 'blocker', 'action_needed', 'auto_approved', oldDate)
+          `).run(
+            uuidv4(),
+            `Bloqueio antigo ${i}`,
+            `Bloqueio antigo ${i}`,
+            project.id,
+            'blocker',
+            'action_needed',
+            'auto_approved',
+            oldDate
+          )
         }
 
         const insights = await service.generateInsights()
 
-        const blockerInsight = insights.find(i => i.type === 'recurring_blockers')
+        const blockerInsight = insights.find((i) => i.type === 'recurring_blockers')
         expect(blockerInsight).toBeUndefined()
       })
     })
@@ -256,7 +274,7 @@ describe('InsightsService', () => {
 
         const insights = await service.generateInsights()
 
-        const overloadedInsight = insights.find(i => i.type === 'overloaded')
+        const overloadedInsight = insights.find((i) => i.type === 'overloaded')
         expect(overloadedInsight).toBeDefined()
         expect(overloadedInsight!.priority).toBe('medium')
         expect(overloadedInsight!.title).toContain('16')
@@ -271,7 +289,7 @@ describe('InsightsService', () => {
 
         const insights = await service.generateInsights()
 
-        const overloadedInsight = insights.find(i => i.type === 'overloaded')
+        const overloadedInsight = insights.find((i) => i.type === 'overloaded')
         expect(overloadedInsight).toBeUndefined()
       })
 
@@ -290,7 +308,7 @@ describe('InsightsService', () => {
 
         const insights = await service.generateInsights()
 
-        const overloadedInsight = insights.find(i => i.type === 'overloaded')
+        const overloadedInsight = insights.find((i) => i.type === 'overloaded')
         // 10 todo + 0 in_progress = 10 (not > 15)
         expect(overloadedInsight).toBeUndefined()
       })
@@ -326,7 +344,7 @@ describe('InsightsService', () => {
         const refreshed = await service.generateInsights(true)
 
         // Com forceRefresh deve gerar o insight de overloaded
-        const overloaded = refreshed.find(i => i.type === 'overloaded')
+        const overloaded = refreshed.find((i) => i.type === 'overloaded')
         expect(overloaded).toBeDefined()
       })
     })
@@ -373,7 +391,7 @@ describe('InsightsService', () => {
 
         // Primeiro insight deve ser high priority
         if (insights.length >= 2) {
-          const priorities = insights.map(i => i.priority)
+          const priorities = insights.map((i) => i.priority)
           const priorityOrder = { high: 0, medium: 1, low: 2 }
           for (let i = 1; i < priorities.length; i++) {
             expect(priorityOrder[priorities[i]]).toBeGreaterThanOrEqual(priorityOrder[priorities[i - 1]])

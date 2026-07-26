@@ -1,18 +1,12 @@
-import {
-  AgentDefinition,
-  AgentSkill,
-  ToolDefinition,
-  ToolCall,
-  ToolCallResult,
-} from '../../shared/types'
-import { EntryRepository } from '../database/repositories/entry-repository'
-import { ProjectRepository } from '../database/repositories/project-repository'
-import { TaskRepository } from '../database/repositories/task-repository'
-import { MeetingRepository } from '../database/repositories/meeting-repository'
-import { NotificationRepository } from '../database/repositories/notification-repository'
-import { EmbeddingsService } from './embeddings-service'
-import { AIService } from './ai-service'
-import { SettingsRepository } from '../database/repositories/settings-repository'
+import type { AgentDefinition, AgentSkill, ToolDefinition, ToolCall, ToolCallResult } from '../../shared/types'
+import type { EntryRepository } from '../database/repositories/entry-repository'
+import type { ProjectRepository } from '../database/repositories/project-repository'
+import type { TaskRepository } from '../database/repositories/task-repository'
+import type { MeetingRepository } from '../database/repositories/meeting-repository'
+import type { NotificationRepository } from '../database/repositories/notification-repository'
+import type { EmbeddingsService } from './embeddings-service'
+import type { AIService } from './ai-service'
+import type { SettingsRepository } from '../database/repositories/settings-repository'
 
 type ToolHandler = (args: Record<string, any>, scope: AgentDefinition['scope']) => Promise<any>
 
@@ -62,7 +56,12 @@ export class AgentToolRegistry {
     }
 
     if (!agent.skills.includes(skill)) {
-      return { toolCallId: call.id, success: false, result: null, error: `Agent does not have permission to use '${call.name}'` }
+      return {
+        toolCallId: call.id,
+        success: false,
+        result: null,
+        error: `Agent does not have permission to use '${call.name}'`,
+      }
     }
 
     try {
@@ -108,7 +107,11 @@ export class AgentToolRegistry {
         parameters: {
           projectId: { type: 'string', description: 'ID do projeto para filtrar (opcional)', required: false },
           projectName: { type: 'string', description: 'Nome do projeto para filtrar (opcional)', required: false },
-          type: { type: 'string', description: 'Tipo da entrada para filtrar (ex: information, decision, demand, idea, blocker, update)', required: false },
+          type: {
+            type: 'string',
+            description: 'Tipo da entrada para filtrar (ex: information, decision, demand, idea, blocker, update)',
+            required: false,
+          },
           limit: { type: 'number', description: 'Quantidade máxima de resultados (padrão: 20)', required: false },
           search: { type: 'string', description: 'Texto para buscar nas entradas', required: false },
         },
@@ -167,7 +170,12 @@ export class AgentToolRegistry {
         parameters: {
           projectId: { type: 'string', description: 'ID do projeto para filtrar', required: false },
           projectName: { type: 'string', description: 'Nome do projeto para filtrar', required: false },
-          status: { type: 'string', description: 'Status da tarefa (todo, in_progress, waiting, done)', required: false, enum: ['todo', 'in_progress', 'waiting', 'done'] },
+          status: {
+            type: 'string',
+            description: 'Status da tarefa (todo, in_progress, waiting, done)',
+            required: false,
+            enum: ['todo', 'in_progress', 'waiting', 'done'],
+          },
           limit: { type: 'number', description: 'Quantidade máxima de resultados (padrão: 30)', required: false },
           search: { type: 'string', description: 'Texto para buscar nas tarefas', required: false },
         },
@@ -230,7 +238,11 @@ export class AgentToolRegistry {
         name: 'read_projects',
         description: 'Lista os projetos do usuário com informações básicas.',
         parameters: {
-          includeInactive: { type: 'boolean', description: 'Incluir projetos inativos (padrão: false)', required: false },
+          includeInactive: {
+            type: 'boolean',
+            description: 'Incluir projetos inativos (padrão: false)',
+            required: false,
+          },
         },
         requiredParams: [],
       },
@@ -261,7 +273,12 @@ export class AgentToolRegistry {
         description: 'Busca reuniões registradas pelo usuário.',
         parameters: {
           projectId: { type: 'string', description: 'ID do projeto para filtrar', required: false },
-          status: { type: 'string', description: 'Status da reunião (active, ended, processed)', required: false, enum: ['active', 'ended', 'processed'] },
+          status: {
+            type: 'string',
+            description: 'Status da reunião (active, ended, processed)',
+            required: false,
+            enum: ['active', 'ended', 'processed'],
+          },
           limit: { type: 'number', description: 'Quantidade máxima (padrão: 10)', required: false },
         },
         requiredParams: [],
@@ -306,7 +323,12 @@ export class AgentToolRegistry {
           title: { type: 'string', description: 'Título da tarefa', required: true },
           description: { type: 'string', description: 'Descrição detalhada', required: false },
           projectName: { type: 'string', description: 'Nome do projeto onde criar a tarefa', required: true },
-          status: { type: 'string', description: 'Status inicial (padrão: todo)', required: false, enum: ['todo', 'in_progress', 'waiting'] },
+          status: {
+            type: 'string',
+            description: 'Status inicial (padrão: todo)',
+            required: false,
+            enum: ['todo', 'in_progress', 'waiting'],
+          },
           dueDate: { type: 'string', description: 'Data limite no formato YYYY-MM-DD', required: false },
           assignee: { type: 'string', description: 'Responsável pela tarefa', required: false },
         },
@@ -347,9 +369,22 @@ export class AgentToolRegistry {
         description: 'Atualiza uma tarefa existente (status, título, descrição, etc).',
         parameters: {
           taskId: { type: 'string', description: 'ID da tarefa para atualizar', required: false },
-          taskTitle: { type: 'string', description: 'Título da tarefa para buscar (se não tiver o ID)', required: false },
-          projectName: { type: 'string', description: 'Nome do projeto da tarefa (ajuda na busca por título)', required: false },
-          status: { type: 'string', description: 'Novo status', required: false, enum: ['todo', 'in_progress', 'waiting', 'done'] },
+          taskTitle: {
+            type: 'string',
+            description: 'Título da tarefa para buscar (se não tiver o ID)',
+            required: false,
+          },
+          projectName: {
+            type: 'string',
+            description: 'Nome do projeto da tarefa (ajuda na busca por título)',
+            required: false,
+          },
+          status: {
+            type: 'string',
+            description: 'Novo status',
+            required: false,
+            enum: ['todo', 'in_progress', 'waiting', 'done'],
+          },
           title: { type: 'string', description: 'Novo título', required: false },
           description: { type: 'string', description: 'Nova descrição', required: false },
           assignee: { type: 'string', description: 'Novo responsável', required: false },
@@ -369,8 +404,8 @@ export class AgentToolRegistry {
           }
 
           const tasks = this.taskRepo.getAll(projectId)
-          const match = tasks.find((t) =>
-            t.title.toLowerCase().includes(args.taskTitle.toLowerCase()) && t.status !== 'done'
+          const match = tasks.find(
+            (t) => t.title.toLowerCase().includes(args.taskTitle.toLowerCase()) && t.status !== 'done'
           )
           if (match) taskId = match.id
         }
@@ -414,7 +449,11 @@ export class AgentToolRegistry {
         parameters: {
           text: { type: 'string', description: 'Texto da entrada', required: true },
           projectName: { type: 'string', description: 'Nome do projeto', required: true },
-          type: { type: 'string', description: 'Tipo da entrada (information, decision, demand, idea, blocker, update)', required: false },
+          type: {
+            type: 'string',
+            description: 'Tipo da entrada (information, decision, demand, idea, blocker, update)',
+            required: false,
+          },
           action: { type: 'string', description: 'Status de ação (none, pending, in_progress, done)', required: false },
         },
         requiredParams: ['text', 'projectName'],
@@ -455,7 +494,11 @@ export class AgentToolRegistry {
         name: 'generate_summary',
         description: 'Gera um resumo de um projeto ou de todas as atividades recentes.',
         parameters: {
-          projectName: { type: 'string', description: 'Nome do projeto para resumir (se omitido, resume tudo)', required: false },
+          projectName: {
+            type: 'string',
+            description: 'Nome do projeto para resumir (se omitido, resume tudo)',
+            required: false,
+          },
         },
         requiredParams: [],
       },
@@ -480,7 +523,12 @@ export class AgentToolRegistry {
 
           const summary = await this.aiService.generateSummary(
             project.name,
-            entries.map((e) => ({ improvedText: e.improvedText, type: e.type, action: e.action, createdAt: e.createdAt })),
+            entries.map((e) => ({
+              improvedText: e.improvedText,
+              type: e.type,
+              action: e.action,
+              createdAt: e.createdAt,
+            })),
             tasks.map((t) => ({ title: t.title, status: t.status, description: t.description })),
             settings
           )
@@ -490,16 +538,20 @@ export class AgentToolRegistry {
 
         // Global summary
         const projects = this.projectRepo.getAll()
-        const filteredProjects = scope.projectIds === 'all'
-          ? projects
-          : projects.filter((p) => scope.projectIds.includes(p.id))
+        const filteredProjects =
+          scope.projectIds === 'all' ? projects : projects.filter((p) => scope.projectIds.includes(p.id))
 
         const projectsData = filteredProjects.slice(0, 5).map((p) => {
           const entries = this.entryRepo.getAll(p.id).slice(0, 5)
           const tasks = this.taskRepo.getAll(p.id)
           return {
             name: p.name,
-            entries: entries.map((e) => ({ improvedText: e.improvedText, type: e.type, action: e.action, createdAt: e.createdAt })),
+            entries: entries.map((e) => ({
+              improvedText: e.improvedText,
+              type: e.type,
+              action: e.action,
+              createdAt: e.createdAt,
+            })),
             tasks: tasks.map((t) => ({ title: t.title, status: t.status })),
           }
         })
@@ -516,8 +568,17 @@ export class AgentToolRegistry {
         name: 'generate_report',
         description: 'Gera um relatório analítico com métricas de produtividade.',
         parameters: {
-          projectName: { type: 'string', description: 'Projeto específico (se omitido, relatório geral)', required: false },
-          period: { type: 'string', description: 'Período: "week", "month", "quarter" (padrão: week)', required: false, enum: ['week', 'month', 'quarter'] },
+          projectName: {
+            type: 'string',
+            description: 'Projeto específico (se omitido, relatório geral)',
+            required: false,
+          },
+          period: {
+            type: 'string',
+            description: 'Período: "week", "month", "quarter" (padrão: week)',
+            required: false,
+            enum: ['week', 'month', 'quarter'],
+          },
         },
         requiredParams: [],
       },
@@ -559,10 +620,13 @@ export class AgentToolRegistry {
               waiting: tasks.filter((t) => t.status === 'waiting').length,
               done: tasks.filter((t) => t.status === 'done').length,
             },
-            entriesByType: recentEntries.reduce((acc, e) => {
-              acc[e.type] = (acc[e.type] || 0) + 1
-              return acc
-            }, {} as Record<string, number>),
+            entriesByType: recentEntries.reduce(
+              (acc, e) => {
+                acc[e.type] = (acc[e.type] || 0) + 1
+                return acc
+              },
+              {} as Record<string, number>
+            ),
           },
           summary: `No período de ${daysBack} dias: ${recentEntries.length} entradas criadas, ${recentTasksCompleted.length} tarefas concluídas, ${pendingTasks.length} tarefas pendentes.`,
         }
@@ -574,10 +638,16 @@ export class AgentToolRegistry {
     this.tools.set('search_semantic', {
       definition: {
         name: 'search_semantic',
-        description: 'Busca semântica por entradas e tarefas similares a um texto. Usa embeddings para encontrar conteúdo relacionado.',
+        description:
+          'Busca semântica por entradas e tarefas similares a um texto. Usa embeddings para encontrar conteúdo relacionado.',
         parameters: {
           query: { type: 'string', description: 'Texto para buscar semanticamente', required: true },
-          entityType: { type: 'string', description: 'Tipo de entidade para buscar (entry, task, all)', required: false, enum: ['entry', 'task', 'all'] },
+          entityType: {
+            type: 'string',
+            description: 'Tipo de entidade para buscar (entry, task, all)',
+            required: false,
+            enum: ['entry', 'task', 'all'],
+          },
           limit: { type: 'number', description: 'Quantidade máxima de resultados (padrão: 10)', required: false },
         },
         requiredParams: ['query'],
@@ -590,19 +660,34 @@ export class AgentToolRegistry {
         )
 
         // Enrich results with actual content
-        const enriched = results.map((r) => {
-          if (r.entityType === 'entry') {
-            const entry = this.entryRepo.getById(r.entityId)
-            if (!entry) return null
-            if (scope.projectIds !== 'all' && !scope.projectIds.includes(entry.projectId)) return null
-            return { type: 'entry', id: r.entityId, text: entry.improvedText, score: r.score, projectId: entry.projectId }
-          } else {
-            const task = this.taskRepo.getById(r.entityId)
-            if (!task) return null
-            if (scope.projectIds !== 'all' && !scope.projectIds.includes(task.projectId)) return null
-            return { type: 'task', id: r.entityId, text: task.title, description: task.description, score: r.score, status: task.status }
-          }
-        }).filter(Boolean)
+        const enriched = results
+          .map((r) => {
+            if (r.entityType === 'entry') {
+              const entry = this.entryRepo.getById(r.entityId)
+              if (!entry) return null
+              if (scope.projectIds !== 'all' && !scope.projectIds.includes(entry.projectId)) return null
+              return {
+                type: 'entry',
+                id: r.entityId,
+                text: entry.improvedText,
+                score: r.score,
+                projectId: entry.projectId,
+              }
+            } else {
+              const task = this.taskRepo.getById(r.entityId)
+              if (!task) return null
+              if (scope.projectIds !== 'all' && !scope.projectIds.includes(task.projectId)) return null
+              return {
+                type: 'task',
+                id: r.entityId,
+                text: task.title,
+                description: task.description,
+                score: r.score,
+                status: task.status,
+              }
+            }
+          })
+          .filter(Boolean)
 
         return { results: enriched, total: enriched.length }
       },
@@ -613,9 +698,14 @@ export class AgentToolRegistry {
     this.tools.set('discover_connections', {
       definition: {
         name: 'discover_connections',
-        description: 'Analisa entradas e descobre conexões semânticas entre elas (ex: temas relacionados, dependências, evoluções).',
+        description:
+          'Analisa entradas e descobre conexões semânticas entre elas (ex: temas relacionados, dependências, evoluções).',
         parameters: {
-          projectName: { type: 'string', description: 'Projeto para analisar (se omitido, analisa todos no escopo)', required: false },
+          projectName: {
+            type: 'string',
+            description: 'Projeto para analisar (se omitido, analisa todos no escopo)',
+            required: false,
+          },
           limit: { type: 'number', description: 'Quantidade de entradas a analisar (padrão: 20)', required: false },
         },
         requiredParams: [],

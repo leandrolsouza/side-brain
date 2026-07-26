@@ -73,12 +73,27 @@ describe('ExportService', () => {
 
     it('deve exportar markdown com sucesso', async () => {
       // Prepara dados
-      entryRepo.create({ rawText: 'Nota 1', improvedText: 'Nota 1 melhorada', projectId, type: 'information', action: 'none', reviewStatus: 'auto_approved' })
+      entryRepo.create({
+        rawText: 'Nota 1',
+        improvedText: 'Nota 1 melhorada',
+        projectId,
+        type: 'information',
+        action: 'none',
+        reviewStatus: 'auto_approved',
+      })
       taskRepo.create({ projectId, title: 'Task 1', status: 'todo' })
       taskRepo.create({ projectId, title: 'Task 2', status: 'done' })
 
       // Cria custom entry type para que o export funcione
-      customFieldsRepo.createEntryType({ key: 'information', label: 'Informação', icon: 'Info', color: 'info', isDefault: true, sortOrder: 0, allowsAction: false })
+      customFieldsRepo.createEntryType({
+        key: 'information',
+        label: 'Informação',
+        icon: 'Info',
+        color: 'info',
+        isDefault: true,
+        sortOrder: 0,
+        allowsAction: false,
+      })
 
       mockShowSaveDialog.mockResolvedValue({
         canceled: false,
@@ -139,12 +154,50 @@ describe('ExportService', () => {
     })
 
     it('deve incluir entries agrupadas por tipo', async () => {
-      customFieldsRepo.createEntryType({ key: 'decision', label: 'Decisão', icon: 'Gavel', color: 'warning', isDefault: true, sortOrder: 1, allowsAction: true })
-      customFieldsRepo.createEntryType({ key: 'blocker', label: 'Bloqueio', icon: 'Alert', color: 'error', isDefault: true, sortOrder: 2, allowsAction: true })
-      customFieldsRepo.createActionStatus({ key: 'action_needed', label: 'Ação necessária', icon: 'Alert', color: 'warning', isDefault: true, isFinal: false, sortOrder: 0 })
+      customFieldsRepo.createEntryType({
+        key: 'decision',
+        label: 'Decisão',
+        icon: 'Gavel',
+        color: 'warning',
+        isDefault: true,
+        sortOrder: 1,
+        allowsAction: true,
+      })
+      customFieldsRepo.createEntryType({
+        key: 'blocker',
+        label: 'Bloqueio',
+        icon: 'Alert',
+        color: 'error',
+        isDefault: true,
+        sortOrder: 2,
+        allowsAction: true,
+      })
+      customFieldsRepo.createActionStatus({
+        key: 'action_needed',
+        label: 'Ação necessária',
+        icon: 'Alert',
+        color: 'warning',
+        isDefault: true,
+        isFinal: false,
+        sortOrder: 0,
+      })
 
-      entryRepo.create({ rawText: 'D1', improvedText: 'Decisão importante', projectId, type: 'decision', action: 'action_needed', reviewStatus: 'auto_approved' })
-      entryRepo.create({ rawText: 'B1', improvedText: 'Bug no deploy', projectId, type: 'blocker', action: 'action_needed', reviewStatus: 'auto_approved' })
+      entryRepo.create({
+        rawText: 'D1',
+        improvedText: 'Decisão importante',
+        projectId,
+        type: 'decision',
+        action: 'action_needed',
+        reviewStatus: 'auto_approved',
+      })
+      entryRepo.create({
+        rawText: 'B1',
+        improvedText: 'Bug no deploy',
+        projectId,
+        type: 'blocker',
+        action: 'action_needed',
+        reviewStatus: 'auto_approved',
+      })
 
       mockShowSaveDialog.mockResolvedValue({
         canceled: false,

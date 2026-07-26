@@ -1,11 +1,11 @@
 /**
  * check-i18n.js
  * Scans a .tsx file for hardcoded strings in JSX that should use the i18n system.
- * 
+ *
  * Detects:
  * - Text content between JSX tags: >some text here<
  * - Common string attributes: placeholder="...", title="...", aria-label="...", alt="..."
- * 
+ *
  * Ignores:
  * - Strings that are just whitespace, numbers, or single characters
  * - Strings inside {t(...)} or {tp(...)} expressions
@@ -15,16 +15,18 @@
  * - Strings that look like code identifiers (camelCase, UPPER_CASE, dot.notation)
  */
 
-const fs = require('fs')
-const path = require('path')
+const fs = require('node:fs')
+const path = require('node:path')
 
 // Read file path from stdin (hook passes JSON context)
 let input = ''
 process.stdin.setEncoding('utf8')
-process.stdin.on('data', (chunk) => { input += chunk })
+process.stdin.on('data', (chunk) => {
+  input += chunk
+})
 process.stdin.on('end', () => {
   let filePath = ''
-  
+
   try {
     const context = JSON.parse(input)
     filePath = context.filePath || ''
@@ -33,7 +35,7 @@ process.stdin.on('end', () => {
     process.exit(0)
   }
 
-  if (!filePath || !filePath.endsWith('.tsx')) {
+  if (!filePath?.endsWith('.tsx')) {
     process.exit(0)
   }
 
@@ -58,7 +60,7 @@ process.stdin.on('end', () => {
     /^[a-z][a-zA-Z]*$/, // camelCase identifiers
     /^[a-z]+\.[a-z.]+$/, // dot.notation keys
     /^\w+::\w+$/, // namespace::key patterns
-    /^[{}<>=/\\|&*+\-#@!?.,;:'"()\[\]]+$/, // punctuation only
+    /^[{}<>=/\\|&*+\-#@!?.,;:'"()[\]]+$/, // punctuation only
     /^https?:\/\//, // URLs
     /^\s*\/\//, // comments
     /^[A-Z][a-z]+(?:[A-Z][a-z]+)*$/, // PascalCase (component names)
@@ -67,7 +69,7 @@ process.stdin.on('end', () => {
   function shouldIgnore(str) {
     const trimmed = str.trim()
     if (trimmed.length <= 2) return true
-    return ignorePatterns.some(p => p.test(trimmed))
+    return ignorePatterns.some((p) => p.test(trimmed))
   }
 
   for (let i = 0; i < lines.length; i++) {
@@ -82,9 +84,8 @@ process.stdin.on('end', () => {
     if (/\bt\s*\(/.test(line) && !/>/.test(line)) continue
 
     // Check for JSX text content
-    let match
     jsxTextPattern.lastIndex = 0
-    while ((match = jsxTextPattern.exec(line)) !== null) {
+    for (const match of line.matchAll(jsxTextPattern)) {
       const text = match[1].trim()
       if (!shouldIgnore(text)) {
         // Make sure it's not inside a t() expression on the same line
@@ -97,7 +98,7 @@ process.stdin.on('end', () => {
 
     // Check string attributes
     attrPattern.lastIndex = 0
-    while ((match = attrPattern.exec(line)) !== null) {
+    for (const match of line.matchAll(attrPattern)) {
       const text = match[1].trim()
       if (!shouldIgnore(text)) {
         findings.push({ line: lineNum, text, type: 'attribute' })
@@ -105,7 +106,7 @@ process.stdin.on('end', () => {
     }
 
     attrPatternSingle.lastIndex = 0
-    while ((match = attrPatternSingle.exec(line)) !== null) {
+    for (const match of line.matchAll(attrPatternSingle)) {
       const text = match[1].trim()
       if (!shouldIgnore(text)) {
         findings.push({ line: lineNum, text, type: 'attribute' })
@@ -118,14 +119,12 @@ process.stdin.on('end', () => {
     const header = `⚠️  i18n: ${findings.length} possível(is) string(s) hardcoded em ${relativePath}`
     const details = findings
       .slice(0, 10) // limit output
-      .map(f => `   Linha ${f.line} [${f.type}]: "${f.text.substring(0, 60)}${f.text.length > 60 ? '...' : ''}"`)
+      .map((f) => `   Linha ${f.line} [${f.type}]: "${f.text.substring(0, 60)}${f.text.length > 60 ? '...' : ''}"`)
       .join('\n')
-    
-    const footer = findings.length > 10
-      ? `\n   ... e mais ${findings.length - 10} ocorrência(s)`
-      : ''
 
-    const tip = '\n   💡 Use t(\'namespace:key\') do useTranslation para textos visíveis ao usuário.'
+    const footer = findings.length > 10 ? `\n   ... e mais ${findings.length - 10} ocorrência(s)` : ''
+
+    const tip = "\n   💡 Use t('namespace:key') do useTranslation para textos visíveis ao usuário."
 
     console.log(`${header}\n${details}${footer}${tip}`)
   }

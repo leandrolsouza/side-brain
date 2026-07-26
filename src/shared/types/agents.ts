@@ -89,12 +89,7 @@ export interface AgentDefinition {
 /**
  * Status of an agent execution.
  */
-export type AgentExecutionStatus =
-  | 'running'
-  | 'completed'
-  | 'failed'
-  | 'awaiting_approval'
-  | 'cancelled'
+export type AgentExecutionStatus = 'running' | 'completed' | 'failed' | 'awaiting_approval' | 'cancelled'
 
 /**
  * Represents a single step in an agent execution (one tool call).
@@ -219,6 +214,37 @@ export interface AgentTemplate {
   requiresApproval: boolean
 }
 
+// === Create/Update Payloads (renderer → main IPC) ===
+
+/**
+ * Payload for creating a custom agent (matches AgentService.create).
+ */
+export type AgentCreateData = Omit<AgentDefinition, 'id' | 'createdAt' | 'updatedAt'>
+
+/**
+ * Payload for updating an existing agent (matches AgentService.update).
+ */
+export type AgentUpdateData = Partial<AgentCreateData>
+
+/**
+ * Overrides accepted when creating an agent from a template
+ * (matches AgentService.createFromTemplate).
+ */
+export type AgentTemplateOverrides = Partial<Pick<AgentDefinition, 'name' | 'scope' | 'triggers'>>
+
+/**
+ * Result returned by a manual agent run over IPC
+ * (matches AgentRuntime.ExecutionResult).
+ */
+export interface AgentRunResult {
+  executionId: string
+  agentId: string
+  status: 'completed' | 'failed'
+  result?: string
+  error?: string
+  steps: AgentStep[]
+}
+
 // === IPC Event Types ===
 
 export interface AgentExecutionEvent {
@@ -254,6 +280,33 @@ export interface AgentTeam {
   synthesisPrompt?: string
   createdAt: string
   updatedAt: string
+}
+
+/**
+ * Payload for creating a team (matches TeamExecutionService.createTeam).
+ */
+export interface TeamCreateData {
+  name: string
+  description: string
+  memberIds: string[]
+  collaborationMode?: TeamCollaborationMode
+  generateSynthesis?: boolean
+  synthesisPrompt?: string
+}
+
+/**
+ * Payload for updating a team (matches TeamExecutionService.updateTeam).
+ */
+export type TeamUpdateData = Partial<TeamCreateData>
+
+/**
+ * Event emitted to the renderer during a team discussion.
+ */
+export interface TeamExecutionEvent {
+  executionId: string
+  teamId: string
+  type: string
+  data?: unknown
 }
 
 /**

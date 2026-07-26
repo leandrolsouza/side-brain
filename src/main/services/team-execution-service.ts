@@ -1,14 +1,9 @@
-import {
-  AgentTeam,
-  TeamDiscussionEntry,
-  TeamExecution,
-  TeamExecutionSummary,
-} from '../../shared/types'
-import { TeamRepository } from '../database/repositories/team-repository'
-import { AgentRepository } from '../database/repositories/agent-repository'
-import { AgentRuntime } from './agent-runtime'
-import { AIProvider } from './ai-provider'
-import { SettingsRepository } from '../database/repositories/settings-repository'
+import type { AgentTeam, TeamDiscussionEntry, TeamExecution, TeamExecutionSummary } from '../../shared/types'
+import type { TeamRepository } from '../database/repositories/team-repository'
+import type { AgentRepository } from '../database/repositories/agent-repository'
+import type { AgentRuntime } from './agent-runtime'
+import type { AIProvider } from './ai-provider'
+import type { SettingsRepository } from '../database/repositories/settings-repository'
 import { BrowserWindow } from 'electron'
 
 /**
@@ -34,7 +29,14 @@ export class TeamExecutionService {
     return this.teamRepo.getById(id)
   }
 
-  createTeam(data: { name: string; description: string; memberIds: string[]; collaborationMode?: 'sequential' | 'parallel'; generateSynthesis?: boolean; synthesisPrompt?: string }): AgentTeam {
+  createTeam(data: {
+    name: string
+    description: string
+    memberIds: string[]
+    collaborationMode?: 'sequential' | 'parallel'
+    generateSynthesis?: boolean
+    synthesisPrompt?: string
+  }): AgentTeam {
     return this.teamRepo.create({
       name: data.name,
       description: data.description,
@@ -45,7 +47,17 @@ export class TeamExecutionService {
     })
   }
 
-  updateTeam(id: string, data: Partial<{ name: string; description: string; memberIds: string[]; collaborationMode: 'sequential' | 'parallel'; generateSynthesis: boolean; synthesisPrompt: string }>): AgentTeam | null {
+  updateTeam(
+    id: string,
+    data: Partial<{
+      name: string
+      description: string
+      memberIds: string[]
+      collaborationMode: 'sequential' | 'parallel'
+      generateSynthesis: boolean
+      synthesisPrompt: string
+    }>
+  ): AgentTeam | null {
     return this.teamRepo.update(id, data)
   }
 
@@ -112,7 +124,7 @@ export class TeamExecutionService {
   ): Promise<void> {
     for (const agentId of team.memberIds) {
       const agent = this.agentRepo.getById(agentId)
-      if (!agent || !agent.isActive) {
+      if (!agent?.isActive) {
         entries.push({
           agentId,
           agentName: agent?.name || 'Desconhecido',
@@ -179,7 +191,7 @@ export class TeamExecutionService {
   ): Promise<void> {
     const promises = team.memberIds.map(async (agentId) => {
       const agent = this.agentRepo.getById(agentId)
-      if (!agent || !agent.isActive) {
+      if (!agent?.isActive) {
         return {
           agentId,
           agentName: agent?.name || 'Desconhecido',
@@ -228,7 +240,11 @@ export class TeamExecutionService {
    * Build the input for an agent in sequential mode,
    * including all previous agents' responses as context.
    */
-  private buildSequentialInput(originalInput: string, previousEntries: TeamDiscussionEntry[], currentAgentName: string): string {
+  private buildSequentialInput(
+    originalInput: string,
+    previousEntries: TeamDiscussionEntry[],
+    currentAgentName: string
+  ): string {
     if (previousEntries.length === 0) {
       return originalInput
     }
@@ -250,9 +266,7 @@ export class TeamExecutionService {
     const completedEntries = entries.filter((e) => e.status === 'completed')
     if (completedEntries.length === 0) return ''
 
-    const contributions = completedEntries
-      .map((e) => `### ${e.agentName}:\n${e.response}`)
-      .join('\n\n')
+    const contributions = completedEntries.map((e) => `### ${e.agentName}:\n${e.response}`).join('\n\n')
 
     const defaultSynthesisPrompt = `Você é um facilitador que sintetiza uma discussão entre especialistas. Gere uma síntese que:
 1. Identifique os pontos de CONSENSO entre os participantes
@@ -285,7 +299,7 @@ Seja conciso e objetivo. Use bullet points. Responda em português brasileiro.`
 
   // ─── Events ───────────────────────────────────────────────────
 
-  private emitEvent(executionId: string, teamId: string, type: string, data?: any): void {
+  private emitEvent(executionId: string, teamId: string, type: string, data?: unknown): void {
     try {
       const windows = BrowserWindow.getAllWindows()
       for (const win of windows) {

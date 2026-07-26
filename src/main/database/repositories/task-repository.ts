@@ -1,6 +1,6 @@
 import { v4 as uuid } from 'uuid'
 import { getDatabase } from '../schema'
-import { Task, TaskStatus, PaginatedResult, PaginationParams } from '../../../shared/types'
+import type { Task, TaskStatus, PaginatedResult, PaginationParams } from '../../../shared/types'
 
 export class TaskRepository {
   getAll(projectId?: string): Task[] {
@@ -39,17 +39,21 @@ export class TaskRepository {
       queryParams.push(status)
     }
 
-    const whereClause = conditions.length > 0 ? ' WHERE ' + conditions.join(' AND ') : ''
+    const whereClause = conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : ''
 
-    const { total } = db.prepare(`SELECT COUNT(*) as total FROM tasks${whereClause}`).get(...queryParams) as { total: number }
+    const { total } = db.prepare(`SELECT COUNT(*) as total FROM tasks${whereClause}`).get(...queryParams) as {
+      total: number
+    }
 
-    const data = db.prepare(`
+    const data = db
+      .prepare(`
       SELECT id, project_id as projectId, title, description, status, assignee, due_date as dueDate,
              source_entry_id as sourceEntryId, created_at as createdAt, updated_at as updatedAt
       FROM tasks${whereClause}
       ORDER BY created_at DESC
       LIMIT ? OFFSET ?
-    `).all(...queryParams, pageSize, offset) as Task[]
+    `)
+      .all(...queryParams, pageSize, offset) as Task[]
 
     return {
       data,
@@ -62,21 +66,25 @@ export class TaskRepository {
 
   getByProject(projectId: string): Task[] {
     const db = getDatabase()
-    return db.prepare(`
+    return db
+      .prepare(`
       SELECT id, project_id as projectId, title, description, status, assignee, due_date as dueDate,
              source_entry_id as sourceEntryId, created_at as createdAt, updated_at as updatedAt
       FROM tasks WHERE project_id = ?
       ORDER BY created_at ASC
-    `).all(projectId) as Task[]
+    `)
+      .all(projectId) as Task[]
   }
 
   getById(id: string): Task | null {
     const db = getDatabase()
-    const row = db.prepare(`
+    const row = db
+      .prepare(`
       SELECT id, project_id as projectId, title, description, status, assignee, due_date as dueDate,
              source_entry_id as sourceEntryId, created_at as createdAt, updated_at as updatedAt
       FROM tasks WHERE id = ?
-    `).get(id) as Task | undefined
+    `)
+      .get(id) as Task | undefined
 
     return row || null
   }
@@ -84,12 +92,14 @@ export class TaskRepository {
   findSimilar(projectId: string, title: string): Task | null {
     const db = getDatabase()
     // Simple similarity: check if a task with very similar title exists and is not done
-    const row = db.prepare(`
+    const row = db
+      .prepare(`
       SELECT id, project_id as projectId, title, description, status, assignee, due_date as dueDate,
              source_entry_id as sourceEntryId, created_at as createdAt, updated_at as updatedAt
       FROM tasks
       WHERE project_id = ? AND status != 'done' AND LOWER(title) = LOWER(?)
-    `).get(projectId, title) as Task | undefined
+    `)
+      .get(projectId, title) as Task | undefined
 
     return row || null
   }
@@ -113,7 +123,18 @@ export class TaskRepository {
     db.prepare(`
       INSERT INTO tasks (id, project_id, title, description, status, assignee, due_date, source_entry_id, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, data.projectId, data.title, data.description || null, status, assignee, dueDate, data.sourceEntryId || null, now, now)
+    `).run(
+      id,
+      data.projectId,
+      data.title,
+      data.description || null,
+      status,
+      assignee,
+      dueDate,
+      data.sourceEntryId || null,
+      now,
+      now
+    )
 
     return {
       id,
@@ -129,7 +150,10 @@ export class TaskRepository {
     }
   }
 
-  update(id: string, updates: Partial<Pick<Task, 'title' | 'description' | 'status' | 'assignee' | 'dueDate'>>): Task | null {
+  update(
+    id: string,
+    updates: Partial<Pick<Task, 'title' | 'description' | 'status' | 'assignee' | 'dueDate'>>
+  ): Task | null {
     const db = getDatabase()
     const existing = this.getById(id)
     if (!existing) return null
@@ -190,7 +214,8 @@ export class TaskRepository {
     endOfWeek.setDate(now.getDate() + daysUntilSunday)
     const endOfWeekStr = endOfWeek.toISOString().split('T')[0]
 
-    return db.prepare(`
+    return db
+      .prepare(`
       SELECT id, project_id as projectId, title, description, status, assignee, due_date as dueDate,
              source_entry_id as sourceEntryId, created_at as createdAt, updated_at as updatedAt
       FROM tasks
@@ -199,14 +224,16 @@ export class TaskRepository {
         AND due_date >= ?
         AND status != 'done'
       ORDER BY due_date ASC
-    `).all(endOfWeekStr, today) as Task[]
+    `)
+      .all(endOfWeekStr, today) as Task[]
   }
 
   getOverdue(): Task[] {
     const db = getDatabase()
     const today = new Date().toISOString().split('T')[0]
 
-    return db.prepare(`
+    return db
+      .prepare(`
       SELECT id, project_id as projectId, title, description, status, assignee, due_date as dueDate,
              source_entry_id as sourceEntryId, created_at as createdAt, updated_at as updatedAt
       FROM tasks
@@ -214,7 +241,8 @@ export class TaskRepository {
         AND due_date < ?
         AND status != 'done'
       ORDER BY due_date ASC
-    `).all(today) as Task[]
+    `)
+      .all(today) as Task[]
   }
 
   delete(id: string): void {

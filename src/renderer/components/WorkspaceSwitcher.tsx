@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Briefcase, Plus, ChevronDown, Pencil, Trash2, FolderOpen, Check, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { Workspace } from '../../shared/types'
@@ -137,6 +137,7 @@ export function WorkspaceSwitcher({ onWorkspaceChanged }: WorkspaceSwitcherProps
   return (
     <div className="workspace-switcher" ref={dropdownRef}>
       <button
+        type="button"
         className="workspace-switcher-trigger"
         onClick={() => setIsOpen(!isOpen)}
         disabled={switching}
@@ -161,6 +162,7 @@ export function WorkspaceSwitcher({ onWorkspaceChanged }: WorkspaceSwitcherProps
                   <div className="workspace-edit-form">
                     <div className="workspace-edit-row">
                       <button
+                        type="button"
                         className="emoji-picker-btn"
                         onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                       >
@@ -177,10 +179,20 @@ export function WorkspaceSwitcher({ onWorkspaceChanged }: WorkspaceSwitcherProps
                           if (e.key === 'Escape') setIsEditing(null)
                         }}
                       />
-                      <button className="workspace-btn-icon" onClick={() => handleUpdate(ws.id)} title={t('workspace.save')}>
+                      <button
+                        type="button"
+                        className="workspace-btn-icon"
+                        onClick={() => handleUpdate(ws.id)}
+                        title={t('workspace.save')}
+                      >
                         <Check size={14} />
                       </button>
-                      <button className="workspace-btn-icon" onClick={() => setIsEditing(null)} title={t('workspace.cancel')}>
+                      <button
+                        type="button"
+                        className="workspace-btn-icon"
+                        onClick={() => setIsEditing(null)}
+                        title={t('workspace.cancel')}
+                      >
                         <X size={14} />
                       </button>
                     </div>
@@ -188,9 +200,13 @@ export function WorkspaceSwitcher({ onWorkspaceChanged }: WorkspaceSwitcherProps
                       <div className="emoji-grid">
                         {EMOJI_OPTIONS.map((emoji) => (
                           <button
+                            type="button"
                             key={emoji}
                             className={`emoji-option ${editEmoji === emoji ? 'selected' : ''}`}
-                            onClick={() => { setEditEmoji(emoji); setShowEmojiPicker(false) }}
+                            onClick={() => {
+                              setEditEmoji(emoji)
+                              setShowEmojiPicker(false)
+                            }}
                           >
                             {emoji}
                           </button>
@@ -200,20 +216,27 @@ export function WorkspaceSwitcher({ onWorkspaceChanged }: WorkspaceSwitcherProps
                   </div>
                 ) : (
                   <>
-                    <button
-                      className="workspace-item-main"
-                      onClick={() => handleSwitch(ws.id)}
-                    >
+                    <button type="button" className="workspace-item-main" onClick={() => handleSwitch(ws.id)}>
                       <span className="workspace-emoji">{ws.emoji}</span>
                       <span className="workspace-item-name">{ws.name}</span>
                       {ws.id === activeWorkspace.id && <Check size={12} className="workspace-check" />}
                     </button>
                     <div className="workspace-item-actions">
-                      <button className="workspace-btn-icon" onClick={() => startEditing(ws)} title={t('workspace.edit')}>
+                      <button
+                        type="button"
+                        className="workspace-btn-icon"
+                        onClick={() => startEditing(ws)}
+                        title={t('workspace.edit')}
+                      >
                         <Pencil size={12} />
                       </button>
                       {workspaces.length > 1 && (
-                        <button className="workspace-btn-icon danger" onClick={() => handleDelete(ws.id)} title={t('workspace.remove')}>
+                        <button
+                          type="button"
+                          className="workspace-btn-icon danger"
+                          onClick={() => handleDelete(ws.id)}
+                          title={t('workspace.remove')}
+                        >
                           <Trash2 size={12} />
                         </button>
                       )}
@@ -227,10 +250,7 @@ export function WorkspaceSwitcher({ onWorkspaceChanged }: WorkspaceSwitcherProps
           {isCreating ? (
             <div className="workspace-create-form">
               <div className="workspace-edit-row">
-                <button
-                  className="emoji-picker-btn"
-                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                >
+                <button type="button" className="emoji-picker-btn" onClick={() => setShowEmojiPicker(!showEmojiPicker)}>
                   {newEmoji}
                 </button>
                 <input
@@ -245,10 +265,20 @@ export function WorkspaceSwitcher({ onWorkspaceChanged }: WorkspaceSwitcherProps
                     if (e.key === 'Escape') setIsCreating(false)
                   }}
                 />
-                <button className="workspace-btn-icon" onClick={handleCreate} title={t('workspace.createAndChooseFolder')}>
+                <button
+                  type="button"
+                  className="workspace-btn-icon"
+                  onClick={handleCreate}
+                  title={t('workspace.createAndChooseFolder')}
+                >
                   <FolderOpen size={14} />
                 </button>
-                <button className="workspace-btn-icon" onClick={() => setIsCreating(false)} title={t('workspace.cancel')}>
+                <button
+                  type="button"
+                  className="workspace-btn-icon"
+                  onClick={() => setIsCreating(false)}
+                  title={t('workspace.cancel')}
+                >
                   <X size={14} />
                 </button>
               </div>
@@ -256,9 +286,13 @@ export function WorkspaceSwitcher({ onWorkspaceChanged }: WorkspaceSwitcherProps
                 <div className="emoji-grid">
                   {EMOJI_OPTIONS.map((emoji) => (
                     <button
+                      type="button"
                       key={emoji}
                       className={`emoji-option ${newEmoji === emoji ? 'selected' : ''}`}
-                      onClick={() => { setNewEmoji(emoji); setShowEmojiPicker(false) }}
+                      onClick={() => {
+                        setNewEmoji(emoji)
+                        setShowEmojiPicker(false)
+                      }}
                     >
                       {emoji}
                     </button>
@@ -267,7 +301,7 @@ export function WorkspaceSwitcher({ onWorkspaceChanged }: WorkspaceSwitcherProps
               )}
             </div>
           ) : (
-            <button className="workspace-add-btn" onClick={() => setIsCreating(true)}>
+            <button type="button" className="workspace-add-btn" onClick={() => setIsCreating(true)}>
               <Plus size={14} />
               <span>{t('workspace.newWorkspace')}</span>
             </button>

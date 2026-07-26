@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Key } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -22,17 +22,11 @@ export function OnboardingApiKey({ onNext, onSkip }: Props) {
         <Key size={48} strokeWidth={1.5} />
       </div>
       <h1 className="onboarding-title">{t('onboarding.configureAiTitle')}</h1>
-      <p className="onboarding-description">
-        {t('onboarding.configureAiDescription')}
-      </p>
+      <p className="onboarding-description">{t('onboarding.configureAiDescription')}</p>
 
       <div className="onboarding-form">
         <label className="onboarding-label">{t('onboarding.providerLabel')}</label>
-        <select
-          className="onboarding-select"
-          value={provider}
-          onChange={(e) => setProvider(e.target.value)}
-        >
+        <select className="onboarding-select" value={provider} onChange={(e) => setProvider(e.target.value)}>
           <option value="bedrock">{t('onboarding.providerBedrock')}</option>
           <option value="openai">{t('onboarding.providerOpenai')}</option>
           <option value="gemini">{t('onboarding.providerGemini')}</option>
@@ -49,10 +43,13 @@ export function OnboardingApiKey({ onNext, onSkip }: Props) {
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               placeholder={
-                provider === 'bedrock' ? t('onboarding.apiKeyPlaceholderBedrock') :
-                  provider === 'openai' ? t('onboarding.apiKeyPlaceholderOpenai') :
-                    provider === 'gemini' ? t('onboarding.apiKeyPlaceholderGemini') :
-                      t('onboarding.apiKeyPlaceholderGrok')
+                provider === 'bedrock'
+                  ? t('onboarding.apiKeyPlaceholderBedrock')
+                  : provider === 'openai'
+                    ? t('onboarding.apiKeyPlaceholderOpenai')
+                    : provider === 'gemini'
+                      ? t('onboarding.apiKeyPlaceholderGemini')
+                      : t('onboarding.apiKeyPlaceholderGrok')
               }
             />
           </>
@@ -68,18 +65,17 @@ export function OnboardingApiKey({ onNext, onSkip }: Props) {
               disabled
               placeholder="http://localhost:1234"
             />
-            <p className="onboarding-hint">
-              {t('onboarding.localHint')}
-            </p>
+            <p className="onboarding-hint">{t('onboarding.localHint')}</p>
           </>
         )}
       </div>
 
       <div className="onboarding-actions">
-        <button className="onboarding-btn-secondary" onClick={onSkip}>
+        <button type="button" className="onboarding-btn-secondary" onClick={onSkip}>
           {t('onboarding.configureLater')}
         </button>
         <button
+          type="button"
           className="onboarding-btn-primary"
           onClick={handleContinue}
           disabled={provider !== 'local' && !apiKey.trim()}

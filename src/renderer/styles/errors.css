@@ -1,0 +1,389 @@
+/* === Error Center === */
+.error-center {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.error-center-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--vscode-panel-border, #2d2d2d);
+  margin-bottom: 16px;
+}
+
+.error-center-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.error-center-title h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.error-center-badge {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: #f85149;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.error-center-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border: 1px solid var(--vscode-panel-border, #2d2d2d);
+  background: var(--vscode-button-secondaryBackground, #3a3d41);
+  color: var(--vscode-button-secondaryForeground, #fff);
+  font-size: 12px;
+  font-family: inherit;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--vscode-button-secondaryHoverBackground, #45494e);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border: 1px solid rgba(248, 81, 73, 0.3);
+  background: rgba(248, 81, 73, 0.1);
+  color: #f85149;
+  font-size: 12px;
+  font-family: inherit;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: rgba(248, 81, 73, 0.2);
+}
+
+.btn-danger:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Filters */
+.error-center-filters {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 14px;
+  background: var(--vscode-sideBar-background, #252526);
+  border: 1px solid var(--vscode-panel-border, #2d2d2d);
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.filter-group label {
+  color: var(--vscode-descriptionForeground);
+  font-weight: 500;
+}
+
+.filter-group select {
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border);
+  color: var(--vscode-input-foreground);
+  font-size: 12px;
+  font-family: inherit;
+  padding: 3px 8px;
+  border-radius: 4px;
+  outline: none;
+}
+
+.filter-group select:focus {
+  border-color: var(--vscode-focusBorder);
+}
+
+/* Error List */
+.error-center-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.error-center-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 60px 20px;
+  color: var(--vscode-descriptionForeground);
+  text-align: center;
+}
+
+.error-center-empty p {
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.error-center-empty span {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+/* Error Item */
+.error-item {
+  border: 1px solid var(--vscode-panel-border, #2d2d2d);
+  border-radius: 6px;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+
+.error-item:hover {
+  border-color: var(--vscode-focusBorder, #007fd4);
+}
+
+.error-item.resolved {
+  opacity: 0.6;
+}
+
+.error-item.severity-critical {
+  border-left: 3px solid #f85149;
+}
+
+.error-item.severity-error {
+  border-left: 3px solid #f48771;
+}
+
+.error-item.severity-warning {
+  border-left: 3px solid #cca700;
+}
+
+.error-item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.error-item-header:hover {
+  background: var(--vscode-list-hoverBackground, rgba(255, 255, 255, 0.04));
+}
+
+.error-item-expand {
+  color: var(--vscode-descriptionForeground);
+  flex-shrink: 0;
+}
+
+.error-item-severity {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.error-item-severity.severity-critical {
+  color: #f85149;
+}
+
+.error-item-severity.severity-error {
+  color: #f48771;
+}
+
+.error-item-severity.severity-warning {
+  color: #cca700;
+}
+
+.error-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.error-item-message {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--vscode-editor-foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.error-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.error-item-category {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.error-item-time {
+  opacity: 0.8;
+}
+
+.error-item-occurrences {
+  font-weight: 700;
+  color: var(--vscode-notificationsWarningIcon-foreground, #cca700);
+}
+
+.error-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.error-item:hover .error-item-actions {
+  opacity: 1;
+}
+
+.btn-icon-sm {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--vscode-descriptionForeground);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.btn-icon-sm:hover {
+  background: var(--vscode-list-hoverBackground, #2a2d2e);
+  color: var(--vscode-testing-iconPassed, #73c991);
+}
+
+.btn-icon-sm.danger:hover {
+  color: #f85149;
+}
+
+/* Error Details */
+.error-item-details {
+  padding: 12px 16px;
+  background: var(--vscode-editor-background, #1e1e1e);
+  border-top: 1px solid var(--vscode-panel-border, #2d2d2d);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.error-detail-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.error-detail-label {
+  color: var(--vscode-descriptionForeground);
+  font-weight: 500;
+  min-width: 120px;
+}
+
+.error-detail-value {
+  color: var(--vscode-editor-foreground);
+}
+
+.severity-text-critical {
+  color: #f85149;
+  font-weight: 600;
+}
+
+.severity-text-error {
+  color: #f48771;
+  font-weight: 600;
+}
+
+.severity-text-warning {
+  color: #cca700;
+  font-weight: 600;
+}
+
+.error-detail-stack,
+.error-detail-context {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.error-detail-stack pre,
+.error-detail-context pre {
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  padding: 10px 12px;
+  background: var(--vscode-input-background, #3c3c3c);
+  border-radius: 4px;
+  overflow-x: auto;
+  max-height: 200px;
+  overflow-y: auto;
+  color: var(--vscode-editor-foreground);
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+
+/* === Status Bar Error Indicator === */
+.error-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  border-radius: 3px;
+  transition: background 0.15s;
+}
+
+.error-indicator.has-errors {
+  color: #f85149;
+}
+
+.error-indicator.has-errors:hover {
+  background: rgba(248, 81, 73, 0.2);
+}
+

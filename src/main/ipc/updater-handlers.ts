@@ -1,6 +1,6 @@
 import { app } from 'electron'
-import path from 'path'
-import fs from 'fs'
+import path from 'node:path'
+import fs from 'node:fs'
 import { safeHandle } from './safe-handle'
 import { getUpdaterService } from '../services/updater-service'
 

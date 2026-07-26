@@ -17,9 +17,9 @@ export class EmbeddingsRepository {
    */
   upsert(entityType: 'entry' | 'task', entityId: string, embedding: Float32Array, model: string): void {
     const db = getDatabase()
-    const existing = db.prepare(
-      'SELECT id FROM embeddings WHERE entity_type = ? AND entity_id = ?'
-    ).get(entityType, entityId) as { id: string } | undefined
+    const existing = db
+      .prepare('SELECT id FROM embeddings WHERE entity_type = ? AND entity_id = ?')
+      .get(entityType, entityId) as { id: string } | undefined
 
     const buffer = Buffer.from(embedding.buffer, embedding.byteOffset, embedding.byteLength)
 
@@ -41,10 +41,12 @@ export class EmbeddingsRepository {
    */
   getByEntity(entityType: 'entry' | 'task', entityId: string): EmbeddingRecord | null {
     const db = getDatabase()
-    const row = db.prepare(`
+    const row = db
+      .prepare(`
       SELECT id, entity_type as entityType, entity_id as entityId, embedding, model, dimensions, created_at as createdAt
       FROM embeddings WHERE entity_type = ? AND entity_id = ?
-    `).get(entityType, entityId) as (Omit<EmbeddingRecord, 'embedding'> & { embedding: Buffer }) | undefined
+    `)
+      .get(entityType, entityId) as (Omit<EmbeddingRecord, 'embedding'> & { embedding: Buffer }) | undefined
 
     if (!row) return null
 
@@ -59,10 +61,12 @@ export class EmbeddingsRepository {
    */
   getAllByType(entityType: 'entry' | 'task'): EmbeddingRecord[] {
     const db = getDatabase()
-    const rows = db.prepare(`
+    const rows = db
+      .prepare(`
       SELECT id, entity_type as entityType, entity_id as entityId, embedding, model, dimensions, created_at as createdAt
       FROM embeddings WHERE entity_type = ?
-    `).all(entityType) as (Omit<EmbeddingRecord, 'embedding'> & { embedding: Buffer })[]
+    `)
+      .all(entityType) as (Omit<EmbeddingRecord, 'embedding'> & { embedding: Buffer })[]
 
     return rows.map((row) => ({
       ...row,
@@ -75,9 +79,7 @@ export class EmbeddingsRepository {
    */
   hasEmbedding(entityType: 'entry' | 'task', entityId: string): boolean {
     const db = getDatabase()
-    const row = db.prepare(
-      'SELECT 1 FROM embeddings WHERE entity_type = ? AND entity_id = ?'
-    ).get(entityType, entityId)
+    const row = db.prepare('SELECT 1 FROM embeddings WHERE entity_type = ? AND entity_id = ?').get(entityType, entityId)
     return !!row
   }
 
@@ -86,11 +88,13 @@ export class EmbeddingsRepository {
    */
   getMissingEntryIds(): string[] {
     const db = getDatabase()
-    const rows = db.prepare(`
+    const rows = db
+      .prepare(`
       SELECT e.id FROM entries e
       LEFT JOIN embeddings emb ON emb.entity_type = 'entry' AND emb.entity_id = e.id
       WHERE emb.id IS NULL
-    `).all() as { id: string }[]
+    `)
+      .all() as { id: string }[]
     return rows.map((r) => r.id)
   }
 
@@ -99,11 +103,13 @@ export class EmbeddingsRepository {
    */
   getMissingTaskIds(): string[] {
     const db = getDatabase()
-    const rows = db.prepare(`
+    const rows = db
+      .prepare(`
       SELECT t.id FROM tasks t
       LEFT JOIN embeddings emb ON emb.entity_type = 'task' AND emb.entity_id = t.id
       WHERE emb.id IS NULL
-    `).all() as { id: string }[]
+    `)
+      .all() as { id: string }[]
     return rows.map((r) => r.id)
   }
 
@@ -129,7 +135,9 @@ export class EmbeddingsRepository {
   count(entityType?: 'entry' | 'task'): number {
     const db = getDatabase()
     if (entityType) {
-      const row = db.prepare('SELECT COUNT(*) as count FROM embeddings WHERE entity_type = ?').get(entityType) as { count: number }
+      const row = db.prepare('SELECT COUNT(*) as count FROM embeddings WHERE entity_type = ?').get(entityType) as {
+        count: number
+      }
       return row.count
     }
     const row = db.prepare('SELECT COUNT(*) as count FROM embeddings').get() as { count: number }

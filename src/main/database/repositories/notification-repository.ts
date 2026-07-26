@@ -34,13 +34,15 @@ export class NotificationRepository {
   getAll(limit: number = 50): AppNotification[] {
     const db = getDatabase()
 
-    const rows = db.prepare(`
+    const rows = db
+      .prepare(`
       SELECT id, type, title, body, read, dismissed, metadata, created_at
       FROM notifications
       WHERE dismissed = 0
       ORDER BY created_at DESC
       LIMIT ?
-    `).all(limit) as {
+    `)
+      .all(limit) as {
       id: string
       type: string
       title: string
@@ -66,11 +68,13 @@ export class NotificationRepository {
   getUnreadCount(): number {
     const db = getDatabase()
 
-    const result = db.prepare(`
+    const result = db
+      .prepare(`
       SELECT COUNT(*) as count
       FROM notifications
       WHERE read = 0 AND dismissed = 0
-    `).get() as { count: number }
+    `)
+      .get() as { count: number }
 
     return result.count
   }
@@ -103,11 +107,13 @@ export class NotificationRepository {
     const db = getDatabase()
     const cutoff = new Date(Date.now() - withinMinutes * 60 * 1000).toISOString()
 
-    const result = db.prepare(`
+    const result = db
+      .prepare(`
       SELECT COUNT(*) as count
       FROM notifications
       WHERE type = ? AND created_at >= ?
-    `).get(type, cutoff) as { count: number }
+    `)
+      .get(type, cutoff) as { count: number }
 
     return result.count > 0
   }
@@ -119,9 +125,11 @@ export class NotificationRepository {
     const db = getDatabase()
     const cutoff = new Date(Date.now() - daysToKeep * 24 * 60 * 60 * 1000).toISOString()
 
-    const result = db.prepare(`
+    const result = db
+      .prepare(`
       DELETE FROM notifications WHERE created_at < ? AND dismissed = 1
-    `).run(cutoff)
+    `)
+      .run(cutoff)
 
     return result.changes
   }

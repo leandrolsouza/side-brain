@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3'
-import { vi, beforeEach, afterEach } from 'vitest'
+import { vi } from 'vitest'
 
 // Mock Electron APIs globally for all main process tests.
 // In Node.js (test environment), the `electron` package exports only the binary path
@@ -242,6 +242,137 @@ export function createTestDatabase(): Database.Database {
       name TEXT NOT NULL,
       applied_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS chat_conversations (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id TEXT PRIMARY KEY,
+      conversation_id TEXT NOT NULL,
+      role TEXT NOT NULL CHECK(role IN ('user', 'assistant')),
+      content TEXT NOT NULL,
+      sources TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (conversation_id) REFERENCES chat_conversations(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_chat_messages_conversation ON chat_messages(conversation_id, created_at ASC);
+    CREATE INDEX IF NOT EXISTS idx_chat_conversations_updated ON chat_conversations(updated_at DESC);
+
+    CREATE TABLE IF NOT EXISTS embeddings (
+      id TEXT PRIMARY KEY,
+      entity_type TEXT NOT NULL CHECK(entity_type IN ('entry', 'task')),
+      entity_id TEXT NOT NULL,
+      embedding BLOB NOT NULL,
+      model TEXT NOT NULL,
+      dimensions INTEGER NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(entity_type, entity_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_embeddings_entity ON embeddings(entity_type, entity_id);
+    CREATE INDEX IF NOT EXISTS idx_embeddings_type ON embeddings(entity_type);
+
+    CREATE TABLE IF NOT EXISTS categorization_feedback (
+      id TEXT PRIMARY KEY,
+      raw_text TEXT NOT NULL,
+      ai_type TEXT NOT NULL,
+      ai_action TEXT NOT NULL,
+      ai_project_id TEXT,
+      corrected_type TEXT NOT NULL,
+      corrected_action TEXT NOT NULL,
+      corrected_project_id TEXT,
+      corrected_project_name TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_feedback_created ON categorization_feedback(created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS agents (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      persona TEXT NOT NULL,
+      icon TEXT NOT NULL DEFAULT 'Bot',
+      color TEXT NOT NULL DEFAULT 'blue',
+      skills TEXT NOT NULL DEFAULT '[]',
+      scope TEXT NOT NULL DEFAULT '{"projectIds":"all"}',
+      triggers TEXT NOT NULL DEFAULT '[]',
+      can_delegate TEXT NOT NULL DEFAULT '[]',
+      max_steps INTEGER NOT NULL DEFAULT 5,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      requires_approval INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_agents_active ON agents(is_active);
+
+    CREATE TABLE IF NOT EXISTS agent_executions (
+      id TEXT PRIMARY KEY,
+      agent_id TEXT NOT NULL,
+      trigger TEXT NOT NULL DEFAULT 'manual',
+      input TEXT NOT NULL,
+      delegated_by_agent_id TEXT,
+      status TEXT NOT NULL DEFAULT 'running',
+      result TEXT,
+      error TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      completed_at TEXT,
+      FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_agent_executions_agent ON agent_executions(agent_id);
+    CREATE INDEX IF NOT EXISTS idx_agent_executions_status ON agent_executions(status);
+    CREATE INDEX IF NOT EXISTS idx_agent_executions_created ON agent_executions(created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS agent_steps (
+      id TEXT PRIMARY KEY,
+      execution_id TEXT NOT NULL,
+      step_number INTEGER NOT NULL,
+      skill TEXT NOT NULL,
+      input TEXT NOT NULL DEFAULT '{}',
+      output TEXT,
+      reasoning TEXT NOT NULL DEFAULT '',
+      delegated_to_agent_id TEXT,
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      completed_at TEXT,
+      FOREIGN KEY (execution_id) REFERENCES agent_executions(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_agent_steps_execution ON agent_steps(execution_id, step_number);
+
+    CREATE TABLE IF NOT EXISTS agent_teams (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      member_ids TEXT NOT NULL DEFAULT '[]',
+      collaboration_mode TEXT NOT NULL DEFAULT 'sequential',
+      generate_synthesis INTEGER NOT NULL DEFAULT 1,
+      synthesis_prompt TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS team_executions (
+      id TEXT PRIMARY KEY,
+      team_id TEXT NOT NULL,
+      input TEXT NOT NULL,
+      entries TEXT NOT NULL DEFAULT '[]',
+      synthesis TEXT,
+      status TEXT NOT NULL DEFAULT 'running',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      completed_at TEXT,
+      FOREIGN KEY (team_id) REFERENCES agent_teams(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_team_executions_team ON team_executions(team_id);
+    CREATE INDEX IF NOT EXISTS idx_team_executions_created ON team_executions(created_at DESC);
   `)
 
   testDb = db

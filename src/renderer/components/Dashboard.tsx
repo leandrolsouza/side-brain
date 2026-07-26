@@ -1,8 +1,23 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import {
-  Circle, Clock, CheckCircle2, AlertCircle, Timer, Sparkles, X,
-  Calendar, Target, Inbox, History, Lightbulb, Loader2, RefreshCw,
-  ListTodo, FolderKanban, TrendingUp, Zap
+  Circle,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  Timer,
+  Sparkles,
+  X,
+  Calendar,
+  Target,
+  Inbox,
+  History,
+  Lightbulb,
+  Loader2,
+  RefreshCw,
+  ListTodo,
+  FolderKanban,
+  TrendingUp,
+  Zap,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { MarkdownViewer } from './MarkdownViewer'
@@ -53,7 +68,17 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [globalSummary, setGlobalSummary] = useState<string | null>(null)
   const [isLoadingSummary, setIsLoadingSummary] = useState(false)
-  const [insights, setInsights] = useState<{ id: string; type: string; title: string; description: string; priority: string; relatedProjectId?: string; relatedProjectName?: string }[]>([])
+  const [insights, setInsights] = useState<
+    {
+      id: string
+      type: string
+      title: string
+      description: string
+      priority: string
+      relatedProjectId?: string
+      relatedProjectName?: string
+    }[]
+  >([])
   const [isLoadingInsights, setIsLoadingInsights] = useState(false)
   const [insightsLastUpdated, setInsightsLastUpdated] = useState<number | null>(null)
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({})
@@ -137,25 +162,20 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
   const startOfWeek = new Date()
   startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay())
   startOfWeek.setHours(0, 0, 0, 0)
-  const completedThisWeek = doneTasks.filter(
-    (t) => new Date(t.updatedAt) >= startOfWeek
-  )
+  const completedThisWeek = doneTasks.filter((t) => new Date(t.updatedAt) >= startOfWeek)
 
   // Entries this week
-  const entriesThisWeek = entries.filter(
-    (e) => new Date(e.createdAt) >= startOfWeek
-  )
+  const entriesThisWeek = entries.filter((e) => new Date(e.createdAt) >= startOfWeek)
 
   // Pending review entries
   const pendingReviewCount = entries.filter((e) => e.reviewStatus === 'pending').length
 
   // Focus of the day: overdue + due today + in progress (max 5)
   const today = new Date().toISOString().split('T')[0]
-  const focusTasks: Task[] = [
-    ...overdueTasks,
-    ...dueThisWeek.filter((t) => t.dueDate === today),
-    ...inProgress,
-  ].slice(0, 5)
+  const focusTasks: Task[] = [...overdueTasks, ...dueThisWeek.filter((t) => t.dueDate === today), ...inProgress].slice(
+    0,
+    5
+  )
 
   // Yesterday's activity
   const yesterday = new Date()
@@ -229,7 +249,8 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
       <div className="dashboard-greeting-bar">
         <div className="dashboard-greeting">
           <h2 className="dashboard-greeting-text">
-            {getGreeting()}{userName ? `, ${userName}` : ''}
+            {getGreeting()}
+            {userName ? `, ${userName}` : ''}
           </h2>
           <span className="dashboard-greeting-summary">{getGreetingSummary()}</span>
         </div>
@@ -240,11 +261,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
               <span>{t('summary.toReview', { count: pendingReviewCount })}</span>
             </div>
           )}
-          <button
-            className="vscode-button"
-            onClick={handleGlobalSummary}
-            disabled={isLoadingSummary}
-          >
+          <button type="button" className="vscode-button" onClick={handleGlobalSummary} disabled={isLoadingSummary}>
             <Sparkles size={14} />
             {isLoadingSummary ? t('actions.generating') : t('actions.updateMe')}
           </button>
@@ -311,7 +328,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
             <div className="summary-modal-header">
               <Sparkles size={16} />
               <span>{t('globalSummary.title')}</span>
-              <button className="icon-button" onClick={() => setGlobalSummary(null)}>
+              <button type="button" className="icon-button" onClick={() => setGlobalSummary(null)}>
                 <X size={16} />
               </button>
             </div>
@@ -341,7 +358,10 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
                     onClick={() => onNavigateToProject(task.projectId, getProjectName(task.projectId))}
                   >
                     <span className="dashboard-due-date">
-                      {new Date(task.dueDate + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                      {new Date(`${task.dueDate}T00:00:00`).toLocaleDateString('pt-BR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                      })}
                     </span>
                     <span className="dashboard-due-title">{task.title}</span>
                     <span className="dashboard-due-project">{getProjectName(task.projectId)}</span>
@@ -357,7 +377,10 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
                       onClick={() => onNavigateToProject(task.projectId, getProjectName(task.projectId))}
                     >
                       <span className="dashboard-due-date">
-                        {new Date(task.dueDate + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                        {new Date(`${task.dueDate}T00:00:00`).toLocaleDateString('pt-BR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                        })}
                       </span>
                       <span className="dashboard-due-title">{task.title}</span>
                       <span className="dashboard-due-project">{getProjectName(task.projectId)}</span>
@@ -387,9 +410,11 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
                   <div className="task-group">
                     <div className="task-group-header">
                       <Circle size={10} className="dot-action" />
-                      <span>{t('pendingTasks.todo')} ({actionNeeded.length})</span>
+                      <span>
+                        {t('pendingTasks.todo')} ({actionNeeded.length})
+                      </span>
                     </div>
-                    {(expandedGroups['todo'] ? actionNeeded : actionNeeded.slice(0, TASKS_PER_GROUP)).map((task) => (
+                    {(expandedGroups.todo ? actionNeeded : actionNeeded.slice(0, TASKS_PER_GROUP)).map((task) => (
                       <div
                         key={task.id}
                         className="dashboard-task-item"
@@ -400,8 +425,10 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
                       </div>
                     ))}
                     {actionNeeded.length > TASKS_PER_GROUP && (
-                      <button className="task-group-toggle" onClick={() => toggleGroup('todo')}>
-                        {expandedGroups['todo'] ? t('common:seeLess') : t('common:seeMore', { count: actionNeeded.length - TASKS_PER_GROUP })}
+                      <button type="button" className="task-group-toggle" onClick={() => toggleGroup('todo')}>
+                        {expandedGroups.todo
+                          ? t('common:seeLess')
+                          : t('common:seeMore', { count: actionNeeded.length - TASKS_PER_GROUP })}
                       </button>
                     )}
                   </div>
@@ -411,9 +438,11 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
                   <div className="task-group">
                     <div className="task-group-header">
                       <Circle size={10} className="dot-progress" />
-                      <span>{t('pendingTasks.inProgress')} ({inProgress.length})</span>
+                      <span>
+                        {t('pendingTasks.inProgress')} ({inProgress.length})
+                      </span>
                     </div>
-                    {(expandedGroups['in_progress'] ? inProgress : inProgress.slice(0, TASKS_PER_GROUP)).map((task) => (
+                    {(expandedGroups.in_progress ? inProgress : inProgress.slice(0, TASKS_PER_GROUP)).map((task) => (
                       <div
                         key={task.id}
                         className="dashboard-task-item"
@@ -424,8 +453,10 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
                       </div>
                     ))}
                     {inProgress.length > TASKS_PER_GROUP && (
-                      <button className="task-group-toggle" onClick={() => toggleGroup('in_progress')}>
-                        {expandedGroups['in_progress'] ? t('common:seeLess') : t('common:seeMore', { count: inProgress.length - TASKS_PER_GROUP })}
+                      <button type="button" className="task-group-toggle" onClick={() => toggleGroup('in_progress')}>
+                        {expandedGroups.in_progress
+                          ? t('common:seeLess')
+                          : t('common:seeMore', { count: inProgress.length - TASKS_PER_GROUP })}
                       </button>
                     )}
                   </div>
@@ -435,9 +466,11 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
                   <div className="task-group">
                     <div className="task-group-header">
                       <Timer size={10} className="dot-waiting" />
-                      <span>{t('pendingTasks.waiting')} ({waiting.length})</span>
+                      <span>
+                        {t('pendingTasks.waiting')} ({waiting.length})
+                      </span>
                     </div>
-                    {(expandedGroups['waiting'] ? waiting : waiting.slice(0, TASKS_PER_GROUP)).map((task) => (
+                    {(expandedGroups.waiting ? waiting : waiting.slice(0, TASKS_PER_GROUP)).map((task) => (
                       <div
                         key={task.id}
                         className="dashboard-task-item"
@@ -448,8 +481,10 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
                       </div>
                     ))}
                     {waiting.length > TASKS_PER_GROUP && (
-                      <button className="task-group-toggle" onClick={() => toggleGroup('waiting')}>
-                        {expandedGroups['waiting'] ? t('common:seeLess') : t('common:seeMore', { count: waiting.length - TASKS_PER_GROUP })}
+                      <button type="button" className="task-group-toggle" onClick={() => toggleGroup('waiting')}>
+                        {expandedGroups.waiting
+                          ? t('common:seeLess')
+                          : t('common:seeMore', { count: waiting.length - TASKS_PER_GROUP })}
                       </button>
                     )}
                   </div>
@@ -489,7 +524,9 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
                       </div>
                     ))}
                     {yesterdayTasksCompleted.length > 3 && (
-                      <span className="yesterday-more">{t('common:seeMore', { count: yesterdayTasksCompleted.length - 3 })}</span>
+                      <span className="yesterday-more">
+                        {t('common:seeMore', { count: yesterdayTasksCompleted.length - 3 })}
+                      </span>
                     )}
                   </div>
                 )}
@@ -511,7 +548,9 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
                       </div>
                     ))}
                     {yesterdayEntries.length > 4 && (
-                      <span className="yesterday-more">{t('common:seeMore', { count: yesterdayEntries.length - 4 })}</span>
+                      <span className="yesterday-more">
+                        {t('common:seeMore', { count: yesterdayEntries.length - 4 })}
+                      </span>
                     )}
                   </div>
                 )}
@@ -533,9 +572,7 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
                     {t('review.waiting', { count: pendingReviewCount })} {t('review.reviewSuffix')}
                   </span>
                 </div>
-                <p className="review-summary-hint">
-                  {t('review.hint')}
-                </p>
+                <p className="review-summary-hint">{t('review.hint')}</p>
               </div>
             </div>
           )}
@@ -596,11 +633,10 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
               </h3>
               <div className="insights-actions">
                 {insightsLastUpdated && !isLoadingInsights && (
-                  <span className="insights-last-updated">
-                    {formatRelativeTime(insightsLastUpdated)}
-                  </span>
+                  <span className="insights-last-updated">{formatRelativeTime(insightsLastUpdated)}</span>
                 )}
                 <button
+                  type="button"
                   className="icon-button insights-refresh-btn"
                   onClick={() => loadInsights(true)}
                   disabled={isLoadingInsights}
@@ -627,7 +663,10 @@ export function Dashboard({ onNavigateToProject }: DashboardProps) {
                   <div
                     key={insight.id}
                     className={`insight-card insight-${insight.priority}`}
-                    onClick={() => insight.relatedProjectId && onNavigateToProject(insight.relatedProjectId, insight.relatedProjectName || '')}
+                    onClick={() =>
+                      insight.relatedProjectId &&
+                      onNavigateToProject(insight.relatedProjectId, insight.relatedProjectName || '')
+                    }
                   >
                     <div className="insight-card-header">
                       <span className={`insight-priority-dot priority-${insight.priority}`} />

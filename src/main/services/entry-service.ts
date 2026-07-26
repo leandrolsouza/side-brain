@@ -1,11 +1,20 @@
-import { Entry, EntryConfirmRequest, EntryPreviewResult, PaginatedResult, PaginationParams } from '../../shared/types'
-import { EntryRepository } from '../database/repositories/entry-repository'
-import { ProjectRepository } from '../database/repositories/project-repository'
-import { TaskRepository } from '../database/repositories/task-repository'
-import { SettingsRepository } from '../database/repositories/settings-repository'
-import { CategorizationFeedbackRepository } from '../database/repositories/categorization-feedback-repository'
-import { AIService } from './ai-service'
-import { EmbeddingsService } from './embeddings-service'
+import type {
+  Entry,
+  EntryConfirmRequest,
+  EntryPreviewResult,
+  PaginatedResult,
+  PaginationParams,
+} from '../../shared/types'
+import type { EntryRepository } from '../database/repositories/entry-repository'
+import type { ProjectRepository } from '../database/repositories/project-repository'
+import type { TaskRepository } from '../database/repositories/task-repository'
+import type { SettingsRepository } from '../database/repositories/settings-repository'
+import type { CategorizationFeedbackRepository } from '../database/repositories/categorization-feedback-repository'
+import type { AIService } from './ai-service'
+import type { EmbeddingsService } from './embeddings-service'
+import { createScopedLogger } from './logger'
+
+const logger = createScopedLogger('entry')
 
 export class EntryService {
   constructor(
@@ -16,7 +25,7 @@ export class EntryService {
     private aiService: AIService,
     private embeddingsService?: EmbeddingsService,
     private feedbackRepo?: CategorizationFeedbackRepository
-  ) { }
+  ) {}
 
   async createEntry(rawText: string): Promise<Entry & { autoSuggestedProject?: { id: string; name: string } }> {
     const settings = this.settingsRepo.get()
@@ -117,7 +126,9 @@ export class EntryService {
     }
   }
 
-  async confirmEntry(data: EntryConfirmRequest): Promise<Entry & { autoSuggestedProject?: { id: string; name: string } }> {
+  async confirmEntry(
+    data: EntryConfirmRequest
+  ): Promise<Entry & { autoSuggestedProject?: { id: string; name: string } }> {
     // Resolve project
     let projectId: string
     let autoSuggestedProject: { id: string; name: string } | undefined
@@ -219,7 +230,10 @@ export class EntryService {
     return this.entryRepo.getPaginated(params)
   }
 
-  searchEntries(query: string, filters?: { type?: string; projectId?: string; dateFrom?: string; dateTo?: string }): Entry[] {
+  searchEntries(
+    query: string,
+    filters?: { type?: string; projectId?: string; dateFrom?: string; dateTo?: string }
+  ): Entry[] {
     return this.entryRepo.search(query, filters)
   }
 
@@ -259,20 +273,22 @@ export class EntryService {
     const settings = this.settingsRepo.get()
     const projects = this.projectRepo.getAll()
 
-    const projectsData = projects.map((project) => {
-      const entries = this.entryRepo.getAll(project.id)
-      const recentEntries = entries.slice(0, 10).map((e) => ({
-        improvedText: e.improvedText,
-        type: e.type,
-        action: e.action,
-        createdAt: e.createdAt,
-      }))
-      const tasks = this.taskRepo.getByProject(project.id).map((t) => ({
-        title: t.title,
-        status: t.status,
-      }))
-      return { name: project.name, entries: recentEntries, tasks }
-    }).filter((p) => p.entries.length > 0 || p.tasks.length > 0)
+    const projectsData = projects
+      .map((project) => {
+        const entries = this.entryRepo.getAll(project.id)
+        const recentEntries = entries.slice(0, 10).map((e) => ({
+          improvedText: e.improvedText,
+          type: e.type,
+          action: e.action,
+          createdAt: e.createdAt,
+        }))
+        const tasks = this.taskRepo.getByProject(project.id).map((t) => ({
+          title: t.title,
+          status: t.status,
+        }))
+        return { name: project.name, entries: recentEntries, tasks }
+      })
+      .filter((p) => p.entries.length > 0 || p.tasks.length > 0)
 
     return this.aiService.generateGlobalSummary(projectsData, settings)
   }
@@ -286,11 +302,11 @@ export class EntryService {
 
     if (entityType === 'entry') {
       this.embeddingsService.indexEntry(entityId).catch((err) => {
-        console.error(`Background embedding failed for entry ${entityId}:`, err.message)
+        logger.error(`Background embedding failed for entry ${entityId}:`, err.message)
       })
     } else {
       this.embeddingsService.indexTask(entityId).catch((err) => {
-        console.error(`Background embedding failed for task ${entityId}:`, err.message)
+        logger.error(`Background embedding failed for task ${entityId}:`, err.message)
       })
     }
   }
@@ -309,8 +325,7 @@ export class EntryService {
 
     const typeChanged = data.aiOriginalType && data.aiOriginalType !== data.type
     const actionChanged = data.aiOriginalAction && data.aiOriginalAction !== data.action
-    const projectChanged = data.aiOriginalProjectId !== undefined &&
-      (data.aiOriginalProjectId !== data.projectId)
+    const projectChanged = data.aiOriginalProjectId !== undefined && data.aiOriginalProjectId !== data.projectId
 
     // Only record if something was actually corrected
     if (!typeChanged && !actionChanged && !projectChanged) return
@@ -327,7 +342,7 @@ export class EntryService {
         correctedProjectName: data.newProjectName,
       })
     } catch (err) {
-      console.error('Failed to record categorization feedback:', err)
+      logger.error('Failed to record categorization feedback:', err)
     }
   }
 }

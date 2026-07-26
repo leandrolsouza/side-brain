@@ -1,7 +1,7 @@
 import { safeHandle } from './safe-handle'
 import { getContainer } from '../services/container'
 import { getConfigService } from '../services/config-service'
-import fs from 'fs'
+import fs from 'node:fs'
 
 export function registerWorkspaceHandlers(): void {
   const configService = getConfigService()

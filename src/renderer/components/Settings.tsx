@@ -1,14 +1,33 @@
-import React, { useState, useEffect } from 'react'
-import { CheckCircle2, Download, Upload, Trash2, RotateCcw, HardDrive, AlertTriangle, FolderOpen, Database, Settings as SettingsIcon, Cpu, Cloud, Monitor, Type, Bell, Clock, Keyboard, FileText, Sunrise, Eye, EyeOff, Globe, Search } from 'lucide-react'
+import type React from 'react'
+import { useState, useEffect } from 'react'
+import {
+  Download,
+  Upload,
+  Trash2,
+  RotateCcw,
+  HardDrive,
+  AlertTriangle,
+  FolderOpen,
+  Database,
+  Settings as SettingsIcon,
+  Cpu,
+  Cloud,
+  Monitor,
+  Type,
+  Keyboard,
+  FileText,
+  Sunrise,
+  Eye,
+  EyeOff,
+  Globe,
+  Search,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { ConfirmModal } from './ConfirmModal'
 import { EmbeddingsStatus } from './EmbeddingsStatus'
 import { useToast } from './ToastContext'
 import { useApp } from './AppContext'
-import { SUPPORTED_LOCALES, type SupportedLocale } from '../i18n'
-
-interface SettingsProps {
-}
+import type { SupportedLocale } from '../i18n'
 
 type AIProvider = 'bedrock' | 'openai' | 'gemini' | 'grok' | 'local'
 type DateFormat = 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD'
@@ -47,7 +66,11 @@ interface AppSettings {
 const AVAILABLE_MODELS = [
   { id: 'us.anthropic.claude-sonnet-5', label: 'Claude Sonnet 5 (mais capaz, 1M ctx)', category: 'Claude' },
   { id: 'us.anthropic.claude-sonnet-4-20250514-v1:0', label: 'Claude Sonnet 4 (equilibrado)', category: 'Claude' },
-  { id: 'us.anthropic.claude-haiku-4-5-20251001-v1:0', label: 'Claude Haiku 4.5 (rápido + barato)', category: 'Claude' },
+  {
+    id: 'us.anthropic.claude-haiku-4-5-20251001-v1:0',
+    label: 'Claude Haiku 4.5 (rápido + barato)',
+    category: 'Claude',
+  },
   { id: 'us.amazon.nova-2-lite-v1:0', label: 'Nova 2 Lite (custo-eficiente, 1M ctx)', category: 'Nova' },
   { id: 'us.amazon.nova-pro-v1:0', label: 'Nova Pro (equilibrado)', category: 'Nova' },
   { id: 'us.amazon.nova-lite-v1:0', label: 'Nova Lite (baixo custo)', category: 'Nova' },
@@ -91,7 +114,11 @@ const AWS_REGIONS = [
 ]
 
 const FONT_FAMILIES = [
-  { id: 'system-ui', label: 'Sistema (padrão)', stack: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' },
+  {
+    id: 'system-ui',
+    label: 'Sistema (padrão)',
+    stack: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  },
   { id: 'inter', label: 'Inter', stack: '"Inter", system-ui, sans-serif' },
   { id: 'segoe-ui', label: 'Segoe UI', stack: '"Segoe UI", system-ui, sans-serif' },
   { id: 'roboto', label: 'Roboto', stack: '"Roboto", system-ui, sans-serif' },
@@ -108,7 +135,7 @@ const LANGUAGE_OPTIONS = [
 
 type SettingsTab = 'geral' | 'aparencia' | 'dados' | 'avancado'
 
-export function Settings({ }: SettingsProps) {
+export function Settings() {
   const { addToast } = useToast()
   const { dispatch } = useApp()
   const { t, i18n } = useTranslation('settings')
@@ -142,9 +169,13 @@ export function Settings({ }: SettingsProps) {
   })
   const [isSaving, setIsSaving] = useState(false)
   const [showApiKey, setShowApiKey] = useState(false)
-  const [backups, setBackups] = useState<{ filename: string; filePath: string; createdAt: string; sizeBytes: number }[]>([])
+  const [backups, setBackups] = useState<
+    { filename: string; filePath: string; createdAt: string; sizeBytes: number }[]
+  >([])
   const [backupLoading, setBackupLoading] = useState(false)
-  const [dbPathInfo, setDbPathInfo] = useState<{ currentPath: string; defaultPath: string; isCustom: boolean } | null>(null)
+  const [dbPathInfo, setDbPathInfo] = useState<{ currentPath: string; defaultPath: string; isCustom: boolean } | null>(
+    null
+  )
   const [dbPathLoading, setDbPathLoading] = useState(false)
   const [confirmModal, setConfirmModal] = useState<{
     title: string
@@ -300,9 +331,7 @@ export function Settings({ }: SettingsProps) {
 
     const existsAtDestination = await window.electronAPI.checkDatabaseExists(selectedPath)
 
-    const message = existsAtDestination
-      ? t('modals.change_db_message_exists')
-      : t('modals.change_db_message')
+    const message = existsAtDestination ? t('modals.change_db_message_exists') : t('modals.change_db_message')
 
     setConfirmModal({
       title: t('modals.change_db_title'),
@@ -321,9 +350,9 @@ export function Settings({ }: SettingsProps) {
       },
       onSecondAlternative: existsAtDestination
         ? async () => {
-          setConfirmModal(null)
-          await executeDatabasePathChange(selectedPath, 'existing')
-        }
+            setConfirmModal(null)
+            await executeDatabasePathChange(selectedPath, 'existing')
+          }
         : undefined,
     })
   }
@@ -350,9 +379,7 @@ export function Settings({ }: SettingsProps) {
     const defaultPath = dbPathInfo.defaultPath
     const existsAtDefault = await window.electronAPI.checkDatabaseExists(defaultPath)
 
-    const message = existsAtDefault
-      ? t('modals.restore_default_message_exists')
-      : t('modals.restore_default_message')
+    const message = existsAtDefault ? t('modals.restore_default_message_exists') : t('modals.restore_default_message')
 
     setConfirmModal({
       title: t('modals.restore_default_title'),
@@ -371,9 +398,9 @@ export function Settings({ }: SettingsProps) {
       },
       onSecondAlternative: existsAtDefault
         ? async () => {
-          setConfirmModal(null)
-          await executeResetDatabasePath('existing')
-        }
+            setConfirmModal(null)
+            await executeResetDatabasePath('existing')
+          }
         : undefined,
     })
   }
@@ -436,7 +463,7 @@ export function Settings({ }: SettingsProps) {
       } else if (settings.aiProvider === 'grok') {
         modelName = settings.grokModelId || 'grok-4.3-latest'
       } else {
-        const bedrockModel = AVAILABLE_MODELS.find(m => m.id === settings.modelId)
+        const bedrockModel = AVAILABLE_MODELS.find((m) => m.id === settings.modelId)
         modelName = bedrockModel ? bedrockModel.label.split(' (')[0] : settings.modelId
       }
       dispatch({ type: 'SET_MODEL_LABEL', label: `${provider} · ${modelName}` })
@@ -454,12 +481,18 @@ export function Settings({ }: SettingsProps) {
 
   const getEmbeddingModelLabel = (provider: AIProvider): string => {
     switch (provider) {
-      case 'openai': return 'text-embedding-3-small'
-      case 'bedrock': return 'amazon.titan-embed-text-v2'
-      case 'gemini': return 'text-embedding-004'
-      case 'local': return settings.localModelId || 'local embedding'
-      case 'grok': return t('geral.embedding_not_supported')
-      default: return '—'
+      case 'openai':
+        return 'text-embedding-3-small'
+      case 'bedrock':
+        return 'amazon.titan-embed-text-v2'
+      case 'gemini':
+        return 'text-embedding-004'
+      case 'local':
+        return settings.localModelId || 'local embedding'
+      case 'grok':
+        return t('geral.embedding_not_supported')
+      default:
+        return '—'
     }
   }
 
@@ -469,9 +502,7 @@ export function Settings({ }: SettingsProps) {
       <div className="settings-group">
         <div className="settings-item">
           <div className="settings-item-label">{t('geral.my_name_label')}</div>
-          <div className="settings-item-description">
-            {t('geral.my_name_description')}
-          </div>
+          <div className="settings-item-description">{t('geral.my_name_description')}</div>
           <input
             type="text"
             className="vscode-input"
@@ -487,11 +518,10 @@ export function Settings({ }: SettingsProps) {
       <div className="settings-group">
         <div className="settings-item">
           <div className="settings-item-label">{t('geral.ai_provider_label')}</div>
-          <div className="settings-item-description">
-            {t('geral.ai_provider_description')}
-          </div>
+          <div className="settings-item-description">{t('geral.ai_provider_description')}</div>
           <div className="provider-toggle" style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
             <button
+              type="button"
               className={`vscode-button ${settings.aiProvider === 'bedrock' ? '' : 'secondary'}`}
               onClick={() => setSettings({ ...settings, aiProvider: 'bedrock' })}
               style={{ display: 'flex', alignItems: 'center', gap: 6 }}
@@ -500,6 +530,7 @@ export function Settings({ }: SettingsProps) {
               AWS Bedrock
             </button>
             <button
+              type="button"
               className={`vscode-button ${settings.aiProvider === 'openai' ? '' : 'secondary'}`}
               onClick={() => setSettings({ ...settings, aiProvider: 'openai' })}
               style={{ display: 'flex', alignItems: 'center', gap: 6 }}
@@ -508,6 +539,7 @@ export function Settings({ }: SettingsProps) {
               OpenAI
             </button>
             <button
+              type="button"
               className={`vscode-button ${settings.aiProvider === 'gemini' ? '' : 'secondary'}`}
               onClick={() => setSettings({ ...settings, aiProvider: 'gemini' })}
               style={{ display: 'flex', alignItems: 'center', gap: 6 }}
@@ -516,6 +548,7 @@ export function Settings({ }: SettingsProps) {
               Gemini
             </button>
             <button
+              type="button"
               className={`vscode-button ${settings.aiProvider === 'grok' ? '' : 'secondary'}`}
               onClick={() => setSettings({ ...settings, aiProvider: 'grok' })}
               style={{ display: 'flex', alignItems: 'center', gap: 6 }}
@@ -524,6 +557,7 @@ export function Settings({ }: SettingsProps) {
               Grok
             </button>
             <button
+              type="button"
               className={`vscode-button ${settings.aiProvider === 'local' ? '' : 'secondary'}`}
               onClick={() => setSettings({ ...settings, aiProvider: 'local' })}
               style={{ display: 'flex', alignItems: 'center', gap: 6 }}
@@ -543,25 +577,23 @@ export function Settings({ }: SettingsProps) {
         <div className="settings-group">
           <div className="settings-item">
             <div className="settings-item-label">{t('geral.aws_region_label')}</div>
-            <div className="settings-item-description">
-              {t('geral.aws_region_description')}
-            </div>
+            <div className="settings-item-description">{t('geral.aws_region_description')}</div>
             <select
               className="vscode-select"
               value={settings.awsRegion}
               onChange={(e) => setSettings({ ...settings, awsRegion: e.target.value })}
             >
               {AWS_REGIONS.map((region) => (
-                <option key={region} value={region}>{region}</option>
+                <option key={region} value={region}>
+                  {region}
+                </option>
               ))}
             </select>
           </div>
 
           <div className="settings-item">
             <div className="settings-item-label">{t('geral.api_key_bedrock_label')}</div>
-            <div className="settings-item-description">
-              {t('geral.api_key_bedrock_description')}
-            </div>
+            <div className="settings-item-description">{t('geral.api_key_bedrock_description')}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, maxWidth: 400 }}>
               <input
                 type={showApiKey ? 'text' : 'password'}
@@ -585,22 +617,24 @@ export function Settings({ }: SettingsProps) {
 
           <div className="settings-item">
             <div className="settings-item-label">{t('geral.model_label')}</div>
-            <div className="settings-item-description">
-              {t('geral.model_description')}
-            </div>
+            <div className="settings-item-description">{t('geral.model_description')}</div>
             <select
               className="vscode-select"
               value={settings.modelId}
               onChange={(e) => setSettings({ ...settings, modelId: e.target.value })}
             >
               <optgroup label="Claude (Anthropic)">
-                {AVAILABLE_MODELS.filter(m => m.category === 'Claude').map((model) => (
-                  <option key={model.id} value={model.id}>{model.label}</option>
+                {AVAILABLE_MODELS.filter((m) => m.category === 'Claude').map((model) => (
+                  <option key={model.id} value={model.id}>
+                    {model.label}
+                  </option>
                 ))}
               </optgroup>
               <optgroup label="Amazon Nova">
-                {AVAILABLE_MODELS.filter(m => m.category === 'Nova').map((model) => (
-                  <option key={model.id} value={model.id}>{model.label}</option>
+                {AVAILABLE_MODELS.filter((m) => m.category === 'Nova').map((model) => (
+                  <option key={model.id} value={model.id}>
+                    {model.label}
+                  </option>
                 ))}
               </optgroup>
             </select>
@@ -613,9 +647,7 @@ export function Settings({ }: SettingsProps) {
         <div className="settings-group">
           <div className="settings-item">
             <div className="settings-item-label">{t('geral.api_key_openai_label')}</div>
-            <div className="settings-item-description">
-              {t('geral.api_key_openai_description')}
-            </div>
+            <div className="settings-item-description">{t('geral.api_key_openai_description')}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, maxWidth: 400 }}>
               <input
                 type={showApiKey ? 'text' : 'password'}
@@ -639,16 +671,16 @@ export function Settings({ }: SettingsProps) {
 
           <div className="settings-item">
             <div className="settings-item-label">{t('geral.model_label')}</div>
-            <div className="settings-item-description">
-              {t('geral.model_openai_description')}
-            </div>
+            <div className="settings-item-description">{t('geral.model_openai_description')}</div>
             <select
               className="vscode-select"
               value={settings.openaiModelId}
               onChange={(e) => setSettings({ ...settings, openaiModelId: e.target.value })}
             >
               {OPENAI_MODELS.map((model) => (
-                <option key={model.id} value={model.id}>{model.label}</option>
+                <option key={model.id} value={model.id}>
+                  {model.label}
+                </option>
               ))}
             </select>
           </div>
@@ -660,9 +692,7 @@ export function Settings({ }: SettingsProps) {
         <div className="settings-group">
           <div className="settings-item">
             <div className="settings-item-label">{t('geral.api_key_gemini_label')}</div>
-            <div className="settings-item-description">
-              {t('geral.api_key_gemini_description')}
-            </div>
+            <div className="settings-item-description">{t('geral.api_key_gemini_description')}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, maxWidth: 400 }}>
               <input
                 type={showApiKey ? 'text' : 'password'}
@@ -686,16 +716,16 @@ export function Settings({ }: SettingsProps) {
 
           <div className="settings-item">
             <div className="settings-item-label">{t('geral.model_label')}</div>
-            <div className="settings-item-description">
-              {t('geral.model_gemini_description')}
-            </div>
+            <div className="settings-item-description">{t('geral.model_gemini_description')}</div>
             <select
               className="vscode-select"
               value={settings.geminiModelId}
               onChange={(e) => setSettings({ ...settings, geminiModelId: e.target.value })}
             >
               {GEMINI_MODELS.map((model) => (
-                <option key={model.id} value={model.id}>{model.label}</option>
+                <option key={model.id} value={model.id}>
+                  {model.label}
+                </option>
               ))}
             </select>
           </div>
@@ -707,9 +737,7 @@ export function Settings({ }: SettingsProps) {
         <div className="settings-group">
           <div className="settings-item">
             <div className="settings-item-label">{t('geral.api_key_grok_label')}</div>
-            <div className="settings-item-description">
-              {t('geral.api_key_grok_description')}
-            </div>
+            <div className="settings-item-description">{t('geral.api_key_grok_description')}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, maxWidth: 400 }}>
               <input
                 type={showApiKey ? 'text' : 'password'}
@@ -733,16 +761,16 @@ export function Settings({ }: SettingsProps) {
 
           <div className="settings-item">
             <div className="settings-item-label">{t('geral.model_label')}</div>
-            <div className="settings-item-description">
-              {t('geral.model_grok_description')}
-            </div>
+            <div className="settings-item-description">{t('geral.model_grok_description')}</div>
             <select
               className="vscode-select"
               value={settings.grokModelId}
               onChange={(e) => setSettings({ ...settings, grokModelId: e.target.value })}
             >
               {GROK_MODELS.map((model) => (
-                <option key={model.id} value={model.id}>{model.label}</option>
+                <option key={model.id} value={model.id}>
+                  {model.label}
+                </option>
               ))}
             </select>
           </div>
@@ -754,9 +782,7 @@ export function Settings({ }: SettingsProps) {
         <div className="settings-group">
           <div className="settings-item">
             <div className="settings-item-label">{t('geral.local_endpoint_label')}</div>
-            <div className="settings-item-description">
-              {t('geral.local_endpoint_description')}
-            </div>
+            <div className="settings-item-description">{t('geral.local_endpoint_description')}</div>
             <input
               type="text"
               className="vscode-input"
@@ -769,9 +795,7 @@ export function Settings({ }: SettingsProps) {
 
           <div className="settings-item">
             <div className="settings-item-label">{t('geral.local_model_label')}</div>
-            <div className="settings-item-description">
-              {t('geral.local_model_description')}
-            </div>
+            <div className="settings-item-description">{t('geral.local_model_description')}</div>
             <input
               type="text"
               className="vscode-input"
@@ -784,9 +808,7 @@ export function Settings({ }: SettingsProps) {
 
           <div className="settings-item">
             <div className="settings-item-label">{t('geral.local_api_key_label')}</div>
-            <div className="settings-item-description">
-              {t('geral.local_api_key_description')}
-            </div>
+            <div className="settings-item-description">{t('geral.local_api_key_description')}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, maxWidth: 400 }}>
               <input
                 type={showApiKey ? 'text' : 'password'}
@@ -808,7 +830,15 @@ export function Settings({ }: SettingsProps) {
             </div>
           </div>
 
-          <div className="settings-item" style={{ padding: '12px', borderRadius: 4, background: 'var(--vscode-editor-background)', border: '1px solid var(--vscode-panel-border)' }}>
+          <div
+            className="settings-item"
+            style={{
+              padding: '12px',
+              borderRadius: 4,
+              background: 'var(--vscode-editor-background)',
+              border: '1px solid var(--vscode-panel-border)',
+            }}
+          >
             <div style={{ fontSize: 12, opacity: 0.8, lineHeight: 1.5 }}>
               <strong>{t('geral.local_tip_prefix')}</strong> {t('geral.local_tip')}
             </div>
@@ -818,11 +848,7 @@ export function Settings({ }: SettingsProps) {
 
       {/* Save */}
       <div className="flex-row" style={{ marginTop: 16 }}>
-        <button
-          className="vscode-button"
-          onClick={handleSave}
-          disabled={isSaving}
-        >
+        <button type="button" className="vscode-button" onClick={handleSave} disabled={isSaving}>
           {isSaving ? t('save_button_saving') : t('save_button')}
         </button>
       </div>
@@ -840,16 +866,16 @@ export function Settings({ }: SettingsProps) {
 
         <div className="settings-item">
           <div className="settings-item-label">{t('aparencia.language_label')}</div>
-          <div className="settings-item-description">
-            {t('aparencia.language_description')}
-          </div>
+          <div className="settings-item-description">{t('aparencia.language_description')}</div>
           <select
             className="vscode-select"
             value={i18n.language}
             onChange={(e) => handleLanguageChange(e.target.value as SupportedLocale)}
           >
             {LANGUAGE_OPTIONS.map((option) => (
-              <option key={option.code} value={option.code}>{option.nativeName}</option>
+              <option key={option.code} value={option.code}>
+                {option.nativeName}
+              </option>
             ))}
           </select>
         </div>
@@ -863,28 +889,36 @@ export function Settings({ }: SettingsProps) {
 
         <div className="settings-item">
           <div className="settings-item-label">{t('aparencia.font_family_label')}</div>
-          <div className="settings-item-description">
-            {t('aparencia.font_family_description')}
-          </div>
+          <div className="settings-item-description">{t('aparencia.font_family_description')}</div>
           <select
             className="vscode-select"
             value={settings.fontFamily}
             onChange={(e) => setSettings({ ...settings, fontFamily: e.target.value })}
           >
             <optgroup label={t('aparencia.font_group_sans')}>
-              {FONT_FAMILIES.filter(f => !f.stack.includes('monospace') && !f.stack.includes('serif,')).map((font) => (
-                <option key={font.id} value={font.id}>{font.label}</option>
-              ))}
+              {FONT_FAMILIES.filter((f) => !f.stack.includes('monospace') && !f.stack.includes('serif,')).map(
+                (font) => (
+                  <option key={font.id} value={font.id}>
+                    {font.label}
+                  </option>
+                )
+              )}
             </optgroup>
             <optgroup label={t('aparencia.font_group_mono')}>
-              {FONT_FAMILIES.filter(f => f.stack.includes('monospace')).map((font) => (
-                <option key={font.id} value={font.id}>{font.label}</option>
+              {FONT_FAMILIES.filter((f) => f.stack.includes('monospace')).map((font) => (
+                <option key={font.id} value={font.id}>
+                  {font.label}
+                </option>
               ))}
             </optgroup>
             <optgroup label={t('aparencia.font_group_serif')}>
-              {FONT_FAMILIES.filter(f => f.stack.includes('serif,') && !f.stack.includes('sans-serif')).map((font) => (
-                <option key={font.id} value={font.id}>{font.label}</option>
-              ))}
+              {FONT_FAMILIES.filter((f) => f.stack.includes('serif,') && !f.stack.includes('sans-serif')).map(
+                (font) => (
+                  <option key={font.id} value={font.id}>
+                    {font.label}
+                  </option>
+                )
+              )}
             </optgroup>
           </select>
         </div>
@@ -931,13 +965,15 @@ export function Settings({ }: SettingsProps) {
               borderRadius: 4,
               background: 'var(--vscode-editor-background)',
               border: '1px solid var(--vscode-panel-border)',
-              fontFamily: FONT_FAMILIES.find(f => f.id === settings.fontFamily)?.stack || 'system-ui',
+              fontFamily: FONT_FAMILIES.find((f) => f.id === settings.fontFamily)?.stack || 'system-ui',
               fontSize: `${settings.fontSize}px`,
               lineHeight: 1.6,
             }}
           >
             <p>{t('aparencia.font_preview_text_1')}</p>
-            <p style={{ marginTop: settings.uiDensity === 'compact' ? 4 : 8, opacity: 0.7 }}>{t('aparencia.font_preview_text_2')}</p>
+            <p style={{ marginTop: settings.uiDensity === 'compact' ? 4 : 8, opacity: 0.7 }}>
+              {t('aparencia.font_preview_text_2')}
+            </p>
           </div>
         </div>
       </div>
@@ -951,9 +987,7 @@ export function Settings({ }: SettingsProps) {
 
         <div className="settings-item">
           <div className="settings-item-label">{t('aparencia.date_format_label')}</div>
-          <div className="settings-item-description">
-            {t('aparencia.date_format_description')}
-          </div>
+          <div className="settings-item-description">{t('aparencia.date_format_description')}</div>
           <select
             className="vscode-select"
             value={settings.dateFormat}
@@ -973,24 +1007,24 @@ export function Settings({ }: SettingsProps) {
                 if (settings.dateFormat === 'DD/MM/YYYY') return `${d}/${m}/${y}`
                 if (settings.dateFormat === 'MM/DD/YYYY') return `${m}/${d}/${y}`
                 return `${y}-${m}-${d}`
-              })()
+              })(),
             })}
           </div>
         </div>
 
         <div className="settings-item">
           <div className="settings-item-label">{t('aparencia.density_label')}</div>
-          <div className="settings-item-description">
-            {t('aparencia.density_description')}
-          </div>
+          <div className="settings-item-description">{t('aparencia.density_description')}</div>
           <div className="provider-toggle" style={{ display: 'flex', gap: 8, marginTop: 8 }}>
             <button
+              type="button"
               className={`vscode-button ${settings.uiDensity === 'comfortable' ? '' : 'secondary'}`}
               onClick={() => setSettings({ ...settings, uiDensity: 'comfortable' })}
             >
               {t('aparencia.density_comfortable')}
             </button>
             <button
+              type="button"
               className={`vscode-button ${settings.uiDensity === 'compact' ? '' : 'secondary'}`}
               onClick={() => setSettings({ ...settings, uiDensity: 'compact' })}
             >
@@ -1002,11 +1036,7 @@ export function Settings({ }: SettingsProps) {
 
       {/* Save */}
       <div className="flex-row" style={{ marginTop: 16 }}>
-        <button
-          className="vscode-button"
-          onClick={handleSave}
-          disabled={isSaving}
-        >
+        <button type="button" className="vscode-button" onClick={handleSave} disabled={isSaving}>
           {isSaving ? t('save_button_saving') : t('save_button')}
         </button>
       </div>
@@ -1024,9 +1054,7 @@ export function Settings({ }: SettingsProps) {
 
         <div className="settings-item">
           <div className="settings-item-label">{t('dados.backup_frequency_label')}</div>
-          <div className="settings-item-description">
-            {t('dados.backup_frequency_description')}
-          </div>
+          <div className="settings-item-description">{t('dados.backup_frequency_description')}</div>
           <select
             className="vscode-select"
             value={settings.backupFrequency}
@@ -1074,15 +1102,12 @@ export function Settings({ }: SettingsProps) {
         </div>
 
         <div className="flex-row" style={{ gap: 8, marginBottom: 16 }}>
-          <button
-            className="vscode-button"
-            onClick={handleExportBackup}
-            disabled={backupLoading}
-          >
+          <button type="button" className="vscode-button" onClick={handleExportBackup} disabled={backupLoading}>
             <Download size={14} style={{ marginRight: 4 }} />
             {t('dados.backup_export')}
           </button>
           <button
+            type="button"
             className="vscode-button secondary"
             onClick={handleImportBackup}
             disabled={backupLoading}
@@ -1115,6 +1140,7 @@ export function Settings({ }: SettingsProps) {
                   </div>
                   <div style={{ display: 'flex', gap: 4 }}>
                     <button
+                      type="button"
                       className="icon-button"
                       title={t('dados.backup_restore_title')}
                       onClick={() => handleRestoreBackup(backup.filePath)}
@@ -1123,6 +1149,7 @@ export function Settings({ }: SettingsProps) {
                       <RotateCcw size={14} />
                     </button>
                     <button
+                      type="button"
                       className="icon-button"
                       title={t('dados.backup_delete_title')}
                       onClick={() => handleDeleteBackup(backup.filePath)}
@@ -1154,9 +1181,7 @@ export function Settings({ }: SettingsProps) {
         </div>
 
         <div className="settings-item">
-          <div className="settings-item-description">
-            {t('dados.db_description')}
-          </div>
+          <div className="settings-item-description">{t('dados.db_description')}</div>
         </div>
 
         {dbPathInfo && (
@@ -1185,16 +1210,13 @@ export function Settings({ }: SettingsProps) {
         )}
 
         <div className="flex-row" style={{ gap: 8, marginTop: 8 }}>
-          <button
-            className="vscode-button"
-            onClick={handleChangeDatabasePath}
-            disabled={dbPathLoading}
-          >
+          <button type="button" className="vscode-button" onClick={handleChangeDatabasePath} disabled={dbPathLoading}>
             <FolderOpen size={14} style={{ marginRight: 4 }} />
             {t('dados.db_change_location')}
           </button>
           {dbPathInfo?.isCustom && (
             <button
+              type="button"
               className="vscode-button secondary"
               onClick={handleResetDatabasePath}
               disabled={dbPathLoading}
@@ -1208,11 +1230,7 @@ export function Settings({ }: SettingsProps) {
 
       {/* Save */}
       <div className="flex-row" style={{ marginTop: 16 }}>
-        <button
-          className="vscode-button"
-          onClick={handleSave}
-          disabled={isSaving}
-        >
+        <button type="button" className="vscode-button" onClick={handleSave} disabled={isSaving}>
           {isSaving ? t('save_button_saving') : t('save_button')}
         </button>
       </div>
@@ -1230,9 +1248,7 @@ export function Settings({ }: SettingsProps) {
 
         <div className="settings-item">
           <div className="settings-item-label">{t('avancado.tray_label')}</div>
-          <div className="settings-item-description">
-            {t('avancado.tray_description')}
-          </div>
+          <div className="settings-item-description">{t('avancado.tray_description')}</div>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, cursor: 'pointer' }}>
             <input
               type="checkbox"
@@ -1245,9 +1261,7 @@ export function Settings({ }: SettingsProps) {
 
         <div className="settings-item">
           <div className="settings-item-label">{t('avancado.notifications_label')}</div>
-          <div className="settings-item-description">
-            {t('avancado.notifications_description')}
-          </div>
+          <div className="settings-item-description">{t('avancado.notifications_description')}</div>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, cursor: 'pointer' }}>
             <input
               type="checkbox"
@@ -1260,9 +1274,7 @@ export function Settings({ }: SettingsProps) {
 
         <div className="settings-item">
           <div className="settings-item-label">{t('avancado.task_check_label')}</div>
-          <div className="settings-item-description">
-            {t('avancado.task_check_description')}
-          </div>
+          <div className="settings-item-description">{t('avancado.task_check_description')}</div>
           <select
             className="vscode-select"
             value={settings.taskCheckInterval}
@@ -1286,9 +1298,7 @@ export function Settings({ }: SettingsProps) {
 
         <div className="settings-item">
           <div className="settings-item-label">{t('avancado.digest_show_label')}</div>
-          <div className="settings-item-description">
-            {t('avancado.digest_show_description')}
-          </div>
+          <div className="settings-item-description">{t('avancado.digest_show_description')}</div>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, cursor: 'pointer' }}>
             <input
               type="checkbox"
@@ -1302,9 +1312,7 @@ export function Settings({ }: SettingsProps) {
         {settings.dailyDigestEnabled === 'true' && (
           <div className="settings-item">
             <div className="settings-item-label">{t('avancado.digest_sections_label')}</div>
-            <div className="settings-item-description">
-              {t('avancado.digest_sections_description')}
-            </div>
+            <div className="settings-item-description">{t('avancado.digest_sections_description')}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
               {[
                 { key: 'aiSuggestion', label: t('avancado.digest_section_ai') },
@@ -1345,9 +1353,7 @@ export function Settings({ }: SettingsProps) {
         </div>
 
         <div className="settings-item">
-          <div className="settings-item-description">
-            {t('avancado.shortcuts_description')}
-          </div>
+          <div className="settings-item-description">{t('avancado.shortcuts_description')}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
             {[
               { keys: 'Ctrl+K', description: t('avancado.shortcut_global_search') },
@@ -1368,15 +1374,19 @@ export function Settings({ }: SettingsProps) {
                 }}
               >
                 <span style={{ fontSize: 13 }}>{shortcut.description}</span>
-                <kbd style={{
-                  padding: '2px 8px',
-                  borderRadius: 3,
-                  background: 'var(--vscode-badge-background)',
-                  color: 'var(--vscode-badge-foreground)',
-                  fontSize: 12,
-                  fontFamily: 'monospace',
-                  whiteSpace: 'nowrap',
-                }}>{shortcut.keys}</kbd>
+                <kbd
+                  style={{
+                    padding: '2px 8px',
+                    borderRadius: 3,
+                    background: 'var(--vscode-badge-background)',
+                    color: 'var(--vscode-badge-foreground)',
+                    fontSize: 12,
+                    fontFamily: 'monospace',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {shortcut.keys}
+                </kbd>
               </div>
             ))}
           </div>
@@ -1391,11 +1401,10 @@ export function Settings({ }: SettingsProps) {
         </div>
 
         <div className="settings-item">
-          <div className="settings-item-description">
-            {t('avancado.logs_description')}
-          </div>
+          <div className="settings-item-description">{t('avancado.logs_description')}</div>
           <div className="flex-row" style={{ gap: 8, marginTop: 8 }}>
             <button
+              type="button"
               className="vscode-button secondary"
               onClick={() => window.electronAPI.openLogsFolder()}
             >
@@ -1403,6 +1412,7 @@ export function Settings({ }: SettingsProps) {
               {t('avancado.logs_open_folder')}
             </button>
             <button
+              type="button"
               className="vscode-button secondary"
               onClick={() => window.electronAPI.openUserDataFolder()}
             >
@@ -1421,20 +1431,14 @@ export function Settings({ }: SettingsProps) {
         </div>
 
         <div className="settings-item">
-          <div className="settings-item-description">
-            {t('avancado.embeddings_description')}
-          </div>
+          <div className="settings-item-description">{t('avancado.embeddings_description')}</div>
           <EmbeddingsStatus />
         </div>
       </div>
 
       {/* Save */}
       <div className="flex-row" style={{ marginTop: 16 }}>
-        <button
-          className="vscode-button"
-          onClick={handleSave}
-          disabled={isSaving}
-        >
+        <button type="button" className="vscode-button" onClick={handleSave} disabled={isSaving}>
           {isSaving ? t('save_button_saving') : t('save_button')}
         </button>
       </div>
@@ -1448,10 +1452,9 @@ export function Settings({ }: SettingsProps) {
 
         <div className="settings-item">
           <div className="settings-item-label">{t('avancado.reset_db_label')}</div>
-          <div className="settings-item-description">
-            {t('avancado.reset_db_description')}
-          </div>
+          <div className="settings-item-description">{t('avancado.reset_db_description')}</div>
           <button
+            type="button"
             className="vscode-button"
             style={{
               marginTop: 8,
@@ -1475,6 +1478,7 @@ export function Settings({ }: SettingsProps) {
       <div className="settings-tabs">
         {tabs.map((tab) => (
           <button
+            type="button"
             key={tab.id}
             className={`settings-tab ${activeTab === tab.id ? 'active' : ''}`}
             onClick={() => setActiveTab(tab.id)}
@@ -1502,7 +1506,7 @@ export function Settings({ }: SettingsProps) {
         alternativeLabel={confirmModal?.alternativeLabel}
         secondAlternativeLabel={confirmModal?.secondAlternativeLabel}
         variant={confirmModal?.variant ?? 'default'}
-        onConfirm={confirmModal?.onConfirm ?? (() => { })}
+        onConfirm={confirmModal?.onConfirm ?? (() => {})}
         onCancel={() => setConfirmModal(null)}
         onAlternative={confirmModal?.onAlternative}
         onSecondAlternative={confirmModal?.onSecondAlternative}

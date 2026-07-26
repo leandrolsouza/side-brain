@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import type React from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Flame } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -60,7 +61,6 @@ function getCurrentStreak(dayMap: Map<string, number>): number {
     } else if (i > 0) {
       break
     } else {
-      continue
     }
   }
   return streak
@@ -159,7 +159,10 @@ export function EntryActivityGraph() {
     return { grid, startDate, totalDays, dayMap, totalEntries }
   }, [activityData])
 
-  const monthLabels = useMemo(() => getMonthLabels(startDate, totalDays, i18n.language), [startDate, totalDays, i18n.language])
+  const monthLabels = useMemo(
+    () => getMonthLabels(startDate, totalDays, i18n.language),
+    [startDate, totalDays, i18n.language]
+  )
   const currentStreak = useMemo(() => getCurrentStreak(dayMap), [dayMap])
   const longestStreak = useMemo(() => getLongestStreak(dayMap, startDate, totalDays), [dayMap, startDate, totalDays])
   const dayLabels = useMemo(() => getDayLabels(i18n.language), [i18n.language])
@@ -184,7 +187,7 @@ export function EntryActivityGraph() {
   }
 
   const formatTooltipDate = (dateStr: string): string => {
-    const d = new Date(dateStr + 'T00:00:00')
+    const d = new Date(`${dateStr}T00:00:00`)
     return d.toLocaleDateString(i18n.language, { weekday: 'short', day: 'numeric', month: 'short' })
   }
 
@@ -228,11 +231,7 @@ export function EntryActivityGraph() {
         {/* Month labels */}
         <div className="activity-graph-months">
           {monthLabels.map((m, i) => (
-            <span
-              key={i}
-              className="activity-graph-month"
-              style={{ left: `${m.leftPx}px` }}
-            >
+            <span key={i} className="activity-graph-month" style={{ left: `${m.leftPx}px` }}>
               {m.label}
             </span>
           ))}
@@ -242,7 +241,9 @@ export function EntryActivityGraph() {
           {/* Day labels */}
           <div className="activity-graph-day-labels">
             {dayLabels.map((label, i) => (
-              <span key={i} className="activity-graph-day-label">{label}</span>
+              <span key={i} className="activity-graph-day-label">
+                {label}
+              </span>
             ))}
           </div>
 
@@ -263,10 +264,7 @@ export function EntryActivityGraph() {
 
             {/* Tooltip */}
             {tooltipData && (
-              <div
-                className="activity-graph-tooltip"
-                style={{ left: tooltipData.x, top: tooltipData.y }}
-              >
+              <div className="activity-graph-tooltip" style={{ left: tooltipData.x, top: tooltipData.y }}>
                 <strong>{t('activityGraph.tooltip', { count: tooltipData.count })}</strong>
                 <span>{formatTooltipDate(tooltipData.date)}</span>
               </div>

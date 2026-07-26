@@ -1,9 +1,22 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import type React from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  Plus, Trash2, Pencil, X, Check, Zap, FileText, Users, Gavel,
-  Lightbulb, Coffee, AlertTriangle, Bug, ChevronDown, ChevronUp,
-  Copy
+  Plus,
+  Trash2,
+  Pencil,
+  X,
+  Check,
+  Zap,
+  FileText,
+  Users,
+  Gavel,
+  Lightbulb,
+  Coffee,
+  Bug,
+  ChevronDown,
+  ChevronUp,
+  Copy,
 } from 'lucide-react'
 import { useToast } from './ToastContext'
 import { ConfirmModal } from './ConfirmModal'
@@ -38,17 +51,18 @@ export function TemplateManager() {
   return (
     <div className="template-manager">
       <div className="panel-header">
-        <span className="panel-title">
-          {t('template_manager.title', { defaultValue: 'Formulários & Snippets' })}
-        </span>
+        <span className="panel-title">{t('template_manager.title', { defaultValue: 'Formulários & Snippets' })}</span>
       </div>
       <p className="panel-description">
-        {t('template_manager.description', { defaultValue: 'Gerencie templates de formulário estruturado e snippets de texto rápido.' })}
+        {t('template_manager.description', {
+          defaultValue: 'Gerencie templates de formulário estruturado e snippets de texto rápido.',
+        })}
       </p>
 
       {/* Tabs */}
       <div className="settings-tabs" style={{ marginBottom: 16 }}>
         <button
+          type="button"
           className={`settings-tab ${activeTab === 'templates' ? 'active' : ''}`}
           onClick={() => setActiveTab('templates')}
         >
@@ -56,6 +70,7 @@ export function TemplateManager() {
           {t('template_manager.tab_templates', { defaultValue: 'Formulários' })}
         </button>
         <button
+          type="button"
           className={`settings-tab ${activeTab === 'snippets' ? 'active' : ''}`}
           onClick={() => setActiveTab('snippets')}
         >
@@ -88,7 +103,9 @@ function TemplatesPanel() {
     setTemplates(result)
   }, [])
 
-  useEffect(() => { loadTemplates() }, [loadTemplates])
+  useEffect(() => {
+    loadTemplates()
+  }, [loadTemplates])
 
   const handleDelete = async () => {
     if (!deleteTarget) return
@@ -97,7 +114,10 @@ function TemplatesPanel() {
       addToast(t('template_manager.template_deleted', { defaultValue: 'Template excluído' }), 'success')
       loadTemplates()
     } else {
-      addToast(t('template_manager.cannot_delete_default', { defaultValue: 'Templates padrão não podem ser excluídos' }), 'warning')
+      addToast(
+        t('template_manager.cannot_delete_default', { defaultValue: 'Templates padrão não podem ser excluídos' }),
+        'warning'
+      )
     }
     setDeleteTarget(null)
   }
@@ -105,7 +125,7 @@ function TemplatesPanel() {
   return (
     <div className="template-panel">
       <div className="template-panel-toolbar">
-        <button className="vscode-button secondary" onClick={() => setIsAdding(true)} disabled={isAdding}>
+        <button type="button" className="vscode-button secondary" onClick={() => setIsAdding(true)} disabled={isAdding}>
           <Plus size={14} />
           <span>{t('template_manager.add_template', { defaultValue: 'Novo formulário' })}</span>
         </button>
@@ -142,10 +162,26 @@ function TemplatesPanel() {
                 <div className="template-list-item-actions">
                   {!tpl.isDefault && (
                     <>
-                      <button className="inline-action-btn" onClick={(e) => { e.stopPropagation(); setEditingId(tpl.id) }} title="Editar">
+                      <button
+                        type="button"
+                        className="inline-action-btn"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setEditingId(tpl.id)
+                        }}
+                        title="Editar"
+                      >
                         <Pencil size={12} />
                       </button>
-                      <button className="inline-action-btn danger" onClick={(e) => { e.stopPropagation(); setDeleteTarget(tpl.id) }} title="Excluir">
+                      <button
+                        type="button"
+                        className="inline-action-btn danger"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setDeleteTarget(tpl.id)
+                        }}
+                        title="Excluir"
+                      >
                         <Trash2 size={12} />
                       </button>
                     </>
@@ -158,16 +194,18 @@ function TemplatesPanel() {
                 <div className="template-list-item-details">
                   {tpl.description && <p className="template-detail-description">{tpl.description}</p>}
                   <div className="template-detail-fields">
-                    {tpl.fields.sort((a, b) => a.sortOrder - b.sortOrder).map(f => (
-                      <div key={f.id} className="template-detail-field">
-                        <span className="template-detail-field-label">
-                          {f.label}
-                          {f.required && <span className="text-required">*</span>}
-                          {f.aiAutoFill && <span className="text-ai">✨</span>}
-                        </span>
-                        <span className="template-detail-field-type">{f.type}</span>
-                      </div>
-                    ))}
+                    {tpl.fields
+                      .sort((a, b) => a.sortOrder - b.sortOrder)
+                      .map((f) => (
+                        <div key={f.id} className="template-detail-field">
+                          <span className="template-detail-field-label">
+                            {f.label}
+                            {f.required && <span className="text-required">*</span>}
+                            {f.aiAutoFill && <span className="text-ai">✨</span>}
+                          </span>
+                          <span className="template-detail-field-type">{f.type}</span>
+                        </div>
+                      ))}
                   </div>
                   <div className="template-detail-output">
                     <strong>Formato de saída:</strong> <code>{tpl.outputFormat}</code>
@@ -182,7 +220,10 @@ function TemplatesPanel() {
                     await window.electronAPI.updateStructuredTemplate(tpl.id, data)
                     setEditingId(null)
                     loadTemplates()
-                    addToast(t('template_manager.template_updated', { defaultValue: 'Formulário atualizado' }), 'success')
+                    addToast(
+                      t('template_manager.template_updated', { defaultValue: 'Formulário atualizado' }),
+                      'success'
+                    )
                   }}
                   onCancel={() => setEditingId(null)}
                 />
@@ -195,7 +236,9 @@ function TemplatesPanel() {
       <ConfirmModal
         isOpen={!!deleteTarget}
         title={t('template_manager.delete_confirm_title', { defaultValue: 'Excluir formulário' })}
-        message={t('template_manager.delete_confirm_message', { defaultValue: 'Tem certeza que deseja excluir este formulário? Esta ação não pode ser desfeita.' })}
+        message={t('template_manager.delete_confirm_message', {
+          defaultValue: 'Tem certeza que deseja excluir este formulário? Esta ação não pode ser desfeita.',
+        })}
         variant="danger"
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
@@ -253,7 +296,7 @@ function TemplateEditor({ initial, onSave, onCancel }: TemplateEditorProps) {
     // Auto-generate output format if empty
     let format = outputFormat
     if (!format.trim()) {
-      format = fields.map(f => `${f.label}: {{${f.key}}}`).join('. ') + '.'
+      format = `${fields.map((f) => `${f.label}: {{${f.key}}}`).join('. ')}.`
     }
 
     onSave({
@@ -276,19 +319,30 @@ function TemplateEditor({ initial, onSave, onCancel }: TemplateEditorProps) {
       <div className="template-editor-row">
         <div className="template-editor-field" style={{ flex: 2 }}>
           <label>Nome</label>
-          <input className="vscode-input" value={name} onChange={e => setName(e.target.value)} placeholder="Nome do formulário" />
+          <input
+            className="vscode-input"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Nome do formulário"
+          />
         </div>
         <div className="template-editor-field" style={{ flex: 1 }}>
           <label>Categoria</label>
-          <select className="vscode-select" value={category} onChange={e => setCategory(e.target.value as TemplateCategory)}>
+          <select
+            className="vscode-select"
+            value={category}
+            onChange={(e) => setCategory(e.target.value as TemplateCategory)}
+          >
             {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
-              <option key={key} value={key}>{label}</option>
+              <option key={key} value={key}>
+                {label}
+              </option>
             ))}
           </select>
         </div>
         <div className="template-editor-field" style={{ flex: 1 }}>
           <label>Cor</label>
-          <select className="vscode-select" value={color} onChange={e => setColor(e.target.value)}>
+          <select className="vscode-select" value={color} onChange={(e) => setColor(e.target.value)}>
             <option value="neutral">Neutro</option>
             <option value="info">Info</option>
             <option value="warning">Alerta</option>
@@ -300,17 +354,32 @@ function TemplateEditor({ initial, onSave, onCancel }: TemplateEditorProps) {
 
       <div className="template-editor-field">
         <label>Descrição (opcional)</label>
-        <input className="vscode-input" value={description} onChange={e => setDescription(e.target.value)} placeholder="Breve descrição do propósito" />
+        <input
+          className="vscode-input"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Breve descrição do propósito"
+        />
       </div>
 
       <div className="template-editor-row">
         <div className="template-editor-field" style={{ flex: 1 }}>
           <label>Tipo sugerido</label>
-          <input className="vscode-input" value={hintType} onChange={e => setHintType(e.target.value)} placeholder="information" />
+          <input
+            className="vscode-input"
+            value={hintType}
+            onChange={(e) => setHintType(e.target.value)}
+            placeholder="information"
+          />
         </div>
         <div className="template-editor-field" style={{ flex: 1 }}>
           <label>Ação sugerida</label>
-          <input className="vscode-input" value={hintAction} onChange={e => setHintAction(e.target.value)} placeholder="none" />
+          <input
+            className="vscode-input"
+            value={hintAction}
+            onChange={(e) => setHintAction(e.target.value)}
+            placeholder="none"
+          />
         </div>
       </div>
 
@@ -318,7 +387,7 @@ function TemplateEditor({ initial, onSave, onCancel }: TemplateEditorProps) {
       <div className="template-editor-fields-section">
         <div className="template-editor-fields-header">
           <label>Campos ({fields.length})</label>
-          <button className="vscode-button secondary" onClick={addField} style={{ padding: '2px 8px' }}>
+          <button type="button" className="vscode-button secondary" onClick={addField} style={{ padding: '2px 8px' }}>
             <Plus size={12} />
             <span>Campo</span>
           </button>
@@ -329,21 +398,21 @@ function TemplateEditor({ initial, onSave, onCancel }: TemplateEditorProps) {
             <input
               className="vscode-input"
               value={field.key}
-              onChange={e => updateField(index, { key: e.target.value })}
+              onChange={(e) => updateField(index, { key: e.target.value })}
               placeholder="chave"
               style={{ width: 80 }}
             />
             <input
               className="vscode-input"
               value={field.label}
-              onChange={e => updateField(index, { label: e.target.value })}
+              onChange={(e) => updateField(index, { label: e.target.value })}
               placeholder="Label"
               style={{ flex: 1 }}
             />
             <select
               className="vscode-select"
               value={field.type}
-              onChange={e => updateField(index, { type: e.target.value as TemplateField['type'] })}
+              onChange={(e) => updateField(index, { type: e.target.value as TemplateField['type'] })}
               style={{ width: 100 }}
             >
               <option value="text">Texto</option>
@@ -353,14 +422,22 @@ function TemplateEditor({ initial, onSave, onCancel }: TemplateEditorProps) {
               <option value="mention">Pessoa</option>
             </select>
             <label className="template-editor-checkbox" title="Obrigatório">
-              <input type="checkbox" checked={field.required} onChange={e => updateField(index, { required: e.target.checked })} />
+              <input
+                type="checkbox"
+                checked={field.required}
+                onChange={(e) => updateField(index, { required: e.target.checked })}
+              />
               <span>Req</span>
             </label>
             <label className="template-editor-checkbox" title="Auto-fill IA">
-              <input type="checkbox" checked={field.aiAutoFill || false} onChange={e => updateField(index, { aiAutoFill: e.target.checked })} />
+              <input
+                type="checkbox"
+                checked={field.aiAutoFill || false}
+                onChange={(e) => updateField(index, { aiAutoFill: e.target.checked })}
+              />
               <span>IA</span>
             </label>
-            <button className="inline-action-btn danger" onClick={() => removeField(index)}>
+            <button type="button" className="inline-action-btn danger" onClick={() => removeField(index)}>
               <X size={12} />
             </button>
           </div>
@@ -372,17 +449,22 @@ function TemplateEditor({ initial, onSave, onCancel }: TemplateEditorProps) {
         <input
           className="vscode-input"
           value={outputFormat}
-          onChange={e => setOutputFormat(e.target.value)}
+          onChange={(e) => setOutputFormat(e.target.value)}
           placeholder="{{campo1}}: {{campo2}}. Contexto: {{campo3}}."
         />
       </div>
 
       <div className="template-editor-actions">
-        <button className="vscode-button" onClick={handleSave} disabled={!name.trim() || fields.length === 0}>
+        <button
+          type="button"
+          className="vscode-button"
+          onClick={handleSave}
+          disabled={!name.trim() || fields.length === 0}
+        >
           <Check size={14} />
           <span>{initial ? 'Salvar alterações' : 'Criar formulário'}</span>
         </button>
-        <button className="vscode-button secondary" onClick={onCancel}>
+        <button type="button" className="vscode-button secondary" onClick={onCancel}>
           <X size={14} />
           <span>Cancelar</span>
         </button>
@@ -412,7 +494,9 @@ function SnippetsPanel() {
     setSnippets(result)
   }, [])
 
-  useEffect(() => { loadSnippets() }, [loadSnippets])
+  useEffect(() => {
+    loadSnippets()
+  }, [loadSnippets])
 
   const resetForm = () => {
     setFormTrigger('')
@@ -464,7 +548,10 @@ function SnippetsPanel() {
       addToast(t('template_manager.snippet_deleted', { defaultValue: 'Snippet excluído' }), 'success')
       loadSnippets()
     } else {
-      addToast(t('template_manager.cannot_delete_default', { defaultValue: 'Snippets padrão não podem ser excluídos' }), 'warning')
+      addToast(
+        t('template_manager.cannot_delete_default', { defaultValue: 'Snippets padrão não podem ser excluídos' }),
+        'warning'
+      )
     }
     setDeleteTarget(null)
   }
@@ -478,7 +565,15 @@ function SnippetsPanel() {
   return (
     <div className="template-panel">
       <div className="template-panel-toolbar">
-        <button className="vscode-button secondary" onClick={() => { resetForm(); setIsAdding(true) }} disabled={isAdding || !!editingId}>
+        <button
+          type="button"
+          className="vscode-button secondary"
+          onClick={() => {
+            resetForm()
+            setIsAdding(true)
+          }}
+          disabled={isAdding || !!editingId}
+        >
           <Plus size={14} />
           <span>{t('template_manager.add_snippet', { defaultValue: 'Novo snippet' })}</span>
         </button>
@@ -495,7 +590,7 @@ function SnippetsPanel() {
                 <input
                   className="vscode-input"
                   value={formTrigger}
-                  onChange={e => setFormTrigger(e.target.value.replace(/\s/g, ''))}
+                  onChange={(e) => setFormTrigger(e.target.value.replace(/\s/g, ''))}
                   placeholder="dec"
                   style={{ flex: 1 }}
                 />
@@ -503,11 +598,16 @@ function SnippetsPanel() {
             </div>
             <div className="template-editor-field" style={{ flex: 1 }}>
               <label>Nome</label>
-              <input className="vscode-input" value={formLabel} onChange={e => setFormLabel(e.target.value)} placeholder="Decisão rápida" />
+              <input
+                className="vscode-input"
+                value={formLabel}
+                onChange={(e) => setFormLabel(e.target.value)}
+                placeholder="Decisão rápida"
+              />
             </div>
             <div className="template-editor-field" style={{ width: 120 }}>
               <label>Categoria</label>
-              <select className="vscode-select" value={formCategory} onChange={e => setFormCategory(e.target.value)}>
+              <select className="vscode-select" value={formCategory} onChange={(e) => setFormCategory(e.target.value)}>
                 <option value="general">Geral</option>
                 <option value="decision">Decisão</option>
                 <option value="demand">Demanda</option>
@@ -525,18 +625,23 @@ function SnippetsPanel() {
             <textarea
               className="vscode-textarea"
               value={formContent}
-              onChange={e => setFormContent(e.target.value)}
+              onChange={(e) => setFormContent(e.target.value)}
               placeholder="Decisão sobre [assunto]: [o que foi decidido]. Contexto: {{cursor}}"
               rows={3}
             />
           </div>
 
           <div className="template-editor-actions">
-            <button className="vscode-button" onClick={handleSave} disabled={!formTrigger.trim() || !formLabel.trim() || !formContent.trim()}>
+            <button
+              type="button"
+              className="vscode-button"
+              onClick={handleSave}
+              disabled={!formTrigger.trim() || !formLabel.trim() || !formContent.trim()}
+            >
               <Check size={14} />
               <span>{editingId ? 'Salvar' : 'Criar'}</span>
             </button>
-            <button className="vscode-button secondary" onClick={handleCancel}>
+            <button type="button" className="vscode-button secondary" onClick={handleCancel}>
               <X size={14} />
               <span>Cancelar</span>
             </button>
@@ -554,17 +659,31 @@ function SnippetsPanel() {
             <div className="snippet-list-actions">
               {!snippet.isDefault && (
                 <>
-                  <button className="inline-action-btn" onClick={() => startEditing(snippet)} title="Editar">
+                  <button
+                    type="button"
+                    className="inline-action-btn"
+                    onClick={() => startEditing(snippet)}
+                    title="Editar"
+                  >
                     <Pencil size={12} />
                   </button>
-                  <button className="inline-action-btn danger" onClick={() => setDeleteTarget(snippet.id)} title="Excluir">
+                  <button
+                    type="button"
+                    className="inline-action-btn danger"
+                    onClick={() => setDeleteTarget(snippet.id)}
+                    title="Excluir"
+                  >
                     <Trash2 size={12} />
                   </button>
                 </>
               )}
               <button
+                type="button"
                 className="inline-action-btn"
-                onClick={() => { navigator.clipboard.writeText(`/${snippet.triggerKey}`); addToast('Copiado!', 'success') }}
+                onClick={() => {
+                  navigator.clipboard.writeText(`/${snippet.triggerKey}`)
+                  addToast('Copiado!', 'success')
+                }}
                 title="Copiar atalho"
               >
                 <Copy size={12} />
@@ -577,7 +696,9 @@ function SnippetsPanel() {
       <ConfirmModal
         isOpen={!!deleteTarget}
         title={t('template_manager.delete_snippet_title', { defaultValue: 'Excluir snippet' })}
-        message={t('template_manager.delete_snippet_message', { defaultValue: 'Tem certeza que deseja excluir este snippet?' })}
+        message={t('template_manager.delete_snippet_message', {
+          defaultValue: 'Tem certeza que deseja excluir este snippet?',
+        })}
         variant="danger"
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}

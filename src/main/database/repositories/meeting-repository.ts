@@ -1,6 +1,6 @@
 import { v4 as uuid } from 'uuid'
 import { getDatabase } from '../schema'
-import { Meeting, MeetingStatus } from '../../../shared/types'
+import type { Meeting } from '../../../shared/types'
 
 export class MeetingRepository {
   getAll(projectId?: string): Meeting[] {
@@ -28,13 +28,15 @@ export class MeetingRepository {
 
   getById(id: string): Meeting | null {
     const db = getDatabase()
-    const row = db.prepare(`
+    const row = db
+      .prepare(`
       SELECT id, project_id as projectId, title, participants, meeting_date as meetingDate,
              started_at as startedAt, ended_at as endedAt, status, raw_notes as rawNotes,
              pasted_transcription as pastedTranscription,
              generated_minutes as generatedMinutes, created_at as createdAt
       FROM meetings WHERE id = ?
-    `).get(id) as any | undefined
+    `)
+      .get(id) as any | undefined
 
     if (!row) return null
     return this.deserialize(row)
@@ -42,24 +44,21 @@ export class MeetingRepository {
 
   getActive(): Meeting | null {
     const db = getDatabase()
-    const row = db.prepare(`
+    const row = db
+      .prepare(`
       SELECT id, project_id as projectId, title, participants, meeting_date as meetingDate,
              started_at as startedAt, ended_at as endedAt, status, raw_notes as rawNotes,
              pasted_transcription as pastedTranscription,
              generated_minutes as generatedMinutes, created_at as createdAt
       FROM meetings WHERE status = 'active' LIMIT 1
-    `).get() as any | undefined
+    `)
+      .get() as any | undefined
 
     if (!row) return null
     return this.deserialize(row)
   }
 
-  create(data: {
-    projectId: string
-    title: string
-    participants?: string[]
-    meetingDate?: string
-  }): Meeting {
+  create(data: { projectId: string; title: string; participants?: string[]; meetingDate?: string }): Meeting {
     const db = getDatabase()
     const id = uuid()
     const now = new Date().toISOString()
@@ -90,12 +89,11 @@ export class MeetingRepository {
 
   addNote(id: string, note: string): Meeting | null {
     const meeting = this.getById(id)
-    if (!meeting || meeting.status !== 'active') return null
+    if (meeting?.status !== 'active') return null
 
     const updatedNotes = [...meeting.rawNotes, note]
     const db = getDatabase()
-    db.prepare('UPDATE meetings SET raw_notes = ? WHERE id = ?')
-      .run(JSON.stringify(updatedNotes), id)
+    db.prepare('UPDATE meetings SET raw_notes = ? WHERE id = ?').run(JSON.stringify(updatedNotes), id)
 
     return { ...meeting, rawNotes: updatedNotes }
   }
@@ -105,20 +103,18 @@ export class MeetingRepository {
     if (!meeting) return null
 
     const db = getDatabase()
-    db.prepare('UPDATE meetings SET pasted_transcription = ? WHERE id = ?')
-      .run(transcription, id)
+    db.prepare('UPDATE meetings SET pasted_transcription = ? WHERE id = ?').run(transcription, id)
 
     return { ...meeting, pastedTranscription: transcription }
   }
 
   end(id: string): Meeting | null {
     const meeting = this.getById(id)
-    if (!meeting || meeting.status !== 'active') return null
+    if (meeting?.status !== 'active') return null
 
     const endedAt = new Date().toISOString()
     const db = getDatabase()
-    db.prepare('UPDATE meetings SET status = ?, ended_at = ? WHERE id = ?')
-      .run('ended', endedAt, id)
+    db.prepare('UPDATE meetings SET status = ?, ended_at = ? WHERE id = ?').run('ended', endedAt, id)
 
     return { ...meeting, status: 'ended', endedAt }
   }
@@ -128,8 +124,7 @@ export class MeetingRepository {
     if (!meeting) return null
 
     const db = getDatabase()
-    db.prepare('UPDATE meetings SET status = ?, generated_minutes = ? WHERE id = ?')
-      .run('processed', minutes, id)
+    db.prepare('UPDATE meetings SET status = ?, generated_minutes = ? WHERE id = ?').run('processed', minutes, id)
 
     return { ...meeting, status: 'processed', generatedMinutes: minutes }
   }

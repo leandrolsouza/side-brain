@@ -1,12 +1,12 @@
-import { Meeting, MeetingProcessResult, EntryType, ActionStatus } from '../../shared/types'
-import { MeetingRepository } from '../database/repositories/meeting-repository'
-import { EntryRepository } from '../database/repositories/entry-repository'
-import { ProjectRepository } from '../database/repositories/project-repository'
-import { TaskRepository } from '../database/repositories/task-repository'
-import { SettingsRepository } from '../database/repositories/settings-repository'
-import { NotificationRepository } from '../database/repositories/notification-repository'
+import type { Meeting, MeetingProcessResult, EntryType, ActionStatus } from '../../shared/types'
+import type { MeetingRepository } from '../database/repositories/meeting-repository'
+import type { EntryRepository } from '../database/repositories/entry-repository'
+import type { ProjectRepository } from '../database/repositories/project-repository'
+import type { TaskRepository } from '../database/repositories/task-repository'
+import type { SettingsRepository } from '../database/repositories/settings-repository'
+import type { NotificationRepository } from '../database/repositories/notification-repository'
 import { getErrorService } from './error-service'
-import { AIService } from './ai-service'
+import type { AIService } from './ai-service'
 import { t } from '../i18n'
 
 export class MeetingService {
@@ -18,7 +18,7 @@ export class MeetingService {
     private settingsRepo: SettingsRepository,
     private notificationRepo: NotificationRepository,
     private aiService: AIService
-  ) { }
+  ) {}
 
   create(data: { projectId: string; title: string; participants?: string[]; meetingDate?: string }): Meeting {
     return this.meetingRepo.create(data)
@@ -49,7 +49,7 @@ export class MeetingService {
   }
 
   delete(id: string): void {
-    return this.meetingRepo.delete(id)
+    this.meetingRepo.delete(id)
   }
 
   /**
@@ -107,43 +107,59 @@ export class MeetingService {
 
     if (overdue.length > 0) {
       contextParts.push(`\n${t('prompts.meeting_context.overdue_tasks', { count: overdue.length })}`)
-      overdue.forEach((task) => contextParts.push(`- ${task.title} (${t('prompts.meeting_context.deadline_label', { date: task.dueDate! })})`))
+      overdue.forEach((task) => {
+        contextParts.push(`- ${task.title} (${t('prompts.meeting_context.deadline_label', { date: task.dueDate! })})`)
+      })
     }
 
     if (blockers.length > 0) {
       contextParts.push(`\n${t('prompts.meeting_context.recent_blockers', { count: blockers.length })}`)
-      blockers.slice(0, 5).forEach((e) => contextParts.push(`- [${e.createdAt.split('T')[0]}] ${e.improvedText}`))
+      blockers.slice(0, 5).forEach((e) => {
+        contextParts.push(`- [${e.createdAt.split('T')[0]}] ${e.improvedText}`)
+      })
     }
 
     if (inProgress.length > 0) {
       contextParts.push(`\n${t('prompts.meeting_context.in_progress_tasks', { count: inProgress.length })}`)
-      inProgress.forEach((task) => contextParts.push(`- ${task.title}`))
+      inProgress.forEach((task) => {
+        contextParts.push(`- ${task.title}`)
+      })
     }
 
     if (waiting.length > 0) {
       contextParts.push(`\n${t('prompts.meeting_context.waiting_tasks', { count: waiting.length })}`)
-      waiting.forEach((task) => contextParts.push(`- ${task.title}`))
+      waiting.forEach((task) => {
+        contextParts.push(`- ${task.title}`)
+      })
     }
 
     if (decisions.length > 0) {
       contextParts.push(`\n${t('prompts.meeting_context.recent_decisions', { count: decisions.length })}`)
-      decisions.slice(0, 5).forEach((e) => contextParts.push(`- [${e.createdAt.split('T')[0]}] ${e.improvedText}`))
+      decisions.slice(0, 5).forEach((e) => {
+        contextParts.push(`- [${e.createdAt.split('T')[0]}] ${e.improvedText}`)
+      })
     }
 
     if (demands.length > 0) {
       contextParts.push(`\n${t('prompts.meeting_context.recent_demands', { count: demands.length })}`)
-      demands.slice(0, 5).forEach((e) => contextParts.push(`- [${e.createdAt.split('T')[0]}] ${e.improvedText}`))
+      demands.slice(0, 5).forEach((e) => {
+        contextParts.push(`- [${e.createdAt.split('T')[0]}] ${e.improvedText}`)
+      })
     }
 
     if (todo.length > 0) {
       contextParts.push(`\n${t('prompts.meeting_context.backlog', { count: todo.length })}`)
-      todo.slice(0, 5).forEach((task) => contextParts.push(`- ${task.title}`))
+      todo.slice(0, 5).forEach((task) => {
+        contextParts.push(`- ${task.title}`)
+      })
       if (todo.length > 5) contextParts.push(t('prompts.meeting_context.backlog_more', { count: todo.length - 5 }))
     }
 
     if (updates.length > 0) {
       contextParts.push(`\n${t('prompts.meeting_context.recent_updates')}`)
-      updates.slice(0, 5).forEach((e) => contextParts.push(`- [${e.createdAt.split('T')[0]}] ${e.improvedText}`))
+      updates.slice(0, 5).forEach((e) => {
+        contextParts.push(`- [${e.createdAt.split('T')[0]}] ${e.improvedText}`)
+      })
     }
 
     const userMessage = contextParts.join('\n')
@@ -197,7 +213,9 @@ export class MeetingService {
           body: error?.message || t('notifications.errors.meeting_process_detail'),
           metadata: { meetingId: id, meetingTitle: meeting.title },
         })
-      } catch { /* ignore notification creation failures */ }
+      } catch {
+        /* ignore notification creation failures */
+      }
 
       // Register in error center with AI response for debugging
       getErrorService().logError({

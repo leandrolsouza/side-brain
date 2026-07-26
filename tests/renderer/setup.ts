@@ -123,7 +123,13 @@ const mockElectronAPI = {
   getReportsData: vi.fn().mockResolvedValue({}),
 
   // AI Usage
-  getAIUsageSummary: vi.fn().mockResolvedValue({ totalCalls: 0, totalInputTokens: 0, totalOutputTokens: 0, totalEstimatedCost: 0, byOperation: [] }),
+  getAIUsageSummary: vi.fn().mockResolvedValue({
+    totalCalls: 0,
+    totalInputTokens: 0,
+    totalOutputTokens: 0,
+    totalEstimatedCost: 0,
+    byOperation: [],
+  }),
   getAIUsageDailyUsage: vi.fn().mockResolvedValue([]),
   getAIUsageHistory: vi.fn().mockResolvedValue([]),
 

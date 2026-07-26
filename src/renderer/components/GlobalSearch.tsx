@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import type React from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Entry, Task, Project } from '../../shared/types'
+import type { Entry, Task, Project } from '../../shared/types'
 
 interface GlobalSearchProps {
   isOpen: boolean
@@ -23,7 +24,6 @@ interface SearchResults {
   projects: Project[]
 }
 
-
 export function GlobalSearch({ isOpen, onClose, onNavigateToProject }: GlobalSearchProps) {
   const { t } = useTranslation('common')
   const [query, setQuery] = useState('')
@@ -45,7 +45,7 @@ export function GlobalSearch({ isOpen, onClose, onNavigateToProject }: GlobalSea
     if (isOpen) {
       window.electronAPI.getProjects().then(setAvailableProjects)
       window.electronAPI.getEntryTypes().then((types) => {
-        setEntryTypeLabels(Object.fromEntries(types.map(t => [t.key, t.label])))
+        setEntryTypeLabels(Object.fromEntries(types.map((t) => [t.key, t.label])))
       })
     }
   }, [isOpen])
@@ -105,13 +105,19 @@ export function GlobalSearch({ isOpen, onClose, onNavigateToProject }: GlobalSea
     const flat: Array<{ type: 'entry' | 'task' | 'project'; item: Entry | Task | Project }> = []
 
     if (activeFilter === 'all' || activeFilter === 'project') {
-      results.projects.forEach((p) => flat.push({ type: 'project', item: p }))
+      results.projects.forEach((p) => {
+        flat.push({ type: 'project', item: p })
+      })
     }
     if (activeFilter === 'all' || activeFilter === 'entry') {
-      results.entries.forEach((e) => flat.push({ type: 'entry', item: e }))
+      results.entries.forEach((e) => {
+        flat.push({ type: 'entry', item: e })
+      })
     }
     if (activeFilter === 'all' || activeFilter === 'task') {
-      results.tasks.forEach((t) => flat.push({ type: 'task', item: t }))
+      results.tasks.forEach((t) => {
+        flat.push({ type: 'task', item: t })
+      })
     }
 
     return flat
@@ -170,9 +176,12 @@ export function GlobalSearch({ isOpen, onClose, onNavigateToProject }: GlobalSea
 
   const getResultIcon = (type: 'entry' | 'task' | 'project'): string => {
     switch (type) {
-      case 'entry': return '📝'
-      case 'task': return '✅'
-      case 'project': return '📁'
+      case 'entry':
+        return '📝'
+      case 'task':
+        return '✅'
+      case 'project':
+        return '📁'
     }
   }
 
@@ -236,6 +245,7 @@ export function GlobalSearch({ isOpen, onClose, onNavigateToProject }: GlobalSea
             autoFocus
           />
           <button
+            type="button"
             className="global-search-filter-btn"
             onClick={() => setShowFilters(!showFilters)}
             title={t('filters')}
@@ -256,7 +266,9 @@ export function GlobalSearch({ isOpen, onClose, onNavigateToProject }: GlobalSea
               >
                 <option value="">{t('all')}</option>
                 {Object.entries(entryTypeLabels).map(([key, label]) => (
-                  <option key={key} value={key}>{label}</option>
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -268,7 +280,9 @@ export function GlobalSearch({ isOpen, onClose, onNavigateToProject }: GlobalSea
               >
                 <option value="">{t('all')}</option>
                 {availableProjects.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
                 ))}
               </select>
             </div>
@@ -292,26 +306,42 @@ export function GlobalSearch({ isOpen, onClose, onNavigateToProject }: GlobalSea
         {/* Type Tabs */}
         <div className="global-search-tabs">
           <button
+            type="button"
             className={`global-search-tab ${activeFilter === 'all' ? 'active' : ''}`}
-            onClick={() => { setActiveFilter('all'); setSelectedIndex(0) }}
+            onClick={() => {
+              setActiveFilter('all')
+              setSelectedIndex(0)
+            }}
           >
             {t('globalSearch.all', { count: totalResults })}
           </button>
           <button
+            type="button"
             className={`global-search-tab ${activeFilter === 'project' ? 'active' : ''}`}
-            onClick={() => { setActiveFilter('project'); setSelectedIndex(0) }}
+            onClick={() => {
+              setActiveFilter('project')
+              setSelectedIndex(0)
+            }}
           >
             {t('globalSearch.projects', { count: results.projects.length })}
           </button>
           <button
+            type="button"
             className={`global-search-tab ${activeFilter === 'entry' ? 'active' : ''}`}
-            onClick={() => { setActiveFilter('entry'); setSelectedIndex(0) }}
+            onClick={() => {
+              setActiveFilter('entry')
+              setSelectedIndex(0)
+            }}
           >
             {t('globalSearch.entries', { count: results.entries.length })}
           </button>
           <button
+            type="button"
             className={`global-search-tab ${activeFilter === 'task' ? 'active' : ''}`}
-            onClick={() => { setActiveFilter('task'); setSelectedIndex(0) }}
+            onClick={() => {
+              setActiveFilter('task')
+              setSelectedIndex(0)
+            }}
           >
             {t('globalSearch.tasks', { count: results.tasks.length })}
           </button>
@@ -319,9 +349,7 @@ export function GlobalSearch({ isOpen, onClose, onNavigateToProject }: GlobalSea
 
         {/* Results */}
         <div className="global-search-results" ref={resultsRef}>
-          {isLoading && (
-            <div className="global-search-empty">{t('globalSearch.searching')}</div>
-          )}
+          {isLoading && <div className="global-search-empty">{t('globalSearch.searching')}</div>}
 
           {!isLoading && query && flatResults.length === 0 && (
             <div className="global-search-empty">{t('globalSearch.noResults', { query })}</div>
@@ -333,28 +361,41 @@ export function GlobalSearch({ isOpen, onClose, onNavigateToProject }: GlobalSea
             </div>
           )}
 
-          {!isLoading && flatResults.map((result, index) => (
-            <div
-              key={`${result.type}-${(result.item as any).id}`}
-              className={`search-result-item ${index === selectedIndex ? 'selected' : ''}`}
-              onClick={() => handleResultClick(result)}
-              onMouseEnter={() => setSelectedIndex(index)}
-            >
-              <span className="search-result-icon">{getResultIcon(result.type)}</span>
-              <div className="search-result-content">
-                <span className="search-result-label">{getResultLabel(result)}</span>
-                <span className="search-result-meta">{getResultMeta(result)}</span>
+          {!isLoading &&
+            flatResults.map((result, index) => (
+              <div
+                key={`${result.type}-${(result.item as any).id}`}
+                className={`search-result-item ${index === selectedIndex ? 'selected' : ''}`}
+                onClick={() => handleResultClick(result)}
+                onMouseEnter={() => setSelectedIndex(index)}
+              >
+                <span className="search-result-icon">{getResultIcon(result.type)}</span>
+                <div className="search-result-content">
+                  <span className="search-result-label">{getResultLabel(result)}</span>
+                  <span className="search-result-meta">{getResultMeta(result)}</span>
+                </div>
+                <span className="search-result-type-badge">
+                  {result.type === 'entry'
+                    ? t('globalSearch.badgeEntry')
+                    : result.type === 'task'
+                      ? t('globalSearch.badgeTask')
+                      : t('globalSearch.badgeProject')}
+                </span>
               </div>
-              <span className="search-result-type-badge">{result.type === 'entry' ? t('globalSearch.badgeEntry') : result.type === 'task' ? t('globalSearch.badgeTask') : t('globalSearch.badgeProject')}</span>
-            </div>
-          ))}
+            ))}
         </div>
 
         {/* Footer */}
         <div className="global-search-footer">
-          <span><kbd>↑↓</kbd> {t('globalSearch.navigate')}</span>
-          <span><kbd>↵</kbd> {t('globalSearch.open')}</span>
-          <span><kbd>Esc</kbd> {t('globalSearch.closeKey')}</span>
+          <span>
+            <kbd>↑↓</kbd> {t('globalSearch.navigate')}
+          </span>
+          <span>
+            <kbd>↵</kbd> {t('globalSearch.open')}
+          </span>
+          <span>
+            <kbd>Esc</kbd> {t('globalSearch.closeKey')}
+          </span>
         </div>
       </div>
     </div>

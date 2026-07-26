@@ -877,7 +877,9 @@
 
 .team-discussion-entry.failed {
   border-left-color: #f44747;
-  border-color: rgba(244, 71, 71, 0.3);
+  border-top-color: rgba(244, 71, 71, 0.3);
+  border-right-color: rgba(244, 71, 71, 0.3);
+  border-bottom-color: rgba(244, 71, 71, 0.3);
 }
 
 .team-entry-header {

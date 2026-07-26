@@ -1,4 +1,7 @@
 import { safeStorage } from 'electron'
+import { createScopedLogger } from './logger'
+
+const logger = createScopedLogger('safe-storage')
 
 /**
  * Service that uses Electron's safeStorage to encrypt/decrypt sensitive strings.
@@ -80,7 +83,7 @@ export function decryptValue(storedValue: string, key?: string): string {
   // In dev mode, encrypted values from a previous production run or
   // a now-invalid DPAPI session should be cleared — signal corruption.
   if (isDev) {
-    console.warn(`[SafeStorage] Dev mode: found encrypted value for "${key}" that cannot be used. Clearing.`)
+    logger.warn(`[SafeStorage] Dev mode: found encrypted value for "${key}" that cannot be used. Clearing.`)
     throw new DecryptionError(key || 'unknown')
   }
 
@@ -91,7 +94,7 @@ export function decryptValue(storedValue: string, key?: string): string {
     const buffer = Buffer.from(base64, 'base64')
     return safeStorage.decryptString(buffer)
   } catch (error) {
-    console.warn('[SafeStorage] Failed to decrypt value — credential may need to be re-entered:', key || '(unknown key)')
+    logger.warn('[SafeStorage] Failed to decrypt value — credential may need to be re-entered:', key || '(unknown key)')
     throw new DecryptionError(key || 'unknown')
   }
 }
@@ -111,7 +114,7 @@ export function isSensitiveKey(key: string): boolean {
  * Returns the decrypted plain-text if successful, or null if decryption fails.
  */
 export function tryMigrateEncryptedValue(storedValue: string): string | null {
-  if (!storedValue || !storedValue.startsWith(ENCRYPTED_PREFIX)) return null
+  if (!storedValue?.startsWith(ENCRYPTED_PREFIX)) return null
   if (!isSafeStorageAvailable()) return null
 
   try {

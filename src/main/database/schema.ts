@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3'
-import path from 'path'
+import path from 'node:path'
 import { v4 as uuidv4 } from 'uuid'
 import { getConfigService } from '../services/config-service'
 import { DEFAULT_ENTRY_TYPES, DEFAULT_ACTION_STATUSES, DEFAULT_CAPTURE_TEMPLATES } from '../../shared/types'
@@ -17,7 +17,7 @@ export function getDatabase(): Database.Database {
 
   // Garante que o diretório existe
   const dir = path.dirname(dbPath)
-  const fs = require('fs')
+  const fs = require('node:fs')
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true })
   }
@@ -53,7 +53,7 @@ const migrations: Migration[] = [
     version: 1,
     name: 'add_due_date_to_tasks',
     up: (database) => {
-      const columns = database.prepare("PRAGMA table_info(tasks)").all() as { name: string }[]
+      const columns = database.prepare('PRAGMA table_info(tasks)').all() as { name: string }[]
       if (!columns.some((col) => col.name === 'due_date')) {
         database.exec(`ALTER TABLE tasks ADD COLUMN due_date TEXT`)
       }
@@ -64,7 +64,7 @@ const migrations: Migration[] = [
     version: 2,
     name: 'add_meeting_date_to_meetings',
     up: (database) => {
-      const columns = database.prepare("PRAGMA table_info(meetings)").all() as { name: string }[]
+      const columns = database.prepare('PRAGMA table_info(meetings)').all() as { name: string }[]
       if (!columns.some((col) => col.name === 'meeting_date')) {
         database.exec(`ALTER TABLE meetings ADD COLUMN meeting_date TEXT`)
         database.exec(`UPDATE meetings SET meeting_date = substr(started_at, 1, 10) WHERE meeting_date IS NULL`)
@@ -75,7 +75,7 @@ const migrations: Migration[] = [
     version: 3,
     name: 'add_active_to_projects',
     up: (database) => {
-      const columns = database.prepare("PRAGMA table_info(projects)").all() as { name: string }[]
+      const columns = database.prepare('PRAGMA table_info(projects)').all() as { name: string }[]
       if (!columns.some((col) => col.name === 'active')) {
         database.exec(`ALTER TABLE projects ADD COLUMN active INTEGER DEFAULT 1`)
       }
@@ -87,7 +87,7 @@ const migrations: Migration[] = [
     version: 4,
     name: 'add_assignee_to_tasks',
     up: (database) => {
-      const columns = database.prepare("PRAGMA table_info(tasks)").all() as { name: string }[]
+      const columns = database.prepare('PRAGMA table_info(tasks)').all() as { name: string }[]
       if (!columns.some((col) => col.name === 'assignee')) {
         database.exec(`ALTER TABLE tasks ADD COLUMN assignee TEXT`)
       }
@@ -98,35 +98,68 @@ const migrations: Migration[] = [
     name: 'seed_custom_fields',
     up: (database) => {
       // Seed custom_entry_types if empty
-      const entryTypeCount = database.prepare('SELECT COUNT(*) as count FROM custom_entry_types').get() as { count: number }
+      const entryTypeCount = database.prepare('SELECT COUNT(*) as count FROM custom_entry_types').get() as {
+        count: number
+      }
       if (entryTypeCount.count === 0) {
         const insertEntryType = database.prepare(
           `INSERT INTO custom_entry_types (id, key, label, icon, color, is_default, sort_order, allows_action) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
         )
         for (const et of DEFAULT_ENTRY_TYPES) {
-          insertEntryType.run(uuidv4(), et.key, et.label, et.icon, et.color, et.isDefault ? 1 : 0, et.sortOrder, et.allowsAction ? 1 : 0)
+          insertEntryType.run(
+            uuidv4(),
+            et.key,
+            et.label,
+            et.icon,
+            et.color,
+            et.isDefault ? 1 : 0,
+            et.sortOrder,
+            et.allowsAction ? 1 : 0
+          )
         }
       }
 
       // Seed custom_action_statuses if empty
-      const actionStatusCount = database.prepare('SELECT COUNT(*) as count FROM custom_action_statuses').get() as { count: number }
+      const actionStatusCount = database.prepare('SELECT COUNT(*) as count FROM custom_action_statuses').get() as {
+        count: number
+      }
       if (actionStatusCount.count === 0) {
         const insertActionStatus = database.prepare(
           `INSERT INTO custom_action_statuses (id, key, label, icon, color, is_default, is_final, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
         )
         for (const as_ of DEFAULT_ACTION_STATUSES) {
-          insertActionStatus.run(uuidv4(), as_.key, as_.label, as_.icon, as_.color, as_.isDefault ? 1 : 0, as_.isFinal ? 1 : 0, as_.sortOrder)
+          insertActionStatus.run(
+            uuidv4(),
+            as_.key,
+            as_.label,
+            as_.icon,
+            as_.color,
+            as_.isDefault ? 1 : 0,
+            as_.isFinal ? 1 : 0,
+            as_.sortOrder
+          )
         }
       }
 
       // Seed custom_capture_templates if empty
-      const templateCount = database.prepare('SELECT COUNT(*) as count FROM custom_capture_templates').get() as { count: number }
+      const templateCount = database.prepare('SELECT COUNT(*) as count FROM custom_capture_templates').get() as {
+        count: number
+      }
       if (templateCount.count === 0) {
         const insertTemplate = database.prepare(
           `INSERT INTO custom_capture_templates (id, label, prefix, placeholder, icon, hint_type, is_default, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
         )
         for (const tpl of DEFAULT_CAPTURE_TEMPLATES) {
-          insertTemplate.run(uuidv4(), tpl.label, tpl.prefix, tpl.placeholder, tpl.icon, tpl.hintType, tpl.isDefault ? 1 : 0, tpl.sortOrder)
+          insertTemplate.run(
+            uuidv4(),
+            tpl.label,
+            tpl.prefix,
+            tpl.placeholder,
+            tpl.icon,
+            tpl.hintType,
+            tpl.isDefault ? 1 : 0,
+            tpl.sortOrder
+          )
         }
       }
     },
@@ -171,7 +204,7 @@ const migrations: Migration[] = [
         for (const row of rows) {
           if (sensitiveKeys.includes(row.key) && row.value && !row.value.startsWith('enc::')) {
             const encrypted = safeStorage.encryptString(row.value)
-            const encodedValue = 'enc::' + encrypted.toString('base64')
+            const encodedValue = `enc::${encrypted.toString('base64')}`
             update.run(encodedValue, row.key)
           }
         }
@@ -474,9 +507,18 @@ const migrations: Migration[] = [
       )
       for (const tpl of DEFAULT_STRUCTURED_TEMPLATES) {
         insertTemplate.run(
-          uuidv4(), tpl.name, tpl.description, tpl.icon, tpl.color, tpl.category,
-          JSON.stringify(tpl.fields), tpl.outputFormat, tpl.hintType, tpl.hintAction,
-          tpl.isDefault ? 1 : 0, tpl.sortOrder
+          uuidv4(),
+          tpl.name,
+          tpl.description,
+          tpl.icon,
+          tpl.color,
+          tpl.category,
+          JSON.stringify(tpl.fields),
+          tpl.outputFormat,
+          tpl.hintType,
+          tpl.hintAction,
+          tpl.isDefault ? 1 : 0,
+          tpl.sortOrder
         )
       }
 
@@ -486,9 +528,7 @@ const migrations: Migration[] = [
          VALUES (?, ?, ?, ?, ?, ?, ?)`
       )
       for (const snp of DEFAULT_CAPTURE_SNIPPETS) {
-        insertSnippet.run(
-          uuidv4(), snp.triggerKey, snp.label, snp.content, snp.category, 0, snp.isDefault ? 1 : 0
-        )
+        insertSnippet.run(uuidv4(), snp.triggerKey, snp.label, snp.content, snp.category, 0, snp.isDefault ? 1 : 0)
       }
     },
   },
@@ -505,9 +545,9 @@ function runMigrations(database: Database.Database): void {
   `)
 
   // Get current version
-  const currentVersion = (
-    database.prepare('SELECT MAX(version) as version FROM schema_version').get() as { version: number | null }
-  ).version ?? 0
+  const currentVersion =
+    (database.prepare('SELECT MAX(version) as version FROM schema_version').get() as { version: number | null })
+      .version ?? 0
 
   // Run pending migrations inside a transaction
   const pendingMigrations = migrations.filter((m) => m.version > currentVersion)
@@ -517,7 +557,9 @@ function runMigrations(database: Database.Database): void {
   const applyMigrations = database.transaction(() => {
     for (const migration of pendingMigrations) {
       migration.up(database)
-      database.prepare('INSERT INTO schema_version (version, name) VALUES (?, ?)').run(migration.version, migration.name)
+      database
+        .prepare('INSERT INTO schema_version (version, name) VALUES (?, ?)')
+        .run(migration.version, migration.name)
     }
   })
 

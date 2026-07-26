@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { createTestDatabase, closeTestDatabase, getTestDatabase } from '../setup'
+import { createTestDatabase, closeTestDatabase } from '../setup'
 import { EntryService } from '../../../src/main/services/entry-service'
 import { EntryRepository } from '../../../src/main/database/repositories/entry-repository'
 import { ProjectRepository } from '../../../src/main/database/repositories/project-repository'
@@ -14,8 +14,8 @@ vi.mock('../../../src/main/database/schema', async () => {
   }
 })
 import { SettingsRepository } from '../../../src/main/database/repositories/settings-repository'
-import { AIService } from '../../../src/main/services/ai-service'
-import { AICategorizationResult, AppSettings } from '../../../src/shared/types'
+import type { AIService } from '../../../src/main/services/ai-service'
+import type { AICategorizationResult } from '../../../src/shared/types'
 
 // Mock do AIService
 const mockAIService = {
@@ -355,8 +355,22 @@ describe('EntryService', () => {
     it('deve filtrar por projectId', () => {
       const p1 = projectRepo.create('P1')
       const p2 = projectRepo.create('P2')
-      entryRepo.create({ rawText: 'E1', improvedText: 'E1', projectId: p1.id, type: 'information', action: 'none', reviewStatus: 'auto_approved' })
-      entryRepo.create({ rawText: 'E2', improvedText: 'E2', projectId: p2.id, type: 'information', action: 'none', reviewStatus: 'auto_approved' })
+      entryRepo.create({
+        rawText: 'E1',
+        improvedText: 'E1',
+        projectId: p1.id,
+        type: 'information',
+        action: 'none',
+        reviewStatus: 'auto_approved',
+      })
+      entryRepo.create({
+        rawText: 'E2',
+        improvedText: 'E2',
+        projectId: p2.id,
+        type: 'information',
+        action: 'none',
+        reviewStatus: 'auto_approved',
+      })
 
       const entries = service.getEntries(p1.id)
       expect(entries).toHaveLength(1)

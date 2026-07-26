@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import * as fc from 'fast-check'
 import i18n from 'i18next'
-import { initReactI18next } from 'react-i18next'
 import { initI18n, isValidLocale, SUPPORTED_LOCALES } from '../../../src/renderer/i18n'
 import { resources } from '../../../src/renderer/i18n/resources'
 
@@ -68,13 +67,10 @@ describe('Feature: i18n-multi-language, Property 1: Locale Persistence Round-Tri
 
   it('for any supported locale, initI18n(locale) sets i18n.language to that locale', () => {
     fc.assert(
-      fc.property(
-        fc.constantFrom(...SUPPORTED_LOCALES),
-        (locale) => {
-          resetI18n(locale)
-          expect(i18n.language).toBe(locale)
-        }
-      ),
+      fc.property(fc.constantFrom(...SUPPORTED_LOCALES), (locale) => {
+        resetI18n(locale)
+        expect(i18n.language).toBe(locale)
+      }),
       { numRuns: 100 }
     )
   })
@@ -97,9 +93,9 @@ describe('Feature: i18n-multi-language, Property 2: Invalid Locale Fallback', ()
   it('for any invalid locale string, initI18n falls back to pt-BR', () => {
     fc.assert(
       fc.property(
-        fc.string({ minLength: 0, maxLength: 50 }).filter(
-          (s) => !SUPPORTED_LOCALES.includes(s as typeof SUPPORTED_LOCALES[number])
-        ),
+        fc
+          .string({ minLength: 0, maxLength: 50 })
+          .filter((s) => !SUPPORTED_LOCALES.includes(s as (typeof SUPPORTED_LOCALES)[number])),
         (invalidLocale) => {
           resetI18n(invalidLocale)
           expect(i18n.language).toBe('pt-BR')
@@ -112,9 +108,9 @@ describe('Feature: i18n-multi-language, Property 2: Invalid Locale Fallback', ()
   it('isValidLocale returns false for any non-supported locale string', () => {
     fc.assert(
       fc.property(
-        fc.string({ minLength: 0, maxLength: 50 }).filter(
-          (s) => !SUPPORTED_LOCALES.includes(s as typeof SUPPORTED_LOCALES[number])
-        ),
+        fc
+          .string({ minLength: 0, maxLength: 50 })
+          .filter((s) => !SUPPORTED_LOCALES.includes(s as (typeof SUPPORTED_LOCALES)[number])),
         (invalidLocale) => {
           expect(isValidLocale(invalidLocale)).toBe(false)
         }
@@ -139,16 +135,13 @@ describe('Feature: i18n-multi-language, Property 3: Translation Key Fallback Cha
 
   it('for non-existent keys in both locales, t() returns the key string itself', () => {
     fc.assert(
-      fc.property(
-        fc.stringMatching(/^[a-z][a-zA-Z0-9]{2,15}$/),
-        (key) => {
-          // Use the default namespace (common) with a key that certainly doesn't exist
-          const fakeKey = `nonexistent_${key}_xyz`
-          // When using default namespace, i18next returns just the key
-          const result = i18n.t(fakeKey)
-          expect(result).toBe(fakeKey)
-        }
-      ),
+      fc.property(fc.stringMatching(/^[a-z][a-zA-Z0-9]{2,15}$/), (key) => {
+        // Use the default namespace (common) with a key that certainly doesn't exist
+        const fakeKey = `nonexistent_${key}_xyz`
+        // When using default namespace, i18next returns just the key
+        const result = i18n.t(fakeKey)
+        expect(result).toBe(fakeKey)
+      }),
       { numRuns: 100 }
     )
   })
@@ -159,21 +152,18 @@ describe('Feature: i18n-multi-language, Property 3: Translation Key Fallback Cha
     const allPtBRKeys = extractKeys(ptBRCommon)
 
     // Filter to leaf string keys (not plural-suffixed for simplicity)
-    const simpleKeys = allPtBRKeys.filter(k => {
+    const simpleKeys = allPtBRKeys.filter((k) => {
       const val = getNestedValue(ptBRCommon, k)
       return typeof val === 'string' && !k.endsWith('_one') && !k.endsWith('_other')
     })
 
     fc.assert(
-      fc.property(
-        fc.constantFrom(...simpleKeys),
-        (key) => {
-          resetI18n('en')
-          const result = i18n.t(`common:${key}`)
-          // The result should NOT be the raw key, it should resolve to either en or pt-BR value
-          expect(result).not.toBe(`common:${key}`)
-        }
-      ),
+      fc.property(fc.constantFrom(...simpleKeys), (key) => {
+        resetI18n('en')
+        const result = i18n.t(`common:${key}`)
+        // The result should NOT be the raw key, it should resolve to either en or pt-BR value
+        expect(result).not.toBe(`common:${key}`)
+      }),
       { numRuns: 100 }
     )
   })
@@ -193,7 +183,7 @@ describe('Feature: i18n-multi-language, Property 4: Namespace-Qualified Key Reso
 
   it('for any existing namespace:key pair, t() returns the stored value', () => {
     // Build a list of all valid namespace:key pairs from pt-BR resources
-    const namespaces = Object.keys(resources['pt-BR']) as Array<keyof typeof resources['pt-BR']>
+    const namespaces = Object.keys(resources['pt-BR']) as Array<keyof (typeof resources)['pt-BR']>
     const validPairs: Array<{ ns: string; key: string; value: string }> = []
 
     for (const ns of namespaces) {
@@ -208,20 +198,17 @@ describe('Feature: i18n-multi-language, Property 4: Namespace-Qualified Key Reso
     }
 
     fc.assert(
-      fc.property(
-        fc.constantFrom(...validPairs),
-        ({ ns, key, value }) => {
-          resetI18n('pt-BR')
-          const result = i18n.t(`${ns}:${key}`)
-          expect(result).toBe(value)
-        }
-      ),
+      fc.property(fc.constantFrom(...validPairs), ({ ns, key, value }) => {
+        resetI18n('pt-BR')
+        const result = i18n.t(`${ns}:${key}`)
+        expect(result).toBe(value)
+      }),
       { numRuns: 100 }
     )
   })
 
   it('for any existing namespace:key pair in en, t() returns the stored en value', () => {
-    const namespaces = Object.keys(resources.en) as Array<keyof typeof resources['en']>
+    const namespaces = Object.keys(resources.en) as Array<keyof (typeof resources)['en']>
     const validPairs: Array<{ ns: string; key: string; value: string }> = []
 
     for (const ns of namespaces) {
@@ -236,14 +223,11 @@ describe('Feature: i18n-multi-language, Property 4: Namespace-Qualified Key Reso
     }
 
     fc.assert(
-      fc.property(
-        fc.constantFrom(...validPairs),
-        ({ ns, key, value }) => {
-          resetI18n('en')
-          const result = i18n.t(`${ns}:${key}`)
-          expect(result).toBe(value)
-        }
-      ),
+      fc.property(fc.constantFrom(...validPairs), ({ ns, key, value }) => {
+        resetI18n('en')
+        const result = i18n.t(`${ns}:${key}`)
+        expect(result).toBe(value)
+      }),
       { numRuns: 100 }
     )
   })
@@ -264,7 +248,7 @@ describe('Feature: i18n-multi-language, Property 5: Interpolation Replacement', 
 
   it('for any interpolated key with all values provided, no {{...}} tokens remain', () => {
     // Collect all keys with interpolation placeholders
-    const namespaces = Object.keys(resources['pt-BR']) as Array<keyof typeof resources['pt-BR']>
+    const namespaces = Object.keys(resources['pt-BR']) as Array<keyof (typeof resources)['pt-BR']>
     const interpolatedKeys: Array<{ ns: string; key: string; placeholders: string[] }> = []
 
     for (const ns of namespaces) {
@@ -275,9 +259,9 @@ describe('Feature: i18n-multi-language, Property 5: Interpolation Replacement', 
         if (typeof val === 'string') {
           const matches = val.match(/\{\{(\w+)\}\}/g)
           if (matches) {
-            const placeholders = matches.map(m => m.replace(/\{\{|\}\}/g, ''))
+            const placeholders = matches.map((m) => m.replace(/\{\{|\}\}/g, ''))
             // Exclude count-based placeholders (handled by pluralization)
-            const nonCountPlaceholders = placeholders.filter(p => p !== 'count')
+            const nonCountPlaceholders = placeholders.filter((p) => p !== 'count')
             if (nonCountPlaceholders.length > 0) {
               interpolatedKeys.push({ ns, key, placeholders: nonCountPlaceholders })
             }
@@ -310,16 +294,13 @@ describe('Feature: i18n-multi-language, Property 5: Interpolation Replacement', 
 
   it('interpolation works with various value types (strings, numbers)', () => {
     fc.assert(
-      fc.property(
-        fc.string({ minLength: 1, maxLength: 30 }),
-        (name) => {
-          resetI18n('pt-BR')
-          // common:greeting in pt-BR is "Olá, {{name}}" — actually let's use about:version
-          const result = i18n.t('common:about.version', { version: name })
-          expect(result).not.toContain('{{version}}')
-          expect(result).toContain(name)
-        }
-      ),
+      fc.property(fc.string({ minLength: 1, maxLength: 30 }), (name) => {
+        resetI18n('pt-BR')
+        // common:greeting in pt-BR is "Olá, {{name}}" — actually let's use about:version
+        const result = i18n.t('common:about.version', { version: name })
+        expect(result).not.toContain('{{version}}')
+        expect(result).toContain(name)
+      }),
       { numRuns: 100 }
     )
   })
@@ -340,13 +321,13 @@ describe('Feature: i18n-multi-language, Property 6: Plural Form Selection', () =
 
   it('count === 1 selects _one form, any other count selects _other form', () => {
     // Collect all plural key bases from pt-BR
-    const namespaces = Object.keys(resources['pt-BR']) as Array<keyof typeof resources['pt-BR']>
+    const namespaces = Object.keys(resources['pt-BR']) as Array<keyof (typeof resources)['pt-BR']>
     const pluralBases: Array<{ ns: string; base: string; oneValue: string; otherValue: string }> = []
 
     for (const ns of namespaces) {
       const nsData = resources['pt-BR'][ns] as Record<string, unknown>
       const keys = extractKeys(nsData)
-      const oneKeys = keys.filter(k => k.endsWith('_one'))
+      const oneKeys = keys.filter((k) => k.endsWith('_one'))
       for (const oneKey of oneKeys) {
         const base = oneKey.replace(/_one$/, '')
         const otherKey = `${base}_other`
@@ -360,16 +341,13 @@ describe('Feature: i18n-multi-language, Property 6: Plural Form Selection', () =
 
     // Test: count=1 selects _one
     fc.assert(
-      fc.property(
-        fc.constantFrom(...pluralBases),
-        ({ ns, base, oneValue }) => {
-          resetI18n('pt-BR')
-          const result = i18n.t(`${ns}:${base}`, { count: 1 })
-          // The _one template with count=1 interpolated
-          const expected = oneValue.replace('{{count}}', '1')
-          expect(result).toBe(expected)
-        }
-      ),
+      fc.property(fc.constantFrom(...pluralBases), ({ ns, base, oneValue }) => {
+        resetI18n('pt-BR')
+        const result = i18n.t(`${ns}:${base}`, { count: 1 })
+        // The _one template with count=1 interpolated
+        const expected = oneValue.replace('{{count}}', '1')
+        expect(result).toBe(expected)
+      }),
       { numRuns: 100 }
     )
   })
@@ -377,13 +355,13 @@ describe('Feature: i18n-multi-language, Property 6: Plural Form Selection', () =
   it('count != 1 and count != -1 selects _other form (en locale)', () => {
     // English plural rules: count === 1 or count === -1 → _one; all others → _other.
     // i18next uses CLDR/Intl.PluralRules which considers abs(1) as "one".
-    const namespaces = Object.keys(resources.en) as Array<keyof typeof resources['en']>
+    const namespaces = Object.keys(resources.en) as Array<keyof (typeof resources)['en']>
     const pluralBases: Array<{ ns: string; base: string; otherValue: string }> = []
 
     for (const ns of namespaces) {
       const nsData = resources.en[ns] as Record<string, unknown>
       const keys = extractKeys(nsData)
-      const oneKeys = keys.filter(k => k.endsWith('_one'))
+      const oneKeys = keys.filter((k) => k.endsWith('_one'))
       for (const oneKey of oneKeys) {
         const base = oneKey.replace(/_one$/, '')
         const otherKey = `${base}_other`
@@ -397,7 +375,7 @@ describe('Feature: i18n-multi-language, Property 6: Plural Form Selection', () =
     fc.assert(
       fc.property(
         fc.constantFrom(...pluralBases),
-        fc.integer({ min: -1000, max: 1000 }).filter(n => n !== 1 && n !== -1),
+        fc.integer({ min: -1000, max: 1000 }).filter((n) => n !== 1 && n !== -1),
         ({ ns, base, otherValue }, count) => {
           resetI18n('en')
           const result = i18n.t(`${ns}:${base}`, { count })
@@ -411,13 +389,13 @@ describe('Feature: i18n-multi-language, Property 6: Plural Form Selection', () =
 
   it('in pt-BR locale, count > 1 selects _other form', () => {
     // In Portuguese, count > 1 always uses plural (_other)
-    const namespaces = Object.keys(resources['pt-BR']) as Array<keyof typeof resources['pt-BR']>
+    const namespaces = Object.keys(resources['pt-BR']) as Array<keyof (typeof resources)['pt-BR']>
     const pluralBases: Array<{ ns: string; base: string; otherValue: string }> = []
 
     for (const ns of namespaces) {
       const nsData = resources['pt-BR'][ns] as Record<string, unknown>
       const keys = extractKeys(nsData)
-      const oneKeys = keys.filter(k => k.endsWith('_one'))
+      const oneKeys = keys.filter((k) => k.endsWith('_one'))
       for (const oneKey of oneKeys) {
         const base = oneKey.replace(/_one$/, '')
         const otherKey = `${base}_other`
@@ -453,7 +431,7 @@ describe('Feature: i18n-multi-language, Property 7: Translation Key Parity Betwe
    */
 
   it('every key in pt-BR also exists in en across all namespaces', () => {
-    const namespaces = Object.keys(resources['pt-BR']) as Array<keyof typeof resources['pt-BR']>
+    const namespaces = Object.keys(resources['pt-BR']) as Array<keyof (typeof resources)['pt-BR']>
 
     // Collect all pt-BR keys
     const ptBRKeys: Array<{ ns: string; key: string }> = []
@@ -466,15 +444,12 @@ describe('Feature: i18n-multi-language, Property 7: Translation Key Parity Betwe
     }
 
     fc.assert(
-      fc.property(
-        fc.constantFrom(...ptBRKeys),
-        ({ ns, key }) => {
-          const enNsData = resources.en[ns as keyof typeof resources['en']] as Record<string, unknown>
-          const enValue = getNestedValue(enNsData, key)
-          expect(enValue).toBeDefined()
-          expect(typeof enValue).toBe('string')
-        }
-      ),
+      fc.property(fc.constantFrom(...ptBRKeys), ({ ns, key }) => {
+        const enNsData = resources.en[ns as keyof (typeof resources)['en']] as Record<string, unknown>
+        const enValue = getNestedValue(enNsData, key)
+        expect(enValue).toBeDefined()
+        expect(typeof enValue).toBe('string')
+      }),
       { numRuns: 100 }
     )
   })

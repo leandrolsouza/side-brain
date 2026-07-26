@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { BarChart3, Zap, DollarSign, Clock, RefreshCw } from 'lucide-react'
 import type { AIUsageSummary, AIUsageDailyPoint, AIUsageRecord, AIOperationType } from '../../shared/types'
@@ -6,13 +6,13 @@ import type { AIUsageSummary, AIUsageDailyPoint, AIUsageRecord, AIOperationType 
 type PeriodFilter = '7d' | '30d' | '90d' | 'all'
 
 function formatNumber(n: number, locale: string): string {
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M'
-  if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K'
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
   return n.toLocaleString(locale)
 }
 
 function formatCurrency(value: number): string {
-  return 'US$ ' + value.toFixed(4)
+  return `US$ ${value.toFixed(4)}`
 }
 
 function getDateRange(period: PeriodFilter): { dateFrom?: string; dateTo?: string } {
@@ -70,29 +70,35 @@ export function AIUsageDashboard() {
     loadData()
   }, [period])
 
-  const maxDailyTokens = Math.max(
-    ...dailyUsage.map((d) => d.inputTokens + d.outputTokens),
-    1
-  )
+  const maxDailyTokens = Math.max(...dailyUsage.map((d) => d.inputTokens + d.outputTokens), 1)
 
   return (
     <div className="ai-usage-dashboard">
       {/* Header */}
       <div className="ai-usage-header">
-        <h2><BarChart3 size={20} /> {t('aiUsage.title')}</h2>
+        <h2>
+          <BarChart3 size={20} /> {t('aiUsage.title')}
+        </h2>
         <div className="ai-usage-controls">
           <div className="ai-usage-period-filter">
             {(['7d', '30d', '90d', 'all'] as PeriodFilter[]).map((p) => (
               <button
+                type="button"
                 key={p}
                 className={`period-btn ${period === p ? 'active' : ''}`}
                 onClick={() => setPeriod(p)}
               >
-                {p === '7d' ? t('period7d') : p === '30d' ? t('period30d') : p === '90d' ? t('period90d') : t('periodAll')}
+                {p === '7d'
+                  ? t('period7d')
+                  : p === '30d'
+                    ? t('period30d')
+                    : p === '90d'
+                      ? t('period90d')
+                      : t('periodAll')}
               </button>
             ))}
           </div>
-          <button className="btn-icon" onClick={loadData} title={t('refresh')}>
+          <button type="button" className="btn-icon" onClick={loadData} title={t('refresh')}>
             <RefreshCw size={16} />
           </button>
         </div>
@@ -105,14 +111,18 @@ export function AIUsageDashboard() {
           {/* Summary Cards */}
           <div className="ai-usage-cards">
             <div className="ai-usage-card">
-              <div className="ai-usage-card-icon"><Zap size={20} /></div>
+              <div className="ai-usage-card-icon">
+                <Zap size={20} />
+              </div>
               <div className="ai-usage-card-content">
                 <span className="ai-usage-card-value">{summary?.totalCalls ?? 0}</span>
                 <span className="ai-usage-card-label">{t('aiUsage.calls')}</span>
               </div>
             </div>
             <div className="ai-usage-card">
-              <div className="ai-usage-card-icon"><BarChart3 size={20} /></div>
+              <div className="ai-usage-card-icon">
+                <BarChart3 size={20} />
+              </div>
               <div className="ai-usage-card-content">
                 <span className="ai-usage-card-value">
                   {formatNumber((summary?.totalInputTokens ?? 0) + (summary?.totalOutputTokens ?? 0), i18n.language)}
@@ -121,17 +131,22 @@ export function AIUsageDashboard() {
               </div>
             </div>
             <div className="ai-usage-card">
-              <div className="ai-usage-card-icon"><DollarSign size={20} /></div>
+              <div className="ai-usage-card-icon">
+                <DollarSign size={20} />
+              </div>
               <div className="ai-usage-card-content">
                 <span className="ai-usage-card-value">{formatCurrency(summary?.totalEstimatedCost ?? 0)}</span>
                 <span className="ai-usage-card-label">{t('aiUsage.estimatedCost')}</span>
               </div>
             </div>
             <div className="ai-usage-card">
-              <div className="ai-usage-card-icon"><Clock size={20} /></div>
+              <div className="ai-usage-card-icon">
+                <Clock size={20} />
+              </div>
               <div className="ai-usage-card-content">
                 <span className="ai-usage-card-value">
-                  {formatNumber(summary?.totalInputTokens ?? 0, i18n.language)} / {formatNumber(summary?.totalOutputTokens ?? 0, i18n.language)}
+                  {formatNumber(summary?.totalInputTokens ?? 0, i18n.language)} /{' '}
+                  {formatNumber(summary?.totalOutputTokens ?? 0, i18n.language)}
                 </span>
                 <span className="ai-usage-card-label">{t('aiUsage.inputOutput')}</span>
               </div>
@@ -143,25 +158,39 @@ export function AIUsageDashboard() {
             <div className="ai-usage-section">
               <h3>{t('aiUsage.dailyUsage')}</h3>
               <div className="ai-usage-chart">
-                {dailyUsage.slice(0, 30).reverse().map((day) => {
-                  const totalTokens = day.inputTokens + day.outputTokens
-                  const heightPercent = (totalTokens / maxDailyTokens) * 100
-                  const inputPercent = totalTokens > 0 ? (day.inputTokens / totalTokens) * 100 : 0
-                  return (
-                    <div key={day.date} className="ai-usage-chart-bar-wrapper" title={t('aiUsage.chartTooltip', { date: day.date, calls: day.calls, tokens: formatNumber(totalTokens, i18n.language), cost: formatCurrency(day.estimatedCost) })}>
-                      <div className="ai-usage-chart-bar" style={{ height: `${Math.max(heightPercent, 2)}%` }}>
-                        <div className="ai-usage-chart-bar-input" style={{ height: `${inputPercent}%` }} />
+                {dailyUsage
+                  .slice(0, 30)
+                  .reverse()
+                  .map((day) => {
+                    const totalTokens = day.inputTokens + day.outputTokens
+                    const heightPercent = (totalTokens / maxDailyTokens) * 100
+                    const inputPercent = totalTokens > 0 ? (day.inputTokens / totalTokens) * 100 : 0
+                    return (
+                      <div
+                        key={day.date}
+                        className="ai-usage-chart-bar-wrapper"
+                        title={t('aiUsage.chartTooltip', {
+                          date: day.date,
+                          calls: day.calls,
+                          tokens: formatNumber(totalTokens, i18n.language),
+                          cost: formatCurrency(day.estimatedCost),
+                        })}
+                      >
+                        <div className="ai-usage-chart-bar" style={{ height: `${Math.max(heightPercent, 2)}%` }}>
+                          <div className="ai-usage-chart-bar-input" style={{ height: `${inputPercent}%` }} />
+                        </div>
+                        <span className="ai-usage-chart-label">{day.date.slice(8, 10)}</span>
                       </div>
-                      <span className="ai-usage-chart-label">
-                        {day.date.slice(8, 10)}
-                      </span>
-                    </div>
-                  )
-                })}
+                    )
+                  })}
               </div>
               <div className="ai-usage-chart-legend">
-                <span><span className="legend-dot legend-input" /> Input</span>
-                <span><span className="legend-dot legend-output" /> Output</span>
+                <span>
+                  <span className="legend-dot legend-input" /> Input
+                </span>
+                <span>
+                  <span className="legend-dot legend-output" /> Output
+                </span>
               </div>
             </div>
           )}
@@ -215,7 +244,14 @@ export function AIUsageDashboard() {
                   <tbody>
                     {history.slice(0, 20).map((record) => (
                       <tr key={record.id}>
-                        <td>{new Date(record.createdAt).toLocaleString(i18n.language, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
+                        <td>
+                          {new Date(record.createdAt).toLocaleString(i18n.language, {
+                            day: '2-digit',
+                            month: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </td>
                         <td>{getOperationLabel(record.operationType)}</td>
                         <td>{formatNumber(record.inputTokens + record.outputTokens, i18n.language)}</td>
                         <td>{formatCurrency(record.estimatedCost)}</td>

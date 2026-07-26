@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { OnboardingWelcome } from './OnboardingWelcome'
 import { OnboardingApiKey } from './OnboardingApiKey'
 import { OnboardingFirstProject } from './OnboardingFirstProject'
@@ -41,7 +41,9 @@ export function OnboardingFlow({ onComplete }: Props) {
   const handleImportComplete = async () => {
     try {
       await window.electronAPI.updateSettings({ onboardingCompleted: 'true' })
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     onComplete()
   }
 
@@ -55,7 +57,9 @@ export function OnboardingFlow({ onComplete }: Props) {
         else if (provider === 'grok') updates.grokApiKey = apiKey
 
         await window.electronAPI.updateSettings(updates)
-      } catch { /* ignore — user can configure later */ }
+      } catch {
+        /* ignore — user can configure later */
+      }
     }
     goToNext()
   }
@@ -67,7 +71,9 @@ export function OnboardingFlow({ onComplete }: Props) {
   const handleFirstProject = async (projectName: string) => {
     try {
       await window.electronAPI.createProject(projectName)
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     goToNext()
   }
 
@@ -78,7 +84,9 @@ export function OnboardingFlow({ onComplete }: Props) {
   const handleFinish = async () => {
     try {
       await window.electronAPI.updateSettings({ onboardingCompleted: 'true' })
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     onComplete()
   }
 
@@ -97,21 +105,15 @@ export function OnboardingFlow({ onComplete }: Props) {
 
         {/* Step content */}
         <div className="onboarding-content">
-          {currentStep === 'welcome' && (
-            <OnboardingWelcome onNewUser={handleNewUser} onImport={handleImportPath} />
-          )}
+          {currentStep === 'welcome' && <OnboardingWelcome onNewUser={handleNewUser} onImport={handleImportPath} />}
           {currentStep === 'import' && (
             <OnboardingImport onComplete={handleImportComplete} onBack={() => setCurrentStep('welcome')} />
           )}
-          {currentStep === 'api-key' && (
-            <OnboardingApiKey onNext={handleApiKeySubmit} onSkip={handleApiKeySkip} />
-          )}
+          {currentStep === 'api-key' && <OnboardingApiKey onNext={handleApiKeySubmit} onSkip={handleApiKeySkip} />}
           {currentStep === 'first-project' && (
             <OnboardingFirstProject onNext={handleFirstProject} onSkip={handleFirstProjectSkip} />
           )}
-          {currentStep === 'tips' && (
-            <OnboardingTips onFinish={handleFinish} />
-          )}
+          {currentStep === 'tips' && <OnboardingTips onFinish={handleFinish} />}
         </div>
       </div>
     </div>

@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import type React from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Zap } from 'lucide-react'
 import type { CaptureSnippet } from '@shared/types'
 
@@ -43,7 +44,11 @@ export function SnippetAutocomplete({
     if (lastSlashIndex === -1) return null
 
     // The slash must be at start of line or after a space
-    if (lastSlashIndex > 0 && textBeforeCursor[lastSlashIndex - 1] !== ' ' && textBeforeCursor[lastSlashIndex - 1] !== '\n') {
+    if (
+      lastSlashIndex > 0 &&
+      textBeforeCursor[lastSlashIndex - 1] !== ' ' &&
+      textBeforeCursor[lastSlashIndex - 1] !== '\n'
+    ) {
       return null
     }
 
@@ -64,9 +69,8 @@ export function SnippetAutocomplete({
     }
 
     const query = trigger.query.toLowerCase()
-    const filtered = snippets.filter(s =>
-      s.triggerKey.toLowerCase().startsWith(query) ||
-      s.label.toLowerCase().includes(query)
+    const filtered = snippets.filter(
+      (s) => s.triggerKey.toLowerCase().startsWith(query) || s.label.toLowerCase().includes(query)
     )
     setFilteredSnippets(filtered)
     setSelectedIndex(0)
@@ -81,12 +85,12 @@ export function SnippetAutocomplete({
         case 'ArrowDown':
           e.preventDefault()
           e.stopPropagation()
-          setSelectedIndex(prev => (prev + 1) % filteredSnippets.length)
+          setSelectedIndex((prev) => (prev + 1) % filteredSnippets.length)
           break
         case 'ArrowUp':
           e.preventDefault()
           e.stopPropagation()
-          setSelectedIndex(prev => (prev - 1 + filteredSnippets.length) % filteredSnippets.length)
+          setSelectedIndex((prev) => (prev - 1 + filteredSnippets.length) % filteredSnippets.length)
           break
         case 'Enter':
         case 'Tab':
@@ -105,16 +109,19 @@ export function SnippetAutocomplete({
     return () => document.removeEventListener('keydown', handleKeyDown, true)
   }, [isVisible, filteredSnippets, selectedIndex, onClose])
 
-  const handleSelect = useCallback((snippet: CaptureSnippet) => {
-    const trigger = getTriggerQuery()
-    if (!trigger) return
+  const handleSelect = useCallback(
+    (snippet: CaptureSnippet) => {
+      const trigger = getTriggerQuery()
+      if (!trigger) return
 
-    // The replacement range is from the '/' to the current cursor position
-    onSelect(snippet, { start: trigger.start, end: cursorPosition })
+      // The replacement range is from the '/' to the current cursor position
+      onSelect(snippet, { start: trigger.start, end: cursorPosition })
 
-    // Track usage
-    window.electronAPI.incrementSnippetUsage(snippet.id).catch(() => {})
-  }, [getTriggerQuery, cursorPosition, onSelect])
+      // Track usage
+      window.electronAPI.incrementSnippetUsage(snippet.id).catch(() => {})
+    },
+    [getTriggerQuery, cursorPosition, onSelect]
+  )
 
   if (!isVisible || filteredSnippets.length === 0) return null
 
@@ -127,6 +134,7 @@ export function SnippetAutocomplete({
       <div className="snippet-autocomplete-list">
         {filteredSnippets.map((snippet, index) => (
           <button
+            type="button"
             key={snippet.id}
             className={`snippet-autocomplete-item ${index === selectedIndex ? 'selected' : ''}`}
             onClick={() => handleSelect(snippet)}
@@ -166,7 +174,8 @@ export function useSnippetTrigger(text: string, cursorPosition: number): boolean
     }
 
     // Slash must be at position 0 or after whitespace
-    const isValidPosition = lastSlashIndex === 0 ||
+    const isValidPosition =
+      lastSlashIndex === 0 ||
       textBeforeCursor[lastSlashIndex - 1] === ' ' ||
       textBeforeCursor[lastSlashIndex - 1] === '\n'
 

@@ -1,8 +1,7 @@
-import { ChatActionType, ChatActionResult } from '../../shared/types'
-import { EntryRepository } from '../database/repositories/entry-repository'
-import { ProjectRepository } from '../database/repositories/project-repository'
-import { TaskRepository } from '../database/repositories/task-repository'
-import { t } from '../i18n'
+import type { ChatActionType, ChatActionResult } from '../../shared/types'
+import type { EntryRepository } from '../database/repositories/entry-repository'
+import type { ProjectRepository } from '../database/repositories/project-repository'
+import type { TaskRepository } from '../database/repositories/task-repository'
 
 interface ActionPayload {
   action: ChatActionType
@@ -18,7 +17,7 @@ export class ChatActionExecutor {
     private entryRepo: EntryRepository,
     private projectRepo: ProjectRepository,
     private taskRepo: TaskRepository
-  ) { }
+  ) {}
 
   /**
    * Parse action blocks from AI response text.
@@ -30,8 +29,7 @@ export class ChatActionExecutor {
 
     let cleanText = responseText
 
-    let match: RegExpExecArray | null
-    while ((match = actionRegex.exec(responseText)) !== null) {
+    for (const match of responseText.matchAll(actionRegex)) {
       try {
         const parsed = JSON.parse(match[1].trim())
         if (parsed.action) {
@@ -168,13 +166,20 @@ export class ChatActionExecutor {
     }
 
     if (!task) {
-      return { type: 'update_task_status', success: false, description: `Task não encontrada: "${taskTitle || taskId}"` }
+      return {
+        type: 'update_task_status',
+        success: false,
+        description: `Task não encontrada: "${taskTitle || taskId}"`,
+      }
     }
 
     this.taskRepo.update(task.id, { status })
 
     const statusLabels: Record<string, string> = {
-      todo: 'A Fazer', in_progress: 'Em Andamento', waiting: 'Aguardando', done: 'Concluído',
+      todo: 'A Fazer',
+      in_progress: 'Em Andamento',
+      waiting: 'Aguardando',
+      done: 'Concluído',
     }
 
     return {
@@ -251,10 +256,13 @@ export class ChatActionExecutor {
       tasks = tasks.filter((t) => t.status !== 'done')
     }
 
-    const taskList = tasks.slice(0, 15).map((t) => {
-      const project = this.projectRepo.getById(t.projectId)
-      return `- [${t.status}] ${t.title}${project ? ` (${project.name})` : ''}`
-    }).join('\n')
+    const taskList = tasks
+      .slice(0, 15)
+      .map((t) => {
+        const project = this.projectRepo.getById(t.projectId)
+        return `- [${t.status}] ${t.title}${project ? ` (${project.name})` : ''}`
+      })
+      .join('\n')
 
     return {
       type: 'list_tasks',

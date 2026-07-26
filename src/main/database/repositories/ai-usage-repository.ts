@@ -18,7 +18,16 @@ export class AIUsageRepository {
     db.prepare(`
       INSERT INTO ai_usage (id, operation_type, model, input_tokens, output_tokens, estimated_cost, latency_ms, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, data.operationType, data.model, data.inputTokens, data.outputTokens, data.estimatedCost, data.latencyMs, now)
+    `).run(
+      id,
+      data.operationType,
+      data.model,
+      data.inputTokens,
+      data.outputTokens,
+      data.estimatedCost,
+      data.latencyMs,
+      now
+    )
 
     return {
       id,
@@ -48,14 +57,16 @@ export class AIUsageRepository {
     }
 
     // Totals
-    const totals = db.prepare(`
+    const totals = db
+      .prepare(`
       SELECT
         COUNT(*) as totalCalls,
         COALESCE(SUM(input_tokens), 0) as totalInputTokens,
         COALESCE(SUM(output_tokens), 0) as totalOutputTokens,
         COALESCE(SUM(estimated_cost), 0) as totalEstimatedCost
       FROM ai_usage${whereClause}
-    `).get(...params) as {
+    `)
+      .get(...params) as {
       totalCalls: number
       totalInputTokens: number
       totalOutputTokens: number
@@ -63,7 +74,8 @@ export class AIUsageRepository {
     }
 
     // By operation type
-    const byOperation = db.prepare(`
+    const byOperation = db
+      .prepare(`
       SELECT
         operation_type as operationType,
         COUNT(*) as calls,
@@ -73,7 +85,8 @@ export class AIUsageRepository {
       FROM ai_usage${whereClause}
       GROUP BY operation_type
       ORDER BY calls DESC
-    `).all(...params) as {
+    `)
+      .all(...params) as {
       operationType: AIOperationType
       calls: number
       inputTokens: number
@@ -105,7 +118,8 @@ export class AIUsageRepository {
       params.push(dateTo)
     }
 
-    return db.prepare(`
+    return db
+      .prepare(`
       SELECT
         DATE(created_at) as date,
         COUNT(*) as calls,
@@ -116,18 +130,21 @@ export class AIUsageRepository {
       GROUP BY DATE(created_at)
       ORDER BY date DESC
       LIMIT 90
-    `).all(...params) as AIUsageDailyPoint[]
+    `)
+      .all(...params) as AIUsageDailyPoint[]
   }
 
   getHistory(limit: number = 50, offset: number = 0): AIUsageRecord[] {
     const db = getDatabase()
 
-    const rows = db.prepare(`
+    const rows = db
+      .prepare(`
       SELECT id, operation_type, model, input_tokens, output_tokens, estimated_cost, latency_ms, created_at
       FROM ai_usage
       ORDER BY created_at DESC
       LIMIT ? OFFSET ?
-    `).all(limit, offset) as {
+    `)
+      .all(limit, offset) as {
       id: string
       operation_type: string
       model: string

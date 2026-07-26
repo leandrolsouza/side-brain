@@ -1,12 +1,32 @@
-import { app, BrowserWindow, globalShortcut, nativeTheme, Tray, Menu, nativeImage, session, dialog, shell } from 'electron'
-import path from 'path'
-import fs from 'fs'
+import {
+  app,
+  BrowserWindow,
+  globalShortcut,
+  nativeTheme,
+  Tray,
+  Menu,
+  nativeImage,
+  session,
+  dialog,
+  shell,
+} from 'electron'
+import path from 'node:path'
+import fs from 'node:fs'
+import { initializeLogger, createScopedLogger } from './services/logger'
+
+// Initialize structured logging as early as possible
+initializeLogger()
+const logger = createScopedLogger('main')
 
 // Catch any uncaught errors during module loading
 const startupLogPath = path.join(app.getPath('userData'), 'startup-error.log')
 process.on('uncaughtException', (error) => {
   const msg = `[${new Date().toISOString()}] Uncaught Exception:\n${error.stack || error.message}\n\n`
-  try { fs.appendFileSync(startupLogPath, msg) } catch { /* ignore */ }
+  try {
+    fs.appendFileSync(startupLogPath, msg)
+  } catch {
+    /* ignore */
+  }
   dialog.showErrorBox('SideBrain - Erro Fatal', error.stack || error.message || String(error))
   app.exit(1)
 })
@@ -33,7 +53,7 @@ let trayEnabled = true
 function getAssetPath(filename: string): string {
   if (app.isPackaged) {
     // When packaged, asarUnpack extracts files to app.asar.unpacked/
-    return path.join(app.getAppPath() + '.unpacked', 'assets', filename)
+    return path.join(`${app.getAppPath()}.unpacked`, 'assets', filename)
   }
   // In development, __dirname is dist/main/main/, go up 3 levels to project root
   return path.join(__dirname, '..', '..', '..', 'assets', filename)
@@ -197,7 +217,7 @@ function createTray(): void {
     {
       label: 'Sair',
       click: () => {
-        (app as any).isQuitting = true
+        ;(app as any).isQuitting = true
         app.quit()
       },
     },
@@ -247,20 +267,23 @@ app.whenReady().then(() => {
     const configService = getConfigService()
     const lockResult = configService.acquireLock()
     if (!lockResult.acquired) {
-      console.warn(`[Lock] Database pode estar em uso por: ${lockResult.owner}`)
+      logger.warn(`[Lock] Database pode estar em uso por: ${lockResult.owner}`)
     }
 
     // Renovar lock a cada 2 minutos
-    lockRenewalInterval = setInterval(() => {
-      configService.renewLock()
-    }, 2 * 60 * 1000)
+    lockRenewalInterval = setInterval(
+      () => {
+        configService.renewLock()
+      },
+      2 * 60 * 1000
+    )
 
     registerIpcHandlers()
 
     // Auto-connect enabled MCP servers
     const { mcpManager } = getContainer()
     mcpManager.connectAll().catch((err) => {
-      console.error('MCP auto-connect failed:', err)
+      logger.error('MCP auto-connect failed:', err)
     })
 
     // Grant microphone permission for speech recognition
@@ -277,9 +300,10 @@ app.whenReady().then(() => {
 
     // Set CSP via response headers (works correctly with file:// and asar)
     session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-      const csp = process.env.NODE_ENV === 'development'
-        ? "default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline'; connect-src 'self' ws://localhost:5173 http://localhost:5173 https:; worker-src 'self' blob:; img-src 'self' data:"
-        : "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https:; img-src 'self' data:"
+      const csp =
+        process.env.NODE_ENV === 'development'
+          ? "default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline'; connect-src 'self' ws://localhost:5173 http://localhost:5173 https:; worker-src 'self' blob:; img-src 'self' data:"
+          : "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https:; img-src 'self' data:"
       callback({
         responseHeaders: {
           ...details.responseHeaders,
@@ -340,7 +364,7 @@ app.on('window-all-closed', () => {
 })
 
 app.on('before-quit', () => {
-  (app as any).isQuitting = true
+  ;(app as any).isQuitting = true
 })
 
 app.on('will-quit', () => {
@@ -352,7 +376,11 @@ app.on('will-quit', () => {
     tray = null
   }
   // Disconnect MCP servers
-  try { getContainer().mcpManager.disconnectAll() } catch { /* ignore */ }
+  try {
+    getContainer().mcpManager.disconnectAll()
+  } catch {
+    /* ignore */
+  }
   getConfigService().releaseLock()
   closeDatabase()
 })

@@ -1,19 +1,97 @@
 import { v4 as uuidv4 } from 'uuid'
 import { getDatabase } from '../schema'
-import type { CustomEntryType, CustomActionStatus, CustomCaptureTemplate, StructuredTemplate, CaptureSnippet, TemplateField } from '../../../shared/types'
+import type {
+  CustomEntryType,
+  CustomActionStatus,
+  CustomCaptureTemplate,
+  StructuredTemplate,
+  CaptureSnippet,
+  TemplateField,
+  TemplateCategory,
+} from '../../../shared/types'
+
+// === Database row shapes (snake_case) ===
+
+interface CustomEntryTypeRow {
+  id: string
+  key: string
+  label: string
+  icon: string
+  color: string
+  is_default: number
+  sort_order: number
+  allows_action: number
+}
+
+interface CustomActionStatusRow {
+  id: string
+  key: string
+  label: string
+  icon: string
+  color: string
+  is_default: number
+  is_final: number
+  sort_order: number
+}
+
+interface CustomCaptureTemplateRow {
+  id: string
+  label: string
+  prefix: string
+  placeholder: string
+  icon: string
+  hint_type: string
+  is_default: number
+  sort_order: number
+}
+
+interface StructuredTemplateRow {
+  id: string
+  name: string
+  description: string | null
+  icon: string
+  color: string
+  category: TemplateCategory
+  fields: string | null
+  output_format: string
+  hint_type: string
+  hint_action: string
+  project_id: string | null
+  is_default: number
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+interface CaptureSnippetRow {
+  id: string
+  trigger_key: string
+  label: string
+  content: string
+  category: string
+  usage_count: number
+  is_default: number
+  created_at: string
+}
+
+interface IsDefaultRow {
+  is_default: number
+}
+
+type SqlValue = string | number | null
 
 export class CustomFieldsRepository {
   // === Entry Types ===
 
   getEntryTypes(): CustomEntryType[] {
     const db = getDatabase()
-    const rows = db.prepare('SELECT * FROM custom_entry_types ORDER BY sort_order ASC').all() as any[]
+    const rows = db.prepare('SELECT * FROM custom_entry_types ORDER BY sort_order ASC').all() as CustomEntryTypeRow[]
     return rows.map(this.mapEntryTypeRow)
   }
 
   getEntryTypeByKey(key: string): CustomEntryType | null {
     const db = getDatabase()
-    const row = db.prepare('SELECT * FROM custom_entry_types WHERE key = ?').get(key) as any
+    const row = db.prepare('SELECT * FROM custom_entry_types WHERE key = ?').get(key) as CustomEntryTypeRow | undefined
     return row ? this.mapEntryTypeRow(row) : null
   }
 
@@ -22,38 +100,67 @@ export class CustomFieldsRepository {
     const id = uuidv4()
     db.prepare(
       `INSERT INTO custom_entry_types (id, key, label, icon, color, is_default, sort_order, allows_action) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(id, data.key, data.label, data.icon, data.color, data.isDefault ? 1 : 0, data.sortOrder, data.allowsAction ? 1 : 0)
+    ).run(
+      id,
+      data.key,
+      data.label,
+      data.icon,
+      data.color,
+      data.isDefault ? 1 : 0,
+      data.sortOrder,
+      data.allowsAction ? 1 : 0
+    )
     return { id, ...data }
   }
 
   updateEntryType(id: string, updates: Partial<Omit<CustomEntryType, 'id' | 'isDefault'>>): CustomEntryType | null {
     const db = getDatabase()
-    const current = db.prepare('SELECT * FROM custom_entry_types WHERE id = ?').get(id) as any
+    const current = db.prepare('SELECT * FROM custom_entry_types WHERE id = ?').get(id) as
+      | CustomEntryTypeRow
+      | undefined
     if (!current) return null
 
     const fields: string[] = []
-    const values: any[] = []
+    const values: SqlValue[] = []
 
-    if (updates.key !== undefined) { fields.push('key = ?'); values.push(updates.key) }
-    if (updates.label !== undefined) { fields.push('label = ?'); values.push(updates.label) }
-    if (updates.icon !== undefined) { fields.push('icon = ?'); values.push(updates.icon) }
-    if (updates.color !== undefined) { fields.push('color = ?'); values.push(updates.color) }
-    if (updates.sortOrder !== undefined) { fields.push('sort_order = ?'); values.push(updates.sortOrder) }
-    if (updates.allowsAction !== undefined) { fields.push('allows_action = ?'); values.push(updates.allowsAction ? 1 : 0) }
+    if (updates.key !== undefined) {
+      fields.push('key = ?')
+      values.push(updates.key)
+    }
+    if (updates.label !== undefined) {
+      fields.push('label = ?')
+      values.push(updates.label)
+    }
+    if (updates.icon !== undefined) {
+      fields.push('icon = ?')
+      values.push(updates.icon)
+    }
+    if (updates.color !== undefined) {
+      fields.push('color = ?')
+      values.push(updates.color)
+    }
+    if (updates.sortOrder !== undefined) {
+      fields.push('sort_order = ?')
+      values.push(updates.sortOrder)
+    }
+    if (updates.allowsAction !== undefined) {
+      fields.push('allows_action = ?')
+      values.push(updates.allowsAction ? 1 : 0)
+    }
 
     if (fields.length === 0) return this.mapEntryTypeRow(current)
 
     values.push(id)
     db.prepare(`UPDATE custom_entry_types SET ${fields.join(', ')} WHERE id = ?`).run(...values)
 
-    const updated = db.prepare('SELECT * FROM custom_entry_types WHERE id = ?').get(id) as any
+    const updated = db.prepare('SELECT * FROM custom_entry_types WHERE id = ?').get(id) as CustomEntryTypeRow
     return this.mapEntryTypeRow(updated)
   }
 
   deleteEntryType(id: string): boolean {
     const db = getDatabase()
     // Prevent deletion of default types
-    const row = db.prepare('SELECT is_default FROM custom_entry_types WHERE id = ?').get(id) as any
+    const row = db.prepare('SELECT is_default FROM custom_entry_types WHERE id = ?').get(id) as IsDefaultRow | undefined
     if (!row || row.is_default === 1) return false
     db.prepare('DELETE FROM custom_entry_types WHERE id = ?').run(id)
     return true
@@ -74,13 +181,17 @@ export class CustomFieldsRepository {
 
   getActionStatuses(): CustomActionStatus[] {
     const db = getDatabase()
-    const rows = db.prepare('SELECT * FROM custom_action_statuses ORDER BY sort_order ASC').all() as any[]
+    const rows = db
+      .prepare('SELECT * FROM custom_action_statuses ORDER BY sort_order ASC')
+      .all() as CustomActionStatusRow[]
     return rows.map(this.mapActionStatusRow)
   }
 
   getActionStatusByKey(key: string): CustomActionStatus | null {
     const db = getDatabase()
-    const row = db.prepare('SELECT * FROM custom_action_statuses WHERE key = ?').get(key) as any
+    const row = db.prepare('SELECT * FROM custom_action_statuses WHERE key = ?').get(key) as
+      | CustomActionStatusRow
+      | undefined
     return row ? this.mapActionStatusRow(row) : null
   }
 
@@ -93,33 +204,58 @@ export class CustomFieldsRepository {
     return { id, ...data }
   }
 
-  updateActionStatus(id: string, updates: Partial<Omit<CustomActionStatus, 'id' | 'isDefault'>>): CustomActionStatus | null {
+  updateActionStatus(
+    id: string,
+    updates: Partial<Omit<CustomActionStatus, 'id' | 'isDefault'>>
+  ): CustomActionStatus | null {
     const db = getDatabase()
-    const current = db.prepare('SELECT * FROM custom_action_statuses WHERE id = ?').get(id) as any
+    const current = db.prepare('SELECT * FROM custom_action_statuses WHERE id = ?').get(id) as
+      | CustomActionStatusRow
+      | undefined
     if (!current) return null
 
     const fields: string[] = []
-    const values: any[] = []
+    const values: SqlValue[] = []
 
-    if (updates.key !== undefined) { fields.push('key = ?'); values.push(updates.key) }
-    if (updates.label !== undefined) { fields.push('label = ?'); values.push(updates.label) }
-    if (updates.icon !== undefined) { fields.push('icon = ?'); values.push(updates.icon) }
-    if (updates.color !== undefined) { fields.push('color = ?'); values.push(updates.color) }
-    if (updates.isFinal !== undefined) { fields.push('is_final = ?'); values.push(updates.isFinal ? 1 : 0) }
-    if (updates.sortOrder !== undefined) { fields.push('sort_order = ?'); values.push(updates.sortOrder) }
+    if (updates.key !== undefined) {
+      fields.push('key = ?')
+      values.push(updates.key)
+    }
+    if (updates.label !== undefined) {
+      fields.push('label = ?')
+      values.push(updates.label)
+    }
+    if (updates.icon !== undefined) {
+      fields.push('icon = ?')
+      values.push(updates.icon)
+    }
+    if (updates.color !== undefined) {
+      fields.push('color = ?')
+      values.push(updates.color)
+    }
+    if (updates.isFinal !== undefined) {
+      fields.push('is_final = ?')
+      values.push(updates.isFinal ? 1 : 0)
+    }
+    if (updates.sortOrder !== undefined) {
+      fields.push('sort_order = ?')
+      values.push(updates.sortOrder)
+    }
 
     if (fields.length === 0) return this.mapActionStatusRow(current)
 
     values.push(id)
     db.prepare(`UPDATE custom_action_statuses SET ${fields.join(', ')} WHERE id = ?`).run(...values)
 
-    const updated = db.prepare('SELECT * FROM custom_action_statuses WHERE id = ?').get(id) as any
+    const updated = db.prepare('SELECT * FROM custom_action_statuses WHERE id = ?').get(id) as CustomActionStatusRow
     return this.mapActionStatusRow(updated)
   }
 
   deleteActionStatus(id: string): boolean {
     const db = getDatabase()
-    const row = db.prepare('SELECT is_default FROM custom_action_statuses WHERE id = ?').get(id) as any
+    const row = db.prepare('SELECT is_default FROM custom_action_statuses WHERE id = ?').get(id) as
+      | IsDefaultRow
+      | undefined
     if (!row || row.is_default === 1) return false
     db.prepare('DELETE FROM custom_action_statuses WHERE id = ?').run(id)
     return true
@@ -140,7 +276,9 @@ export class CustomFieldsRepository {
 
   getCaptureTemplates(): CustomCaptureTemplate[] {
     const db = getDatabase()
-    const rows = db.prepare('SELECT * FROM custom_capture_templates ORDER BY sort_order ASC').all() as any[]
+    const rows = db
+      .prepare('SELECT * FROM custom_capture_templates ORDER BY sort_order ASC')
+      .all() as CustomCaptureTemplateRow[]
     return rows.map(this.mapCaptureTemplateRow)
   }
 
@@ -149,37 +287,73 @@ export class CustomFieldsRepository {
     const id = uuidv4()
     db.prepare(
       `INSERT INTO custom_capture_templates (id, label, prefix, placeholder, icon, hint_type, is_default, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(id, data.label, data.prefix, data.placeholder, data.icon, data.hintType, data.isDefault ? 1 : 0, data.sortOrder)
+    ).run(
+      id,
+      data.label,
+      data.prefix,
+      data.placeholder,
+      data.icon,
+      data.hintType,
+      data.isDefault ? 1 : 0,
+      data.sortOrder
+    )
     return { id, ...data }
   }
 
-  updateCaptureTemplate(id: string, updates: Partial<Omit<CustomCaptureTemplate, 'id' | 'isDefault'>>): CustomCaptureTemplate | null {
+  updateCaptureTemplate(
+    id: string,
+    updates: Partial<Omit<CustomCaptureTemplate, 'id' | 'isDefault'>>
+  ): CustomCaptureTemplate | null {
     const db = getDatabase()
-    const current = db.prepare('SELECT * FROM custom_capture_templates WHERE id = ?').get(id) as any
+    const current = db.prepare('SELECT * FROM custom_capture_templates WHERE id = ?').get(id) as
+      | CustomCaptureTemplateRow
+      | undefined
     if (!current) return null
 
     const fields: string[] = []
-    const values: any[] = []
+    const values: SqlValue[] = []
 
-    if (updates.label !== undefined) { fields.push('label = ?'); values.push(updates.label) }
-    if (updates.prefix !== undefined) { fields.push('prefix = ?'); values.push(updates.prefix) }
-    if (updates.placeholder !== undefined) { fields.push('placeholder = ?'); values.push(updates.placeholder) }
-    if (updates.icon !== undefined) { fields.push('icon = ?'); values.push(updates.icon) }
-    if (updates.hintType !== undefined) { fields.push('hint_type = ?'); values.push(updates.hintType) }
-    if (updates.sortOrder !== undefined) { fields.push('sort_order = ?'); values.push(updates.sortOrder) }
+    if (updates.label !== undefined) {
+      fields.push('label = ?')
+      values.push(updates.label)
+    }
+    if (updates.prefix !== undefined) {
+      fields.push('prefix = ?')
+      values.push(updates.prefix)
+    }
+    if (updates.placeholder !== undefined) {
+      fields.push('placeholder = ?')
+      values.push(updates.placeholder)
+    }
+    if (updates.icon !== undefined) {
+      fields.push('icon = ?')
+      values.push(updates.icon)
+    }
+    if (updates.hintType !== undefined) {
+      fields.push('hint_type = ?')
+      values.push(updates.hintType)
+    }
+    if (updates.sortOrder !== undefined) {
+      fields.push('sort_order = ?')
+      values.push(updates.sortOrder)
+    }
 
     if (fields.length === 0) return this.mapCaptureTemplateRow(current)
 
     values.push(id)
     db.prepare(`UPDATE custom_capture_templates SET ${fields.join(', ')} WHERE id = ?`).run(...values)
 
-    const updated = db.prepare('SELECT * FROM custom_capture_templates WHERE id = ?').get(id) as any
+    const updated = db
+      .prepare('SELECT * FROM custom_capture_templates WHERE id = ?')
+      .get(id) as CustomCaptureTemplateRow
     return this.mapCaptureTemplateRow(updated)
   }
 
   deleteCaptureTemplate(id: string): boolean {
     const db = getDatabase()
-    const row = db.prepare('SELECT is_default FROM custom_capture_templates WHERE id = ?').get(id) as any
+    const row = db.prepare('SELECT is_default FROM custom_capture_templates WHERE id = ?').get(id) as
+      | IsDefaultRow
+      | undefined
     if (!row || row.is_default === 1) return false
     db.prepare('DELETE FROM custom_capture_templates WHERE id = ?').run(id)
     return true
@@ -200,19 +374,25 @@ export class CustomFieldsRepository {
 
   getStructuredTemplates(): StructuredTemplate[] {
     const db = getDatabase()
-    const rows = db.prepare('SELECT * FROM structured_templates ORDER BY sort_order ASC').all() as any[]
+    const rows = db
+      .prepare('SELECT * FROM structured_templates ORDER BY sort_order ASC')
+      .all() as StructuredTemplateRow[]
     return rows.map(this.mapStructuredTemplateRow)
   }
 
   getStructuredTemplateById(id: string): StructuredTemplate | null {
     const db = getDatabase()
-    const row = db.prepare('SELECT * FROM structured_templates WHERE id = ?').get(id) as any
+    const row = db.prepare('SELECT * FROM structured_templates WHERE id = ?').get(id) as
+      | StructuredTemplateRow
+      | undefined
     return row ? this.mapStructuredTemplateRow(row) : null
   }
 
   getStructuredTemplatesByCategory(category: string): StructuredTemplate[] {
     const db = getDatabase()
-    const rows = db.prepare('SELECT * FROM structured_templates WHERE category = ? ORDER BY sort_order ASC').all(category) as any[]
+    const rows = db
+      .prepare('SELECT * FROM structured_templates WHERE category = ? ORDER BY sort_order ASC')
+      .all(category) as StructuredTemplateRow[]
     return rows.map(this.mapStructuredTemplateRow)
   }
 
@@ -224,32 +404,82 @@ export class CustomFieldsRepository {
       `INSERT INTO structured_templates (id, name, description, icon, color, category, fields, output_format, hint_type, hint_action, project_id, is_default, sort_order, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
-      id, data.name, data.description, data.icon, data.color, data.category,
-      JSON.stringify(data.fields), data.outputFormat, data.hintType, data.hintAction,
-      data.projectId || null, data.isDefault ? 1 : 0, data.sortOrder, now, now
+      id,
+      data.name,
+      data.description,
+      data.icon,
+      data.color,
+      data.category,
+      JSON.stringify(data.fields),
+      data.outputFormat,
+      data.hintType,
+      data.hintAction,
+      data.projectId || null,
+      data.isDefault ? 1 : 0,
+      data.sortOrder,
+      now,
+      now
     )
     return { id, ...data, createdAt: now, updatedAt: now }
   }
 
-  updateStructuredTemplate(id: string, updates: Partial<Omit<StructuredTemplate, 'id' | 'isDefault' | 'createdAt' | 'updatedAt'>>): StructuredTemplate | null {
+  updateStructuredTemplate(
+    id: string,
+    updates: Partial<Omit<StructuredTemplate, 'id' | 'isDefault' | 'createdAt' | 'updatedAt'>>
+  ): StructuredTemplate | null {
     const db = getDatabase()
-    const current = db.prepare('SELECT * FROM structured_templates WHERE id = ?').get(id) as any
+    const current = db.prepare('SELECT * FROM structured_templates WHERE id = ?').get(id) as
+      | StructuredTemplateRow
+      | undefined
     if (!current) return null
 
     const fields: string[] = []
-    const values: any[] = []
+    const values: SqlValue[] = []
 
-    if (updates.name !== undefined) { fields.push('name = ?'); values.push(updates.name) }
-    if (updates.description !== undefined) { fields.push('description = ?'); values.push(updates.description) }
-    if (updates.icon !== undefined) { fields.push('icon = ?'); values.push(updates.icon) }
-    if (updates.color !== undefined) { fields.push('color = ?'); values.push(updates.color) }
-    if (updates.category !== undefined) { fields.push('category = ?'); values.push(updates.category) }
-    if (updates.fields !== undefined) { fields.push('fields = ?'); values.push(JSON.stringify(updates.fields)) }
-    if (updates.outputFormat !== undefined) { fields.push('output_format = ?'); values.push(updates.outputFormat) }
-    if (updates.hintType !== undefined) { fields.push('hint_type = ?'); values.push(updates.hintType) }
-    if (updates.hintAction !== undefined) { fields.push('hint_action = ?'); values.push(updates.hintAction) }
-    if (updates.projectId !== undefined) { fields.push('project_id = ?'); values.push(updates.projectId || null) }
-    if (updates.sortOrder !== undefined) { fields.push('sort_order = ?'); values.push(updates.sortOrder) }
+    if (updates.name !== undefined) {
+      fields.push('name = ?')
+      values.push(updates.name)
+    }
+    if (updates.description !== undefined) {
+      fields.push('description = ?')
+      values.push(updates.description)
+    }
+    if (updates.icon !== undefined) {
+      fields.push('icon = ?')
+      values.push(updates.icon)
+    }
+    if (updates.color !== undefined) {
+      fields.push('color = ?')
+      values.push(updates.color)
+    }
+    if (updates.category !== undefined) {
+      fields.push('category = ?')
+      values.push(updates.category)
+    }
+    if (updates.fields !== undefined) {
+      fields.push('fields = ?')
+      values.push(JSON.stringify(updates.fields))
+    }
+    if (updates.outputFormat !== undefined) {
+      fields.push('output_format = ?')
+      values.push(updates.outputFormat)
+    }
+    if (updates.hintType !== undefined) {
+      fields.push('hint_type = ?')
+      values.push(updates.hintType)
+    }
+    if (updates.hintAction !== undefined) {
+      fields.push('hint_action = ?')
+      values.push(updates.hintAction)
+    }
+    if (updates.projectId !== undefined) {
+      fields.push('project_id = ?')
+      values.push(updates.projectId || null)
+    }
+    if (updates.sortOrder !== undefined) {
+      fields.push('sort_order = ?')
+      values.push(updates.sortOrder)
+    }
 
     if (fields.length === 0) return this.mapStructuredTemplateRow(current)
 
@@ -259,13 +489,15 @@ export class CustomFieldsRepository {
 
     db.prepare(`UPDATE structured_templates SET ${fields.join(', ')} WHERE id = ?`).run(...values)
 
-    const updated = db.prepare('SELECT * FROM structured_templates WHERE id = ?').get(id) as any
+    const updated = db.prepare('SELECT * FROM structured_templates WHERE id = ?').get(id) as StructuredTemplateRow
     return this.mapStructuredTemplateRow(updated)
   }
 
   deleteStructuredTemplate(id: string): boolean {
     const db = getDatabase()
-    const row = db.prepare('SELECT is_default FROM structured_templates WHERE id = ?').get(id) as any
+    const row = db.prepare('SELECT is_default FROM structured_templates WHERE id = ?').get(id) as
+      | IsDefaultRow
+      | undefined
     if (!row || row.is_default === 1) return false
     db.prepare('DELETE FROM structured_templates WHERE id = ?').run(id)
     return true
@@ -286,21 +518,27 @@ export class CustomFieldsRepository {
 
   getCaptureSnippets(): CaptureSnippet[] {
     const db = getDatabase()
-    const rows = db.prepare('SELECT * FROM capture_snippets ORDER BY usage_count DESC, trigger_key ASC').all() as any[]
+    const rows = db
+      .prepare('SELECT * FROM capture_snippets ORDER BY usage_count DESC, trigger_key ASC')
+      .all() as CaptureSnippetRow[]
     return rows.map(this.mapCaptureSnippetRow)
   }
 
   getCaptureSnippetByTrigger(triggerKey: string): CaptureSnippet | null {
     const db = getDatabase()
-    const row = db.prepare('SELECT * FROM capture_snippets WHERE trigger_key = ?').get(triggerKey) as any
+    const row = db.prepare('SELECT * FROM capture_snippets WHERE trigger_key = ?').get(triggerKey) as
+      | CaptureSnippetRow
+      | undefined
     return row ? this.mapCaptureSnippetRow(row) : null
   }
 
   searchCaptureSnippets(query: string): CaptureSnippet[] {
     const db = getDatabase()
-    const rows = db.prepare(
-      `SELECT * FROM capture_snippets WHERE trigger_key LIKE ? OR label LIKE ? ORDER BY usage_count DESC LIMIT 10`
-    ).all(`%${query}%`, `%${query}%`) as any[]
+    const rows = db
+      .prepare(
+        `SELECT * FROM capture_snippets WHERE trigger_key LIKE ? OR label LIKE ? ORDER BY usage_count DESC LIMIT 10`
+      )
+      .all(`%${query}%`, `%${query}%`) as CaptureSnippetRow[]
     return rows.map(this.mapCaptureSnippetRow)
   }
 
@@ -315,31 +553,46 @@ export class CustomFieldsRepository {
     return { id, ...data, usageCount: 0, createdAt: now }
   }
 
-  updateCaptureSnippet(id: string, updates: Partial<Omit<CaptureSnippet, 'id' | 'isDefault' | 'createdAt' | 'usageCount'>>): CaptureSnippet | null {
+  updateCaptureSnippet(
+    id: string,
+    updates: Partial<Omit<CaptureSnippet, 'id' | 'isDefault' | 'createdAt' | 'usageCount'>>
+  ): CaptureSnippet | null {
     const db = getDatabase()
-    const current = db.prepare('SELECT * FROM capture_snippets WHERE id = ?').get(id) as any
+    const current = db.prepare('SELECT * FROM capture_snippets WHERE id = ?').get(id) as CaptureSnippetRow | undefined
     if (!current) return null
 
     const fields: string[] = []
-    const values: any[] = []
+    const values: SqlValue[] = []
 
-    if (updates.triggerKey !== undefined) { fields.push('trigger_key = ?'); values.push(updates.triggerKey) }
-    if (updates.label !== undefined) { fields.push('label = ?'); values.push(updates.label) }
-    if (updates.content !== undefined) { fields.push('content = ?'); values.push(updates.content) }
-    if (updates.category !== undefined) { fields.push('category = ?'); values.push(updates.category) }
+    if (updates.triggerKey !== undefined) {
+      fields.push('trigger_key = ?')
+      values.push(updates.triggerKey)
+    }
+    if (updates.label !== undefined) {
+      fields.push('label = ?')
+      values.push(updates.label)
+    }
+    if (updates.content !== undefined) {
+      fields.push('content = ?')
+      values.push(updates.content)
+    }
+    if (updates.category !== undefined) {
+      fields.push('category = ?')
+      values.push(updates.category)
+    }
 
     if (fields.length === 0) return this.mapCaptureSnippetRow(current)
 
     values.push(id)
     db.prepare(`UPDATE capture_snippets SET ${fields.join(', ')} WHERE id = ?`).run(...values)
 
-    const updated = db.prepare('SELECT * FROM capture_snippets WHERE id = ?').get(id) as any
+    const updated = db.prepare('SELECT * FROM capture_snippets WHERE id = ?').get(id) as CaptureSnippetRow
     return this.mapCaptureSnippetRow(updated)
   }
 
   deleteCaptureSnippet(id: string): boolean {
     const db = getDatabase()
-    const row = db.prepare('SELECT is_default FROM capture_snippets WHERE id = ?').get(id) as any
+    const row = db.prepare('SELECT is_default FROM capture_snippets WHERE id = ?').get(id) as IsDefaultRow | undefined
     if (!row || row.is_default === 1) return false
     db.prepare('DELETE FROM capture_snippets WHERE id = ?').run(id)
     return true
@@ -352,7 +605,7 @@ export class CustomFieldsRepository {
 
   // === Row mappers ===
 
-  private mapEntryTypeRow(row: any): CustomEntryType {
+  private mapEntryTypeRow(row: CustomEntryTypeRow): CustomEntryType {
     return {
       id: row.id,
       key: row.key,
@@ -365,7 +618,7 @@ export class CustomFieldsRepository {
     }
   }
 
-  private mapActionStatusRow(row: any): CustomActionStatus {
+  private mapActionStatusRow(row: CustomActionStatusRow): CustomActionStatus {
     return {
       id: row.id,
       key: row.key,
@@ -378,7 +631,7 @@ export class CustomFieldsRepository {
     }
   }
 
-  private mapCaptureTemplateRow(row: any): CustomCaptureTemplate {
+  private mapCaptureTemplateRow(row: CustomCaptureTemplateRow): CustomCaptureTemplate {
     return {
       id: row.id,
       label: row.label,
@@ -391,7 +644,7 @@ export class CustomFieldsRepository {
     }
   }
 
-  private mapStructuredTemplateRow(row: any): StructuredTemplate {
+  private mapStructuredTemplateRow(row: StructuredTemplateRow): StructuredTemplate {
     return {
       id: row.id,
       name: row.name,
@@ -411,7 +664,7 @@ export class CustomFieldsRepository {
     }
   }
 
-  private mapCaptureSnippetRow(row: any): CaptureSnippet {
+  private mapCaptureSnippetRow(row: CaptureSnippetRow): CaptureSnippet {
     return {
       id: row.id,
       triggerKey: row.trigger_key,

@@ -1,11 +1,11 @@
-import { SmartChatMessage, SmartChatSource, ChatConversation } from '../../shared/types'
-import { EntryRepository } from '../database/repositories/entry-repository'
-import { ProjectRepository } from '../database/repositories/project-repository'
-import { TaskRepository } from '../database/repositories/task-repository'
-import { SettingsRepository } from '../database/repositories/settings-repository'
-import { ChatHistoryRepository } from '../database/repositories/chat-history-repository'
-import { AIService } from './ai-service'
-import { EmbeddingsService, SimilarityResult } from './embeddings-service'
+import type { SmartChatMessage, SmartChatSource, ChatConversation, ChatActionResult } from '../../shared/types'
+import type { EntryRepository } from '../database/repositories/entry-repository'
+import type { ProjectRepository } from '../database/repositories/project-repository'
+import type { TaskRepository } from '../database/repositories/task-repository'
+import type { SettingsRepository } from '../database/repositories/settings-repository'
+import type { ChatHistoryRepository } from '../database/repositories/chat-history-repository'
+import type { AIService } from './ai-service'
+import type { EmbeddingsService, SimilarityResult } from './embeddings-service'
 import { ChatActionExecutor } from './chat-action-executor'
 import { t } from '../i18n'
 import { v4 as uuid } from 'uuid'
@@ -75,7 +75,7 @@ export class SmartChatService {
 
     // Add action instructions to the system prompt
     const actionsPrompt = this.getActionsSystemPrompt()
-    const fullSystemPrompt = systemPrompt + '\n\n' + actionsPrompt
+    const fullSystemPrompt = `${systemPrompt}\n\n${actionsPrompt}`
 
     const responseText = await this.aiService.invokeConverseForChat(
       fullSystemPrompt,
@@ -86,7 +86,7 @@ export class SmartChatService {
 
     // Parse and execute any actions from the response
     const { cleanText, payloads } = this.actionExecutor.parseActions(responseText)
-    let actions = undefined
+    let actions: ChatActionResult[] | undefined
     if (payloads.length > 0) {
       actions = await this.actionExecutor.executeActions(payloads)
     }
@@ -189,7 +189,10 @@ export class SmartChatService {
    */
   private getActionsSystemPrompt(): string {
     const projects = this.projectRepo.getAll()
-    const projectNames = projects.slice(0, 10).map((p) => p.name).join(', ')
+    const projectNames = projects
+      .slice(0, 10)
+      .map((p) => p.name)
+      .join(', ')
 
     return `## Ações disponíveis
 
@@ -232,7 +235,9 @@ Regras para ações:
       parts.push(dataContext)
     }
 
-    parts.push(`---\n${t('prompts.smart_chat.user_question_label', { defaultValue: 'Pergunta do usuário' })}: "${userMessage}"`)
+    parts.push(
+      `---\n${t('prompts.smart_chat.user_question_label', { defaultValue: 'Pergunta do usuário' })}: "${userMessage}"`
+    )
 
     return parts.join('\n\n')
   }
@@ -246,7 +251,7 @@ Regras para ações:
     if (message.length <= maxLen) return message
     const truncated = message.slice(0, maxLen)
     const lastSpace = truncated.lastIndexOf(' ')
-    return (lastSpace > 20 ? truncated.slice(0, lastSpace) : truncated) + '...'
+    return `${lastSpace > 20 ? truncated.slice(0, lastSpace) : truncated}...`
   }
 
   /**
@@ -284,9 +289,7 @@ Regras para ações:
 
     if (semanticResults.length > 0) {
       // Add semantically matched entries
-      const semanticEntryIds = semanticResults
-        .filter((r) => r.entityType === 'entry')
-        .map((r) => r.entityId)
+      const semanticEntryIds = semanticResults.filter((r) => r.entityType === 'entry').map((r) => r.entityId)
 
       if (semanticEntryIds.length > 0) {
         const semanticEntries = semanticEntryIds
@@ -295,19 +298,19 @@ Regras para ações:
           .slice(0, 12)
 
         if (semanticEntries.length > 0) {
-          const entriesContext = semanticEntries.map((e) => {
-            includedEntryIds.add(e!.id)
-            const projectName = projects.find((p) => p.id === e!.projectId)?.name || noProject
-            return `- [${e!.type}][${projectName}][${e!.createdAt.split('T')[0]}] ${e!.improvedText}`
-          }).join('\n')
+          const entriesContext = semanticEntries
+            .map((e) => {
+              includedEntryIds.add(e!.id)
+              const projectName = projects.find((p) => p.id === e!.projectId)?.name || noProject
+              return `- [${e!.type}][${projectName}][${e!.createdAt.split('T')[0]}] ${e!.improvedText}`
+            })
+            .join('\n')
           sections.push(`${t('prompts.smart_chat.context_entries_found')}\n${entriesContext}`)
         }
       }
 
       // Add semantically matched tasks
-      const semanticTaskIds = semanticResults
-        .filter((r) => r.entityType === 'task')
-        .map((r) => r.entityId)
+      const semanticTaskIds = semanticResults.filter((r) => r.entityType === 'task').map((r) => r.entityId)
 
       if (semanticTaskIds.length > 0) {
         const semanticTasks = semanticTaskIds
@@ -316,11 +319,13 @@ Regras para ações:
           .slice(0, 8)
 
         if (semanticTasks.length > 0) {
-          const tasksContext = semanticTasks.map((task) => {
-            includedTaskIds.add(task!.id)
-            const projectName = projects.find((p) => p.id === task!.projectId)?.name || noProject
-            return `- [${task!.status}][${projectName}] ${task!.title}${task!.description ? ` — ${task!.description}` : ''}${task!.dueDate ? ` (prazo: ${task!.dueDate})` : ''}`
-          }).join('\n')
+          const tasksContext = semanticTasks
+            .map((task) => {
+              includedTaskIds.add(task!.id)
+              const projectName = projects.find((p) => p.id === task!.projectId)?.name || noProject
+              return `- [${task!.status}][${projectName}] ${task!.title}${task!.description ? ` — ${task!.description}` : ''}${task!.dueDate ? ` (prazo: ${task!.dueDate})` : ''}`
+            })
+            .join('\n')
           sections.push(`${t('prompts.smart_chat.context_tasks_found')}\n${tasksContext}`)
         }
       }
@@ -331,11 +336,13 @@ Regras para ações:
     const newTextEntries = matchingEntries.filter((e) => !includedEntryIds.has(e.id))
     if (newTextEntries.length > 0 && includedEntryIds.size < 15) {
       const extra = newTextEntries.slice(0, 15 - includedEntryIds.size)
-      const entriesContext = extra.map((e) => {
-        includedEntryIds.add(e.id)
-        const projectName = projects.find((p) => p.id === e.projectId)?.name || noProject
-        return `- [${e.type}][${projectName}][${e.createdAt.split('T')[0]}] ${e.improvedText}`
-      }).join('\n')
+      const entriesContext = extra
+        .map((e) => {
+          includedEntryIds.add(e.id)
+          const projectName = projects.find((p) => p.id === e.projectId)?.name || noProject
+          return `- [${e.type}][${projectName}][${e.createdAt.split('T')[0]}] ${e.improvedText}`
+        })
+        .join('\n')
 
       if (semanticResults.length === 0) {
         // No semantic results, use textual as primary
@@ -350,11 +357,13 @@ Regras para ações:
     const newTextTasks = matchingTasks.filter((task) => !includedTaskIds.has(task.id))
     if (newTextTasks.length > 0 && includedTaskIds.size < 10) {
       const extra = newTextTasks.slice(0, 10 - includedTaskIds.size)
-      const tasksContext = extra.map((task) => {
-        includedTaskIds.add(task.id)
-        const projectName = projects.find((p) => p.id === task.projectId)?.name || noProject
-        return `- [${task.status}][${projectName}] ${task.title}${task.description ? ` — ${task.description}` : ''}${task.dueDate ? ` (prazo: ${task.dueDate})` : ''}`
-      }).join('\n')
+      const tasksContext = extra
+        .map((task) => {
+          includedTaskIds.add(task.id)
+          const projectName = projects.find((p) => p.id === task.projectId)?.name || noProject
+          return `- [${task.status}][${projectName}] ${task.title}${task.description ? ` — ${task.description}` : ''}${task.dueDate ? ` (prazo: ${task.dueDate})` : ''}`
+        })
+        .join('\n')
 
       if (semanticResults.length === 0 && sections.filter((s) => s.includes('Tarefas')).length === 0) {
         sections.push(`${t('prompts.smart_chat.context_tasks_found')}\n${tasksContext}`)
@@ -366,19 +375,24 @@ Regras para ações:
     // 4. Search projects matching the query
     const matchingProjects = this.projectRepo.search(query)
     if (matchingProjects.length > 0) {
-      const projectsContext = matchingProjects.slice(0, 5).map((p) => {
-        return `- ${p.name}${p.description ? `: ${p.description}` : ''}`
-      }).join('\n')
+      const projectsContext = matchingProjects
+        .slice(0, 5)
+        .map((p) => {
+          return `- ${p.name}${p.description ? `: ${p.description}` : ''}`
+        })
+        .join('\n')
       sections.push(`${t('prompts.smart_chat.context_projects_found')}\n${projectsContext}`)
     }
 
     // 5. If little context found, add recent entries
     if (includedEntryIds.size < 3 && semanticResults.length === 0) {
       const recentEntries = this.entryRepo.getAll().slice(0, 10)
-      const recentContext = recentEntries.map((e) => {
-        const projectName = projects.find((p) => p.id === e.projectId)?.name || noProject
-        return `- [${e.type}][${projectName}][${e.createdAt.split('T')[0]}] ${e.improvedText}`
-      }).join('\n')
+      const recentContext = recentEntries
+        .map((e) => {
+          const projectName = projects.find((p) => p.id === e.projectId)?.name || noProject
+          return `- [${e.type}][${projectName}][${e.createdAt.split('T')[0]}] ${e.improvedText}`
+        })
+        .join('\n')
       sections.push(`${t('prompts.smart_chat.context_recent_entries')}\n${recentContext}`)
     }
 
@@ -386,10 +400,12 @@ Regras para ações:
     const allTasks = this.taskRepo.getAll()
     const pendingTasks = allTasks.filter((task) => task.status !== 'done').slice(0, 10)
     if (pendingTasks.length > 0) {
-      const tasksOverview = pendingTasks.map((task) => {
-        const projectName = projects.find((p) => p.id === task.projectId)?.name || noProject
-        return `- [${task.status}][${projectName}] ${task.title}`
-      }).join('\n')
+      const tasksOverview = pendingTasks
+        .map((task) => {
+          const projectName = projects.find((p) => p.id === task.projectId)?.name || noProject
+          return `- [${task.status}][${projectName}] ${task.title}`
+        })
+        .join('\n')
       sections.push(`${t('prompts.smart_chat.context_pending_tasks')}\n${tasksOverview}`)
     }
 
@@ -436,7 +452,9 @@ Regras para ações:
             }
           }
         }
-      } catch { /* fallback to textual */ }
+      } catch {
+        /* fallback to textual */
+      }
     }
 
     // Augment with textual search

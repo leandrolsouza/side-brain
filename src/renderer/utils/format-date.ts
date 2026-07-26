@@ -32,7 +32,6 @@ export function formatDate(isoDate: string, options?: { includeTime?: boolean })
     case 'YYYY-MM-DD':
       result = `${y}-${m}-${d}`
       break
-    case 'DD/MM/YYYY':
     default:
       result = `${d}/${m}/${y}`
       break

@@ -1,6 +1,23 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import type React from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AlertTriangle, AlertCircle, AlertOctagon, CheckCircle, Trash2, CheckCheck, Filter, RefreshCw, ChevronDown, ChevronRight, Cpu, Database, Radio, Monitor, Server } from 'lucide-react'
+import {
+  AlertTriangle,
+  AlertCircle,
+  AlertOctagon,
+  CheckCircle,
+  Trash2,
+  CheckCheck,
+  Filter,
+  RefreshCw,
+  ChevronDown,
+  ChevronRight,
+  Cpu,
+  Database,
+  Radio,
+  Monitor,
+  Server,
+} from 'lucide-react'
 import type { ErrorLog, ErrorCategory, ErrorSeverity } from '../../shared/types'
 
 const CATEGORY_ICONS: Record<ErrorCategory, React.ReactNode> = {
@@ -91,7 +108,7 @@ export function ErrorCenter() {
   }
 
   const formatTimestamp = (timestamp: string): string => {
-    const date = new Date(timestamp + 'Z')
+    const date = new Date(`${timestamp}Z`)
     return date.toLocaleString('pt-BR', {
       day: '2-digit',
       month: '2-digit',
@@ -119,22 +136,17 @@ export function ErrorCenter() {
         <div className="error-center-title">
           <AlertCircle size={20} />
           <h2>{t('errorCenter.title')}</h2>
-          {unresolvedCount > 0 && (
-            <span className="error-center-badge">{unresolvedCount}</span>
-          )}
+          {unresolvedCount > 0 && <span className="error-center-badge">{unresolvedCount}</span>}
         </div>
         <div className="error-center-actions">
-          <button
-            className="btn-icon"
-            onClick={() => setShowFilters(!showFilters)}
-            title={t('filters')}
-          >
+          <button type="button" className="btn-icon" onClick={() => setShowFilters(!showFilters)} title={t('filters')}>
             <Filter size={16} />
           </button>
-          <button className="btn-icon" onClick={loadErrors} title={t('refresh')}>
+          <button type="button" className="btn-icon" onClick={loadErrors} title={t('refresh')}>
             <RefreshCw size={16} />
           </button>
           <button
+            type="button"
             className="btn-secondary"
             onClick={handleResolveAll}
             disabled={unresolvedCount === 0}
@@ -144,6 +156,7 @@ export function ErrorCenter() {
             <span>{t('resolveAll')}</span>
           </button>
           <button
+            type="button"
             className="btn-danger"
             onClick={handleClearAll}
             disabled={errors.length === 0}
@@ -160,10 +173,7 @@ export function ErrorCenter() {
         <div className="error-center-filters">
           <div className="filter-group">
             <label>{t('errorCenter.filterCategory')}</label>
-            <select
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value as ErrorCategory | '')}
-            >
+            <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value as ErrorCategory | '')}>
               <option value="">{t('errorCenter.filterAll')}</option>
               <option value="ai">{t('errorCenter.categoryAi')}</option>
               <option value="database">{t('errorCenter.categoryDatabase')}</option>
@@ -174,10 +184,7 @@ export function ErrorCenter() {
           </div>
           <div className="filter-group">
             <label>{t('errorCenter.filterSeverity')}</label>
-            <select
-              value={filterSeverity}
-              onChange={(e) => setFilterSeverity(e.target.value as ErrorSeverity | '')}
-            >
+            <select value={filterSeverity} onChange={(e) => setFilterSeverity(e.target.value as ErrorSeverity | '')}>
               <option value="">{t('errorCenter.filterAll')}</option>
               <option value="critical">{t('errorCenter.severityCritical')}</option>
               <option value="error">{t('errorCenter.severityError')}</option>
@@ -218,10 +225,7 @@ export function ErrorCenter() {
                 key={error.id}
                 className={`error-item severity-${error.severity} ${error.resolved ? 'resolved' : ''}`}
               >
-                <div
-                  className="error-item-header"
-                  onClick={() => setExpandedId(isExpanded ? null : error.id)}
-                >
+                <div className="error-item-header" onClick={() => setExpandedId(isExpanded ? null : error.id)}>
                   <div className="error-item-expand">
                     {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                   </div>
@@ -235,19 +239,14 @@ export function ErrorCenter() {
                         {CATEGORY_ICONS[error.category]}
                         {CATEGORY_LABELS[error.category]}
                       </span>
-                      <span className="error-item-time">
-                        {formatTimestamp(error.lastOccurrence)}
-                      </span>
-                      {error.occurrences > 1 && (
-                        <span className="error-item-occurrences">
-                          ×{error.occurrences}
-                        </span>
-                      )}
+                      <span className="error-item-time">{formatTimestamp(error.lastOccurrence)}</span>
+                      {error.occurrences > 1 && <span className="error-item-occurrences">×{error.occurrences}</span>}
                     </div>
                   </div>
                   <div className="error-item-actions">
                     {!error.resolved && (
                       <button
+                        type="button"
                         className="btn-icon-sm"
                         onClick={(e) => {
                           e.stopPropagation()
@@ -259,6 +258,7 @@ export function ErrorCenter() {
                       </button>
                     )}
                     <button
+                      type="button"
                       className="btn-icon-sm danger"
                       onClick={(e) => {
                         e.stopPropagation()

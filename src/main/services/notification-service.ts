@@ -29,9 +29,12 @@ export class NotificationService {
     this.notificationRepo.cleanup(30)
 
     // Cleanup old notifications once a day
-    this.cleanupInterval = setInterval(() => {
-      this.notificationRepo.cleanup(30)
-    }, 24 * 60 * 60 * 1000)
+    this.cleanupInterval = setInterval(
+      () => {
+        this.notificationRepo.cleanup(30)
+      },
+      24 * 60 * 60 * 1000
+    )
   }
 
   /**
@@ -229,9 +232,10 @@ export class NotificationService {
       this.notify({
         type: 'task_overdue',
         title: t('notifications.task_overdue.title'),
-        body: overdue.length === 1
-          ? t('notifications.task_overdue.body_one', { count: 1, title: overdue[0].title })
-          : t('notifications.task_overdue.body_other', { count: overdue.length }),
+        body:
+          overdue.length === 1
+            ? t('notifications.task_overdue.body_one', { count: 1, title: overdue[0].title })
+            : t('notifications.task_overdue.body_other', { count: overdue.length }),
         metadata: { count: String(overdue.length) },
         showNative: true,
       })
@@ -245,9 +249,10 @@ export class NotificationService {
       this.notify({
         type: 'task_due_today',
         title: t('notifications.task_due_today.title'),
-        body: dueToday.length === 1
-          ? t('notifications.task_due_today.body_one', { count: 1, title: dueToday[0].title })
-          : t('notifications.task_due_today.body_other', { count: dueToday.length }),
+        body:
+          dueToday.length === 1
+            ? t('notifications.task_due_today.body_one', { count: 1, title: dueToday[0].title })
+            : t('notifications.task_due_today.body_other', { count: dueToday.length }),
         metadata: { count: String(dueToday.length) },
         showNative: true,
       })
@@ -263,9 +268,10 @@ export class NotificationService {
       this.notify({
         type: 'task_due_tomorrow',
         title: t('notifications.task_due_tomorrow.title'),
-        body: dueTomorrow.length === 1
-          ? t('notifications.task_due_tomorrow.body_one', { count: 1, title: dueTomorrow[0].title })
-          : t('notifications.task_due_tomorrow.body_other', { count: dueTomorrow.length }),
+        body:
+          dueTomorrow.length === 1
+            ? t('notifications.task_due_tomorrow.body_one', { count: 1, title: dueTomorrow[0].title })
+            : t('notifications.task_due_tomorrow.body_other', { count: dueTomorrow.length }),
         metadata: { count: String(dueTomorrow.length) },
         showNative: false,
       })

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { createTestDatabase, closeTestDatabase, getTestDatabase } from '../setup'
+import { createTestDatabase, closeTestDatabase } from '../setup'
 import { EntryRepository } from '../../../src/main/database/repositories/entry-repository'
 import { ProjectRepository } from '../../../src/main/database/repositories/project-repository'
 
@@ -75,7 +75,7 @@ describe('EntryRepository', () => {
       expect(entries).toHaveLength(2)
       // Ambas foram criadas — a ordem DESC é por created_at
       // Como são inseridas no mesmo ms, verificamos apenas que ambas estão presentes
-      const rawTexts = entries.map(e => e.rawText)
+      const rawTexts = entries.map((e) => e.rawText)
       expect(rawTexts).toContain('Primeira')
       expect(rawTexts).toContain('Segunda')
     })
@@ -223,7 +223,7 @@ describe('EntryRepository', () => {
     it('deve filtrar por tipo', () => {
       const results = entryRepo.search('', { type: 'blocker' })
       // O search usa LIKE com %, então string vazia retorna tudo com filtro
-      expect(results.every(r => r.type === 'blocker')).toBe(true)
+      expect(results.every((r) => r.type === 'blocker')).toBe(true)
     })
 
     it('deve filtrar por projectId', () => {

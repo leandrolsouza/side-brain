@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react'
+import type React from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, GripVertical, Trash2, ChevronRight, Calendar, User } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -111,7 +112,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
     if (!dueDate) return null
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    const due = new Date(dueDate + 'T00:00:00')
+    const due = new Date(`${dueDate}T00:00:00`)
     const diffDays = Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
 
     const formatted = due.toLocaleDateString(i18n.language, { day: '2-digit', month: '2-digit' })
@@ -148,15 +149,18 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
     setDraggedTaskId(null)
   }
 
-  const getTasksByStatus = (status: TaskStatus) =>
-    tasks.filter((t) => t.status === status)
+  const getTasksByStatus = (status: TaskStatus) => tasks.filter((t) => t.status === status)
 
   const getNextStatuses = (current: TaskStatus): TaskStatus[] => {
     switch (current) {
-      case 'todo': return ['in_progress', 'waiting']
-      case 'in_progress': return ['waiting', 'done']
-      case 'waiting': return ['in_progress', 'done']
-      case 'done': return ['todo']
+      case 'todo':
+        return ['in_progress', 'waiting']
+      case 'in_progress':
+        return ['waiting', 'done']
+      case 'waiting':
+        return ['in_progress', 'done']
+      case 'done':
+        return ['todo']
     }
   }
 
@@ -177,6 +181,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
               <span className="kanban-column-title">{columnLabel}</span>
               <span className="kanban-column-count">{columnTasks.length}</span>
               <button
+                type="button"
                 className="icon-button"
                 onClick={() => setAddingInColumn(column.status)}
                 title={t('kanban.addTask')}
@@ -195,9 +200,15 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
                     onChange={(e) => setNewTaskTitle(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') handleCreateTask(column.status)
-                      if (e.key === 'Escape') { setAddingInColumn(null); setNewTaskTitle('') }
+                      if (e.key === 'Escape') {
+                        setAddingInColumn(null)
+                        setNewTaskTitle('')
+                      }
                     }}
-                    onBlur={() => { setAddingInColumn(null); setNewTaskTitle('') }}
+                    onBlur={() => {
+                      setAddingInColumn(null)
+                      setNewTaskTitle('')
+                    }}
                     placeholder={t('kanban.taskPlaceholder')}
                     autoFocus
                   />
@@ -225,23 +236,21 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
                         onChange={(e) => setEditingTitle(e.target.value)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') handleEditSave(task.id)
-                          if (e.key === 'Escape') { setEditingTaskId(null); setEditingTitle('') }
+                          if (e.key === 'Escape') {
+                            setEditingTaskId(null)
+                            setEditingTitle('')
+                          }
                         }}
                         onBlur={() => handleEditSave(task.id)}
                         autoFocus
                         style={{ fontSize: 12, padding: '2px 4px' }}
                       />
                     ) : (
-                      <span
-                        className="kanban-card-title"
-                        onDoubleClick={() => startEditing(task)}
-                      >
+                      <span className="kanban-card-title" onDoubleClick={() => startEditing(task)}>
                         {task.title}
                       </span>
                     )}
-                    {task.description && (
-                      <span className="kanban-card-description">{task.description}</span>
-                    )}
+                    {task.description && <span className="kanban-card-description">{task.description}</span>}
 
                     {/* Due date display / edit */}
                     {editingDueDateTaskId === task.id ? (
@@ -279,6 +288,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
                   <div className="kanban-card-actions">
                     {getNextStatuses(task.status).map((nextStatus) => (
                       <button
+                        type="button"
                         key={nextStatus}
                         className="icon-button"
                         onClick={() => handleMoveTask(task.id, nextStatus)}
@@ -288,6 +298,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
                       </button>
                     ))}
                     <button
+                      type="button"
                       className="icon-button"
                       onClick={() => handleDeleteTask(task.id)}
                       title={t('kanban.deleteTask')}
@@ -298,9 +309,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
                 </div>
               ))}
 
-              {columnTasks.length === 0 && !addingInColumn && (
-                <div className="kanban-empty">{t('kanban.empty')}</div>
-              )}
+              {columnTasks.length === 0 && !addingInColumn && <div className="kanban-empty">{t('kanban.empty')}</div>}
             </div>
           </div>
         )

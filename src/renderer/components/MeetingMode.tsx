@@ -1,5 +1,23 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { Play, Square, Plus, Clock, Users, ClipboardPaste, Sparkles, FileText, Copy, Download, Check, RefreshCw, Loader2, ListChecks, Trash2, AlertTriangle, Pencil } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import {
+  Play,
+  Square,
+  Plus,
+  Clock,
+  Users,
+  ClipboardPaste,
+  Sparkles,
+  FileText,
+  Copy,
+  Download,
+  Check,
+  RefreshCw,
+  Loader2,
+  ListChecks,
+  Trash2,
+  AlertTriangle,
+  Pencil,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { MarkdownViewer } from './MarkdownViewer'
 import { ConfirmModal } from './ConfirmModal'
@@ -138,7 +156,9 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
       if (settings?.userName) {
         setUserName(settings.userName)
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 
   const checkActiveMeeting = async () => {
@@ -228,28 +248,18 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
 
       if (result) {
         setGeneratedMinutes(result.minutes || '')
-        setPreviewEntries(
-          (result.entries || []).map((e: any) => ({ ...e, selected: true }))
-        )
-        setPreviewTasks(
-          (result.tasks || []).map((t: any) => ({ ...t, selected: !t.similarTo }))
-        )
-        setPreviewResolvedTasks(
-          (result.resolvedTasks || []).map((rt: any) => ({ ...rt, selected: true }))
-        )
+        setPreviewEntries((result.entries || []).map((e: any) => ({ ...e, selected: true })))
+        setPreviewTasks((result.tasks || []).map((t: any) => ({ ...t, selected: !t.similarTo })))
+        setPreviewResolvedTasks((result.resolvedTasks || []).map((rt: any) => ({ ...rt, selected: true })))
         // Update meeting with minutes
-        setMeeting((prev) => prev ? { ...prev, generatedMinutes: result.minutes, status: 'processed' } : null)
+        setMeeting((prev) => (prev ? { ...prev, generatedMinutes: result.minutes, status: 'processed' } : null))
       }
 
       setStep('select')
     } catch (error: any) {
       console.error('Failed to process meeting:', error)
       const message = error?.message || 'Erro desconhecido ao processar reunião'
-      setProcessError(
-        message.includes('invalid JSON')
-          ? t('errorInvalidJson')
-          : t('errorProcessing', { message })
-      )
+      setProcessError(message.includes('invalid JSON') ? t('errorInvalidJson') : t('errorProcessing', { message }))
     } finally {
       setIsProcessing(false)
     }
@@ -267,9 +277,7 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
         .filter((t) => t.selected)
         .map(({ title, description, assignee }) => ({ title, description, assignee }))
 
-      const resolvedIds = previewResolvedTasks
-        .filter((rt) => rt.selected)
-        .map((rt) => rt.taskId)
+      const resolvedIds = previewResolvedTasks.filter((rt) => rt.selected).map((rt) => rt.taskId)
 
       const result = await window.electronAPI.saveSelectedMeetingItems(meeting.id, selectedE, selectedT, resolvedIds)
       setSavedEntryIds(result.entryIds || [])
@@ -284,15 +292,11 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
   }
 
   const toggleEntry = (index: number) => {
-    setPreviewEntries((prev) =>
-      prev.map((e, i) => (i === index ? { ...e, selected: !e.selected } : e))
-    )
+    setPreviewEntries((prev) => prev.map((e, i) => (i === index ? { ...e, selected: !e.selected } : e)))
   }
 
   const toggleTask = (index: number) => {
-    setPreviewTasks((prev) =>
-      prev.map((t, i) => (i === index ? { ...t, selected: !t.selected } : t))
-    )
+    setPreviewTasks((prev) => prev.map((t, i) => (i === index ? { ...t, selected: !t.selected } : t)))
   }
 
   const selectAllEntries = (value: boolean) => {
@@ -304,9 +308,7 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
   }
 
   const toggleResolvedTask = (index: number) => {
-    setPreviewResolvedTasks((prev) =>
-      prev.map((rt, i) => (i === index ? { ...rt, selected: !rt.selected } : rt))
-    )
+    setPreviewResolvedTasks((prev) => prev.map((rt, i) => (i === index ? { ...rt, selected: !rt.selected } : rt)))
   }
 
   const selectAllResolvedTasks = (value: boolean) => {
@@ -314,28 +316,20 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
   }
 
   const updateEntryText = (index: number, text: string) => {
-    setPreviewEntries((prev) =>
-      prev.map((e, i) => (i === index ? { ...e, text } : e))
-    )
+    setPreviewEntries((prev) => prev.map((e, i) => (i === index ? { ...e, text } : e)))
   }
 
   const updateEntryType = (index: number, type: string) => {
-    setPreviewEntries((prev) =>
-      prev.map((e, i) => (i === index ? { ...e, type } : e))
-    )
+    setPreviewEntries((prev) => prev.map((e, i) => (i === index ? { ...e, type } : e)))
     setEditingEntryTypeIndex(null)
   }
 
   const updateTaskTitle = (index: number, title: string) => {
-    setPreviewTasks((prev) =>
-      prev.map((t, i) => (i === index ? { ...t, title } : t))
-    )
+    setPreviewTasks((prev) => prev.map((t, i) => (i === index ? { ...t, title } : t)))
   }
 
   const updateTaskDescription = (index: number, description: string) => {
-    setPreviewTasks((prev) =>
-      prev.map((t, i) => (i === index ? { ...t, description } : t))
-    )
+    setPreviewTasks((prev) => prev.map((t, i) => (i === index ? { ...t, description } : t)))
   }
 
   const handleCopyMinutes = async () => {
@@ -362,12 +356,8 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
       const result = await window.electronAPI.processMeeting(meeting.id)
       if (result) {
         setGeneratedMinutes(result.minutes || '')
-        setPreviewEntries(
-          (result.entries || []).map((e: any) => ({ ...e, selected: true }))
-        )
-        setPreviewTasks(
-          (result.tasks || []).map((t: any) => ({ ...t, selected: !t.similarTo }))
-        )
+        setPreviewEntries((result.entries || []).map((e: any) => ({ ...e, selected: true })))
+        setPreviewTasks((result.tasks || []).map((t: any) => ({ ...t, selected: !t.similarTo })))
       }
     } catch (error) {
       console.error('Failed to reprocess meeting:', error)
@@ -435,9 +425,7 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
             <Play size={24} />
           </div>
           <h2 className="capture-hero-title">{t('newMeeting')}</h2>
-          <p className="capture-hero-subtitle">
-            {t('heroSubtitle')}
-          </p>
+          <p className="capture-hero-subtitle">{t('heroSubtitle')}</p>
         </div>
 
         {/* Form card */}
@@ -462,7 +450,9 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
               onChange={(e) => setSelectedProjectId(e.target.value)}
             >
               {projects.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
               ))}
             </select>
           </div>
@@ -492,6 +482,7 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
         {/* AI Agenda Preparation */}
         <div className="meeting-prep-section">
           <button
+            type="button"
             className="vscode-button secondary meeting-prep-button"
             onClick={handlePrepareAgenda}
             disabled={isPreparingAgenda || !title.trim() || !selectedProjectId}
@@ -514,7 +505,7 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
               <div className="meeting-agenda-header">
                 <Sparkles size={14} />
                 <span>{t('suggestedAgenda')}</span>
-                <button className="icon-button" onClick={handleCopyAgenda} title={t('copyAgenda')}>
+                <button type="button" className="icon-button" onClick={handleCopyAgenda} title={t('copyAgenda')}>
                   <Copy size={14} />
                 </button>
               </div>
@@ -527,19 +518,20 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
 
         {/* Capture options */}
         <div className="meeting-review-card" style={{ gap: '16px' }}>
-          <div className="meeting-review-card-header">
-            {t('captureHow')}
-          </div>
+          <div className="meeting-review-card-header">{t('captureHow')}</div>
           <div className="meeting-option-cards">
             <div className="meeting-option-card" onClick={handleStart}>
               <Play size={20} />
               <span className="meeting-option-title">{t('captureLive')}</span>
               <span className="meeting-option-desc">{t('captureLiveDesc')}</span>
             </div>
-            <div className="meeting-option-card" onClick={() => {
-              if (!title.trim() || !selectedProjectId) return
-              handleStart().then(() => setStep('review'))
-            }}>
+            <div
+              className="meeting-option-card"
+              onClick={() => {
+                if (!title.trim() || !selectedProjectId) return
+                handleStart().then(() => setStep('review'))
+              }}
+            >
               <ClipboardPaste size={20} />
               <span className="meeting-option-title">{t('captureTranscription')}</span>
               <span className="meeting-option-desc">{t('captureTranscriptionDesc')}</span>
@@ -582,11 +574,7 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
               <span>{note}</span>
             </div>
           ))}
-          {meeting.rawNotes.length === 0 && (
-            <div className="meeting-empty-notes">
-              {t('emptyNotes')}
-            </div>
-          )}
+          {meeting.rawNotes.length === 0 && <div className="meeting-empty-notes">{t('emptyNotes')}</div>}
         </div>
 
         <div className="meeting-note-input">
@@ -602,13 +590,13 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
             placeholder={t('noteInputPlaceholder')}
             autoFocus
           />
-          <button className="vscode-button secondary" onClick={handleAddNote}>
+          <button type="button" className="vscode-button secondary" onClick={handleAddNote}>
             <Plus size={14} />
           </button>
         </div>
 
         <div className="meeting-actions">
-          <button className="vscode-button danger" onClick={handleEnd}>
+          <button type="button" className="vscode-button danger" onClick={handleEnd}>
             <Square size={14} />
             {t('endMeeting')}
           </button>
@@ -620,7 +608,11 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
   // === REVIEW (after ending or paste mode) ===
   if (step === 'review' && meeting) {
     const reviewDate = meeting.meetingDate
-      ? new Date(meeting.meetingDate + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      ? new Date(`${meeting.meetingDate}T12:00:00`).toLocaleDateString('pt-BR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        })
       : null
 
     return (
@@ -674,9 +666,7 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
             <ClipboardPaste size={14} />
             <span>{t('pasteTranscription')}</span>
           </div>
-          <p className="meeting-review-card-hint">
-            {t('pasteTranscriptionHint')}
-          </p>
+          <p className="meeting-review-card-hint">{t('pasteTranscriptionHint')}</p>
           <textarea
             className="vscode-textarea meeting-review-textarea"
             value={transcription}
@@ -689,6 +679,7 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
         {/* Action bar */}
         <div className="meeting-review-action-bar">
           <button
+            type="button"
             className="capture-send-btn"
             onClick={handleProcess}
             disabled={isProcessing || (meeting.rawNotes.length === 0 && !transcription.trim())}
@@ -697,9 +688,7 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
             <span>{isProcessing ? t('processing') : t('processMeeting')}</span>
           </button>
           {meeting.rawNotes.length === 0 && !transcription.trim() && (
-            <span className="meeting-review-warning">
-              {t('addNotesOrTranscription')}
-            </span>
+            <span className="meeting-review-warning">{t('addNotesOrTranscription')}</span>
           )}
         </div>
 
@@ -716,7 +705,7 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
 
   // === SELECT (user picks which entries/tasks to save) ===
   if (step === 'select' && meeting) {
-    const meetingDate = new Date(meeting.meetingDate + 'T12:00:00').toLocaleDateString('pt-BR', {
+    const meetingDate = new Date(`${meeting.meetingDate}T12:00:00`).toLocaleDateString('pt-BR', {
       weekday: 'long',
       day: '2-digit',
       month: '2-digit',
@@ -730,13 +719,19 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
     return (
       <div className="meeting-container meeting-container-wide">
         <div className="panel-header">
-          <span className="panel-title">{t('reviewResult')} — {meeting.title}</span>
+          <span className="panel-title">
+            {t('reviewResult')} — {meeting.title}
+          </span>
         </div>
 
         <div className="meeting-meta-bar">
-          <span><Clock size={12} /> {meetingDate}</span>
+          <span>
+            <Clock size={12} /> {meetingDate}
+          </span>
           {meeting.participants.length > 0 && (
-            <span><Users size={12} /> {meeting.participants.join(', ')}</span>
+            <span>
+              <Users size={12} /> {meeting.participants.join(', ')}
+            </span>
           )}
         </div>
 
@@ -747,10 +742,28 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
               <FileText size={14} />
               <span>{t('meetingMinutes')}</span>
               <div className="meeting-minutes-actions">
-                <button className="icon-button" onClick={(e) => { e.preventDefault(); handleCopyMinutes() }} title={t('copyMinutes')} style={{ opacity: 1 }}>
+                <button
+                  type="button"
+                  className="icon-button"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    handleCopyMinutes()
+                  }}
+                  title={t('copyMinutes')}
+                  style={{ opacity: 1 }}
+                >
                   <Copy size={14} />
                 </button>
-                <button className="icon-button" onClick={(e) => { e.preventDefault(); handleDownloadMinutes() }} title={t('downloadMinutes')} style={{ opacity: 1 }}>
+                <button
+                  type="button"
+                  className="icon-button"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    handleDownloadMinutes()
+                  }}
+                  title={t('downloadMinutes')}
+                  style={{ opacity: 1 }}
+                >
                   <Download size={14} />
                 </button>
               </div>
@@ -767,10 +780,10 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
             <div className="meeting-select-header">
               <h4>{t('entriesToCreate', { selected: selectedEntriesCount, total: previewEntries.length })}</h4>
               <div className="meeting-select-actions">
-                <button className="vscode-button secondary" onClick={() => selectAllEntries(true)}>
+                <button type="button" className="vscode-button secondary" onClick={() => selectAllEntries(true)}>
                   {t('all')}
                 </button>
-                <button className="vscode-button secondary" onClick={() => selectAllEntries(false)}>
+                <button type="button" className="vscode-button secondary" onClick={() => selectAllEntries(false)}>
                   {t('none')}
                 </button>
               </div>
@@ -778,14 +791,13 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
             <div className="meeting-select-list">
               {previewEntries.map((entry, i) => (
                 <label key={i} className={`meeting-select-item ${entry.selected ? 'selected' : ''}`}>
-                  <input
-                    type="checkbox"
-                    checked={entry.selected}
-                    onChange={() => toggleEntry(i)}
-                  />
+                  <input type="checkbox" checked={entry.selected} onChange={() => toggleEntry(i)} />
                   <span
                     className={`meeting-select-badge badge-${entry.type} meeting-badge-clickable`}
-                    onClick={(e) => { e.preventDefault(); setEditingEntryTypeIndex(editingEntryTypeIndex === i ? null : i) }}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      setEditingEntryTypeIndex(editingEntryTypeIndex === i ? null : i)
+                    }}
                     title={t('clickToChangeType')}
                   >
                     {typeLabels[entry.type] || entry.type}
@@ -794,9 +806,13 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
                     <div className="meeting-type-dropdown" onClick={(e) => e.preventDefault()}>
                       {Object.entries(typeLabels).map(([type, label]) => (
                         <button
+                          type="button"
                           key={type}
                           className={`meeting-type-option ${type === entry.type ? 'active' : ''}`}
-                          onClick={(e) => { e.preventDefault(); updateEntryType(i, type) }}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            updateEntryType(i, type)
+                          }}
                         >
                           <span className={`meeting-select-badge badge-${type}`}>{label}</span>
                         </button>
@@ -819,15 +835,22 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
                   ) : (
                     <span
                       className="meeting-select-text meeting-editable"
-                      onDoubleClick={(e) => { e.preventDefault(); setEditingEntryIndex(i) }}
+                      onDoubleClick={(e) => {
+                        e.preventDefault()
+                        setEditingEntryIndex(i)
+                      }}
                     >
                       {entry.text}
                     </span>
                   )}
                   {editingEntryIndex !== i && (
                     <button
+                      type="button"
                       className="meeting-edit-btn"
-                      onClick={(e) => { e.preventDefault(); setEditingEntryIndex(i) }}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        setEditingEntryIndex(i)
+                      }}
                       title={t('editText')}
                     >
                       <Pencil size={11} />
@@ -840,173 +863,210 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
         )}
 
         {/* Tasks selection */}
-        {previewTasks.length > 0 && (() => {
-          const isMyTask = (task: ProcessedTask) => {
-            if (!userName || !task.assignee) return false
-            return task.assignee.toLowerCase().includes(userName.toLowerCase())
-              || userName.toLowerCase().includes(task.assignee.toLowerCase())
-          }
+        {previewTasks.length > 0 &&
+          (() => {
+            const isMyTask = (task: ProcessedTask) => {
+              if (!userName || !task.assignee) return false
+              return (
+                task.assignee.toLowerCase().includes(userName.toLowerCase()) ||
+                userName.toLowerCase().includes(task.assignee.toLowerCase())
+              )
+            }
 
-          const myTasks = previewTasks.map((t, i) => ({ ...t, originalIndex: i })).filter((t) => isMyTask(t))
-          const otherTasks = previewTasks.map((t, i) => ({ ...t, originalIndex: i })).filter((t) => !isMyTask(t))
-          const mySelectedCount = myTasks.filter((t) => t.selected).length
-          const otherSelectedCount = otherTasks.filter((t) => t.selected).length
+            const myTasks = previewTasks.map((t, i) => ({ ...t, originalIndex: i })).filter((t) => isMyTask(t))
+            const otherTasks = previewTasks.map((t, i) => ({ ...t, originalIndex: i })).filter((t) => !isMyTask(t))
+            const mySelectedCount = myTasks.filter((t) => t.selected).length
+            const otherSelectedCount = otherTasks.filter((t) => t.selected).length
 
-          const renderTask = (task: ProcessedTask & { originalIndex: number }) => (
-            <label key={task.originalIndex} className={`meeting-select-item ${task.selected ? 'selected' : ''} ${task.similarTo ? 'has-warning' : ''}`}>
-              <input
-                type="checkbox"
-                checked={task.selected}
-                onChange={() => toggleTask(task.originalIndex)}
-              />
-              <span className="meeting-select-text">
-                {editingTaskIndex === task.originalIndex ? (
-                  <div className="meeting-inline-edit-group" onClick={(e) => e.preventDefault()}>
-                    <input
-                      type="text"
-                      className="vscode-input meeting-inline-edit"
-                      value={task.title}
-                      onChange={(e) => updateTaskTitle(task.originalIndex, e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === 'Escape') setEditingTaskIndex(null)
-                      }}
-                      onBlur={() => setEditingTaskIndex(null)}
-                      autoFocus
-                      placeholder={t('taskTitlePlaceholder')}
-                    />
-                    <input
-                      type="text"
-                      className="vscode-input meeting-inline-edit meeting-inline-edit-desc"
-                      value={task.description || ''}
-                      onChange={(e) => updateTaskDescription(task.originalIndex, e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Escape') setEditingTaskIndex(null)
-                      }}
-                      placeholder={t('taskDescriptionPlaceholder')}
-                    />
-                  </div>
-                ) : (
-                  <>
-                    <strong
-                      className="meeting-editable"
-                      onDoubleClick={(e) => { e.preventDefault(); setEditingTaskIndex(task.originalIndex) }}
-                    >
-                      {task.title}
-                    </strong>
-                    {task.assignee && (
-                      <span className="meeting-task-assignee-badge">
-                        {task.assignee}
-                      </span>
-                    )}
-                    {task.description && (
-                      <span className="meeting-select-desc"> — {task.description}</span>
-                    )}
-                  </>
+            const renderTask = (task: ProcessedTask & { originalIndex: number }) => (
+              <label
+                key={task.originalIndex}
+                className={`meeting-select-item ${task.selected ? 'selected' : ''} ${task.similarTo ? 'has-warning' : ''}`}
+              >
+                <input type="checkbox" checked={task.selected} onChange={() => toggleTask(task.originalIndex)} />
+                <span className="meeting-select-text">
+                  {editingTaskIndex === task.originalIndex ? (
+                    <div className="meeting-inline-edit-group" onClick={(e) => e.preventDefault()}>
+                      <input
+                        type="text"
+                        className="vscode-input meeting-inline-edit"
+                        value={task.title}
+                        onChange={(e) => updateTaskTitle(task.originalIndex, e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === 'Escape') setEditingTaskIndex(null)
+                        }}
+                        onBlur={() => setEditingTaskIndex(null)}
+                        autoFocus
+                        placeholder={t('taskTitlePlaceholder')}
+                      />
+                      <input
+                        type="text"
+                        className="vscode-input meeting-inline-edit meeting-inline-edit-desc"
+                        value={task.description || ''}
+                        onChange={(e) => updateTaskDescription(task.originalIndex, e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Escape') setEditingTaskIndex(null)
+                        }}
+                        placeholder={t('taskDescriptionPlaceholder')}
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <strong
+                        className="meeting-editable"
+                        onDoubleClick={(e) => {
+                          e.preventDefault()
+                          setEditingTaskIndex(task.originalIndex)
+                        }}
+                      >
+                        {task.title}
+                      </strong>
+                      {task.assignee && <span className="meeting-task-assignee-badge">{task.assignee}</span>}
+                      {task.description && <span className="meeting-select-desc"> — {task.description}</span>}
+                    </>
+                  )}
+                  {task.similarTo && (
+                    <span className="meeting-task-similar-warning">
+                      <AlertTriangle size={12} />
+                      <span>{t('similarTo', { title: task.similarTo.taskTitle, reason: task.similarTo.reason })}</span>
+                    </span>
+                  )}
+                </span>
+                {editingTaskIndex !== task.originalIndex && (
+                  <button
+                    type="button"
+                    className="meeting-edit-btn"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      setEditingTaskIndex(task.originalIndex)
+                    }}
+                    title={t('editTask')}
+                  >
+                    <Pencil size={11} />
+                  </button>
                 )}
-                {task.similarTo && (
-                  <span className="meeting-task-similar-warning">
-                    <AlertTriangle size={12} />
-                    <span>{t('similarTo', { title: task.similarTo.taskTitle, reason: task.similarTo.reason })}</span>
-                  </span>
-                )}
-              </span>
-              {editingTaskIndex !== task.originalIndex && (
-                <button
-                  className="meeting-edit-btn"
-                  onClick={(e) => { e.preventDefault(); setEditingTaskIndex(task.originalIndex) }}
-                  title={t('editTask')}
-                >
-                  <Pencil size={11} />
-                </button>
-              )}
-            </label>
-          )
-
-          // If no userName configured or no assignee data, show flat list
-          if (!userName || (myTasks.length === 0 && otherTasks.length === 0)) {
-            return (
-              <div className="meeting-select-section">
-                <div className="meeting-select-header">
-                  <h4>{t('tasksToCreate', { selected: selectedTasksCount, total: previewTasks.length })}</h4>
-                  <div className="meeting-select-actions">
-                    <button className="vscode-button secondary" onClick={() => selectAllTasks(true)}>
-                      {t('all')}
-                    </button>
-                    <button className="vscode-button secondary" onClick={() => selectAllTasks(false)}>
-                      {t('none')}
-                    </button>
-                  </div>
-                </div>
-                <div className="meeting-select-list">
-                  {previewTasks.map((task, i) => renderTask({ ...task, originalIndex: i }))}
-                </div>
-              </div>
+              </label>
             )
-          }
 
-          return (
-            <>
-              {/* My tasks */}
-              {myTasks.length > 0 && (
-                <div className="meeting-select-section meeting-select-mine">
+            // If no userName configured or no assignee data, show flat list
+            if (!userName || (myTasks.length === 0 && otherTasks.length === 0)) {
+              return (
+                <div className="meeting-select-section">
                   <div className="meeting-select-header">
-                    <h4>🎯 {t('myTasks', { selected: mySelectedCount, total: myTasks.length })}</h4>
+                    <h4>{t('tasksToCreate', { selected: selectedTasksCount, total: previewTasks.length })}</h4>
                     <div className="meeting-select-actions">
-                      <button className="vscode-button secondary" onClick={() => {
-                        setPreviewTasks((prev) => prev.map((t, i) =>
-                          myTasks.some((mt) => mt.originalIndex === i) ? { ...t, selected: true } : t
-                        ))
-                      }}>{t('all')}</button>
-                      <button className="vscode-button secondary" onClick={() => {
-                        setPreviewTasks((prev) => prev.map((t, i) =>
-                          myTasks.some((mt) => mt.originalIndex === i) ? { ...t, selected: false } : t
-                        ))
-                      }}>{t('none')}</button>
+                      <button type="button" className="vscode-button secondary" onClick={() => selectAllTasks(true)}>
+                        {t('all')}
+                      </button>
+                      <button type="button" className="vscode-button secondary" onClick={() => selectAllTasks(false)}>
+                        {t('none')}
+                      </button>
                     </div>
                   </div>
                   <div className="meeting-select-list">
-                    {myTasks.map(renderTask)}
+                    {previewTasks.map((task, i) => renderTask({ ...task, originalIndex: i }))}
                   </div>
                 </div>
-              )}
+              )
+            }
 
-              {/* Others' tasks */}
-              {otherTasks.length > 0 && (
-                <div className="meeting-select-section meeting-select-others">
-                  <div className="meeting-select-header">
-                    <h4>👥 {t('othersTasks', { selected: otherSelectedCount, total: otherTasks.length })}</h4>
-                    <div className="meeting-select-actions">
-                      <button className="vscode-button secondary" onClick={() => {
-                        setPreviewTasks((prev) => prev.map((t, i) =>
-                          otherTasks.some((ot) => ot.originalIndex === i) ? { ...t, selected: true } : t
-                        ))
-                      }}>{t('all')}</button>
-                      <button className="vscode-button secondary" onClick={() => {
-                        setPreviewTasks((prev) => prev.map((t, i) =>
-                          otherTasks.some((ot) => ot.originalIndex === i) ? { ...t, selected: false } : t
-                        ))
-                      }}>{t('none')}</button>
+            return (
+              <>
+                {/* My tasks */}
+                {myTasks.length > 0 && (
+                  <div className="meeting-select-section meeting-select-mine">
+                    <div className="meeting-select-header">
+                      <h4>🎯 {t('myTasks', { selected: mySelectedCount, total: myTasks.length })}</h4>
+                      <div className="meeting-select-actions">
+                        <button
+                          type="button"
+                          className="vscode-button secondary"
+                          onClick={() => {
+                            setPreviewTasks((prev) =>
+                              prev.map((t, i) =>
+                                myTasks.some((mt) => mt.originalIndex === i) ? { ...t, selected: true } : t
+                              )
+                            )
+                          }}
+                        >
+                          {t('all')}
+                        </button>
+                        <button
+                          type="button"
+                          className="vscode-button secondary"
+                          onClick={() => {
+                            setPreviewTasks((prev) =>
+                              prev.map((t, i) =>
+                                myTasks.some((mt) => mt.originalIndex === i) ? { ...t, selected: false } : t
+                              )
+                            )
+                          }}
+                        >
+                          {t('none')}
+                        </button>
+                      </div>
                     </div>
+                    <div className="meeting-select-list">{myTasks.map(renderTask)}</div>
                   </div>
-                  <div className="meeting-select-list">
-                    {otherTasks.map(renderTask)}
+                )}
+
+                {/* Others' tasks */}
+                {otherTasks.length > 0 && (
+                  <div className="meeting-select-section meeting-select-others">
+                    <div className="meeting-select-header">
+                      <h4>👥 {t('othersTasks', { selected: otherSelectedCount, total: otherTasks.length })}</h4>
+                      <div className="meeting-select-actions">
+                        <button
+                          type="button"
+                          className="vscode-button secondary"
+                          onClick={() => {
+                            setPreviewTasks((prev) =>
+                              prev.map((t, i) =>
+                                otherTasks.some((ot) => ot.originalIndex === i) ? { ...t, selected: true } : t
+                              )
+                            )
+                          }}
+                        >
+                          {t('all')}
+                        </button>
+                        <button
+                          type="button"
+                          className="vscode-button secondary"
+                          onClick={() => {
+                            setPreviewTasks((prev) =>
+                              prev.map((t, i) =>
+                                otherTasks.some((ot) => ot.originalIndex === i) ? { ...t, selected: false } : t
+                              )
+                            )
+                          }}
+                        >
+                          {t('none')}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="meeting-select-list">{otherTasks.map(renderTask)}</div>
                   </div>
-                </div>
-              )}
-            </>
-          )
-        })()}
+                )}
+              </>
+            )
+          })()}
 
         {/* Resolved tasks selection */}
         {previewResolvedTasks.length > 0 && (
           <div className="meeting-select-section meeting-select-resolved">
             <div className="meeting-select-header">
-              <h4>✅ {t('resolvedTasks', { selected: previewResolvedTasks.filter((rt) => rt.selected).length, total: previewResolvedTasks.length })}</h4>
+              <h4>
+                ✅{' '}
+                {t('resolvedTasks', {
+                  selected: previewResolvedTasks.filter((rt) => rt.selected).length,
+                  total: previewResolvedTasks.length,
+                })}
+              </h4>
               <div className="meeting-select-actions">
-                <button className="vscode-button secondary" onClick={() => selectAllResolvedTasks(true)}>
+                <button type="button" className="vscode-button secondary" onClick={() => selectAllResolvedTasks(true)}>
                   {t('all')}
                 </button>
-                <button className="vscode-button secondary" onClick={() => selectAllResolvedTasks(false)}>
+                <button type="button" className="vscode-button secondary" onClick={() => selectAllResolvedTasks(false)}>
                   {t('none')}
                 </button>
               </div>
@@ -1015,11 +1075,7 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
             <div className="meeting-select-list">
               {previewResolvedTasks.map((rt, i) => (
                 <label key={i} className={`meeting-select-item ${rt.selected ? 'selected' : ''}`}>
-                  <input
-                    type="checkbox"
-                    checked={rt.selected}
-                    onChange={() => toggleResolvedTask(i)}
-                  />
+                  <input type="checkbox" checked={rt.selected} onChange={() => toggleResolvedTask(i)} />
                   <span className="meeting-select-text">
                     <strong>{rt.taskTitle}</strong>
                     <span className="meeting-resolved-reason"> — {rt.reason}</span>
@@ -1033,16 +1089,24 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
         {/* Save actions */}
         <div className="meeting-actions">
           <button
+            type="button"
             className="vscode-button"
             onClick={handleSaveSelected}
             disabled={isSaving || isProcessing}
           >
             <Check size={14} />
-            {isSaving ? t('saving') : (selectedResolvedCount > 0
-              ? t('saveSelectedWithResolved', { entries: selectedEntriesCount, tasks: selectedTasksCount, resolved: selectedResolvedCount })
-              : t('saveSelected', { entries: selectedEntriesCount, tasks: selectedTasksCount }))}
+            {isSaving
+              ? t('saving')
+              : selectedResolvedCount > 0
+                ? t('saveSelectedWithResolved', {
+                    entries: selectedEntriesCount,
+                    tasks: selectedTasksCount,
+                    resolved: selectedResolvedCount,
+                  })
+                : t('saveSelected', { entries: selectedEntriesCount, tasks: selectedTasksCount })}
           </button>
           <button
+            type="button"
             className="vscode-button secondary"
             onClick={handleReprocess}
             disabled={isProcessing || isSaving}
@@ -1050,12 +1114,13 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
             <RefreshCw size={14} />
             {isProcessing ? t('reprocessing') : t('reprocess')}
           </button>
-          <button className="vscode-button secondary" onClick={handleCopyMinutes}>
+          <button type="button" className="vscode-button secondary" onClick={handleCopyMinutes}>
             <Copy size={14} />
             {t('copyMinutes')}
           </button>
           <div style={{ flex: 1 }} />
           <button
+            type="button"
             className="vscode-button danger"
             onClick={() => setShowDeleteConfirm(true)}
             disabled={isSaving || isProcessing}
@@ -1085,36 +1150,37 @@ export function MeetingMode({ projectId, onFinished }: MeetingModeProps) {
     return (
       <div className="meeting-container">
         <div className="panel-header">
-          <span className="panel-title">{t('meetingSaved')} — {meeting.title}</span>
+          <span className="panel-title">
+            {t('meetingSaved')} — {meeting.title}
+          </span>
         </div>
 
         <div className="meeting-processed-info">
           <Check size={16} style={{ color: 'var(--vscode-testing-iconPassed)' }} />
-          <p>
-            {t('meetingSavedInfo')}
-          </p>
+          <p>{t('meetingSavedInfo')}</p>
         </div>
 
         <div className="meeting-actions">
-          <button className="vscode-button secondary" onClick={handleCopyMinutes}>
+          <button type="button" className="vscode-button secondary" onClick={handleCopyMinutes}>
             <Copy size={14} />
             {t('copyMinutes')}
           </button>
-          <button className="vscode-button secondary" onClick={handleDownloadMinutes}>
+          <button type="button" className="vscode-button secondary" onClick={handleDownloadMinutes}>
             <Download size={14} />
             {t('saveAsMd')}
           </button>
-          <button className="vscode-button secondary" onClick={handleNewMeeting}>
+          <button type="button" className="vscode-button secondary" onClick={handleNewMeeting}>
             <Plus size={14} />
             {t('newMeeting')}
           </button>
           {onFinished && meeting && (
-            <button className="vscode-button" onClick={() => onFinished(meeting.projectId)}>
+            <button type="button" className="vscode-button" onClick={() => onFinished(meeting.projectId)}>
               {t('viewKanban')}
             </button>
           )}
           <div style={{ flex: 1 }} />
           <button
+            type="button"
             className="vscode-button danger"
             onClick={() => setShowDeleteConfirm(true)}
             title={t('deleteMeetingAndData')}

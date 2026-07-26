@@ -1,6 +1,5 @@
-import React from 'react'
 import { Keyboard, Sparkles, Inbox } from 'lucide-react'
-import { useTranslation } from 'react-i18next'
+import { Trans, useTranslation } from 'react-i18next'
 
 interface Props {
   onFinish: () => void
@@ -12,9 +11,7 @@ export function OnboardingTips({ onFinish }: Props) {
   return (
     <div className="onboarding-step">
       <h1 className="onboarding-title">{t('onboarding.tipsTitle')}</h1>
-      <p className="onboarding-description">
-        {t('onboarding.tipsDescription')}
-      </p>
+      <p className="onboarding-description">{t('onboarding.tipsDescription')}</p>
 
       <div className="onboarding-tips-grid">
         <div className="onboarding-tip-card">
@@ -22,7 +19,9 @@ export function OnboardingTips({ onFinish }: Props) {
             <Keyboard size={28} strokeWidth={1.5} />
           </div>
           <h3>{t('onboarding.tipGlobalCapture')}</h3>
-          <p dangerouslySetInnerHTML={{ __html: t('onboarding.tipGlobalCaptureDesc') }} />
+          <p>
+            <Trans t={t} i18nKey="onboarding.tipGlobalCaptureDesc" components={{ kbd: <kbd /> }} />
+          </p>
         </div>
 
         <div className="onboarding-tip-card">
@@ -38,11 +37,13 @@ export function OnboardingTips({ onFinish }: Props) {
             <Inbox size={28} strokeWidth={1.5} />
           </div>
           <h3>{t('onboarding.tipQuickSearch')}</h3>
-          <p dangerouslySetInnerHTML={{ __html: t('onboarding.tipQuickSearchDesc') }} />
+          <p>
+            <Trans t={t} i18nKey="onboarding.tipQuickSearchDesc" components={{ kbd: <kbd /> }} />
+          </p>
         </div>
       </div>
 
-      <button className="onboarding-btn-primary" onClick={onFinish}>
+      <button type="button" className="onboarding-btn-primary" onClick={onFinish}>
         {t('onboarding.startUsing')}
       </button>
     </div>

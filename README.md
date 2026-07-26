@@ -89,6 +89,10 @@ This starts in parallel:
 | `npm test` | Run tests with Vitest |
 | `npm run test:watch` | Tests in watch mode |
 | `npm run test:coverage` | Tests with coverage |
+| `npm run lint` | Lint and format check with Biome |
+| `npm run lint:fix` | Auto-fix lint/format issues |
+| `npm run typecheck` | TypeScript type check (main + renderer) |
+| `npm run check-i18n` | Verify i18n keys are in sync across locales |
 | `npm run pack` | Package with electron-builder (no distribution) |
 | `npm run dist` | Package for distribution |
 
@@ -128,7 +132,7 @@ src/
 
 The project uses `electron-builder` and GitHub Actions for CI/CD:
 
-- **CI (Tests)** — Runs tests automatically on push/PR to main
+- **CI (Tests)** — Runs lint, type check, i18n check, build and tests automatically on push/PR to main
 - **Release** — Automated builds for Windows (NSIS), macOS (DMG), and Linux (AppImage) when a `v*` tag is created
 - **Auto-update** — `electron-updater` checks for new versions via GitHub Releases
 

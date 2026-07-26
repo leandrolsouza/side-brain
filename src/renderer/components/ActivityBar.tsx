@@ -1,5 +1,19 @@
-import React from 'react'
-import { LayoutDashboard, PenLine, FolderOpen, Video, Settings, Sun, Moon, BarChart3, Info, MessageCircle, SlidersHorizontal, Network, Bot } from 'lucide-react'
+import type React from 'react'
+import {
+  LayoutDashboard,
+  PenLine,
+  FolderOpen,
+  Video,
+  Settings,
+  Sun,
+  Moon,
+  BarChart3,
+  Info,
+  MessageCircle,
+  SlidersHorizontal,
+  Network,
+  Bot,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { View, Theme } from '../App'
 
@@ -25,8 +39,7 @@ export function ActivityBar({ currentView, onViewChange, theme, onThemeChange, o
     { view: 'agents', icon: <Bot size={24} />, tooltip: t('activityBar.agents', { defaultValue: 'Agentes' }) },
   ]
 
-  const isActive = (view: View) =>
-    currentView === view || (view === 'projects' && currentView === 'entries')
+  const isActive = (view: View) => currentView === view || (view === 'projects' && currentView === 'entries')
 
   return (
     <div className="activity-bar">
@@ -49,11 +62,7 @@ export function ActivityBar({ currentView, onViewChange, theme, onThemeChange, o
         >
           {theme === 'dark' ? <Sun size={22} /> : <Moon size={22} />}
         </div>
-        <div
-          className="activity-bar-item"
-          onClick={onAboutClick}
-          title={t('activityBar.about')}
-        >
+        <div className="activity-bar-item" onClick={onAboutClick} title={t('activityBar.about')}>
           <Info size={22} />
         </div>
         <div

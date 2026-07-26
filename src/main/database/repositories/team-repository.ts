@@ -1,6 +1,6 @@
 import { v4 as uuid } from 'uuid'
 import { getDatabase } from '../schema'
-import {
+import type {
   AgentTeam,
   TeamCollaborationMode,
   TeamDiscussionEntry,
@@ -51,7 +51,14 @@ export class TeamRepository {
     return row ? this.mapTeamRow(row) : null
   }
 
-  create(data: { name: string; description: string; memberIds: string[]; collaborationMode: TeamCollaborationMode; generateSynthesis: boolean; synthesisPrompt?: string }): AgentTeam {
+  create(data: {
+    name: string
+    description: string
+    memberIds: string[]
+    collaborationMode: TeamCollaborationMode
+    generateSynthesis: boolean
+    synthesisPrompt?: string
+  }): AgentTeam {
     const db = getDatabase()
     const id = uuid()
     const now = new Date().toISOString()
@@ -74,7 +81,17 @@ export class TeamRepository {
     return this.getById(id)!
   }
 
-  update(id: string, data: Partial<{ name: string; description: string; memberIds: string[]; collaborationMode: TeamCollaborationMode; generateSynthesis: boolean; synthesisPrompt?: string }>): AgentTeam | null {
+  update(
+    id: string,
+    data: Partial<{
+      name: string
+      description: string
+      memberIds: string[]
+      collaborationMode: TeamCollaborationMode
+      generateSynthesis: boolean
+      synthesisPrompt?: string
+    }>
+  ): AgentTeam | null {
     const existing = this.getById(id)
     if (!existing) return null
 
@@ -142,14 +159,16 @@ export class TeamRepository {
 
   getExecutionsForTeam(teamId: string, limit = 20): TeamExecutionSummary[] {
     const db = getDatabase()
-    const rows = db.prepare(`
+    const rows = db
+      .prepare(`
       SELECT te.*, t.name as team_name, json_array_length(te.entries) as member_count
       FROM team_executions te
       JOIN agent_teams t ON t.id = te.team_id
       WHERE te.team_id = ?
       ORDER BY te.created_at DESC
       LIMIT ?
-    `).all(teamId, limit) as (TeamExecutionRow & { team_name: string; member_count: number })[]
+    `)
+      .all(teamId, limit) as (TeamExecutionRow & { team_name: string; member_count: number })[]
 
     return rows.map((row) => ({
       id: row.id,
@@ -165,13 +184,15 @@ export class TeamRepository {
 
   getRecentExecutions(limit = 30): TeamExecutionSummary[] {
     const db = getDatabase()
-    const rows = db.prepare(`
+    const rows = db
+      .prepare(`
       SELECT te.*, t.name as team_name, json_array_length(te.entries) as member_count
       FROM team_executions te
       JOIN agent_teams t ON t.id = te.team_id
       ORDER BY te.created_at DESC
       LIMIT ?
-    `).all(limit) as (TeamExecutionRow & { team_name: string; member_count: number })[]
+    `)
+      .all(limit) as (TeamExecutionRow & { team_name: string; member_count: number })[]
 
     return rows.map((row) => ({
       id: row.id,
@@ -185,7 +206,10 @@ export class TeamRepository {
     }))
   }
 
-  updateExecution(id: string, data: { entries?: TeamDiscussionEntry[]; synthesis?: string; status?: TeamExecutionStatus }): void {
+  updateExecution(
+    id: string,
+    data: { entries?: TeamDiscussionEntry[]; synthesis?: string; status?: TeamExecutionStatus }
+  ): void {
     const db = getDatabase()
     const existing = this.getExecution(id)
     if (!existing) return
@@ -193,9 +217,8 @@ export class TeamRepository {
     const entries = data.entries !== undefined ? JSON.stringify(data.entries) : JSON.stringify(existing.entries)
     const synthesis = data.synthesis !== undefined ? data.synthesis : existing.synthesis || null
     const status = data.status || existing.status
-    const completedAt = (status === 'completed' || status === 'failed' || status === 'cancelled')
-      ? new Date().toISOString()
-      : null
+    const completedAt =
+      status === 'completed' || status === 'failed' || status === 'cancelled' ? new Date().toISOString() : null
 
     db.prepare(`
       UPDATE team_executions SET entries = ?, synthesis = ?, status = ?, completed_at = ?

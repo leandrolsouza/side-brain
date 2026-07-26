@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Database, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -35,10 +35,8 @@ export function OnboardingImport({ onComplete, onBack }: Props) {
           <CheckCircle size={56} strokeWidth={1.5} />
         </div>
         <h1 className="onboarding-title">{t('onboarding.importSuccessTitle')}</h1>
-        <p className="onboarding-description">
-          {t('onboarding.importSuccessDescription')}
-        </p>
-        <button className="onboarding-btn-primary" onClick={onComplete}>
+        <p className="onboarding-description">{t('onboarding.importSuccessDescription')}</p>
+        <button type="button" className="onboarding-btn-primary" onClick={onComplete}>
           {t('onboarding.restartApp')}
         </button>
       </div>
@@ -51,9 +49,7 @@ export function OnboardingImport({ onComplete, onBack }: Props) {
         <Database size={48} strokeWidth={1.5} />
       </div>
       <h1 className="onboarding-title">{t('onboarding.importTitle')}</h1>
-      <p className="onboarding-description">
-        {t('onboarding.importDescription')}
-      </p>
+      <p className="onboarding-description">{t('onboarding.importDescription')}</p>
 
       {status === 'error' && (
         <div className="onboarding-error">
@@ -63,11 +59,11 @@ export function OnboardingImport({ onComplete, onBack }: Props) {
       )}
 
       <div className="onboarding-actions">
-        <button className="onboarding-btn-secondary" onClick={onBack}>
+        <button type="button" className="onboarding-btn-secondary" onClick={onBack}>
           <ArrowLeft size={16} />
           {t('onboarding.back')}
         </button>
-        <button className="onboarding-btn-primary" onClick={handleImport}>
+        <button type="button" className="onboarding-btn-primary" onClick={handleImport}>
           {t('onboarding.selectDbFile')}
         </button>
       </div>

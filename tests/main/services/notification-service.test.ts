@@ -167,8 +167,9 @@ describe('NotificationService', () => {
   describe('scheduleTaskCheck', () => {
     it('não deve agendar quando taskCheckInterval é disabled', () => {
       const db = getTestDatabase()
-      db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value')
-        .run('taskCheckInterval', 'disabled')
+      db.prepare(
+        'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value'
+      ).run('taskCheckInterval', 'disabled')
 
       service.scheduleTaskCheck()
 
@@ -189,13 +190,14 @@ describe('NotificationService', () => {
       `).run(uuidv4(), projectId, 'Task atrasada', 'todo', '2020-01-01')
 
       // Configura interval como disabled para não ficar rodando
-      db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value')
-        .run('taskCheckInterval', 'disabled')
+      db.prepare(
+        'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value'
+      ).run('taskCheckInterval', 'disabled')
 
       service.start()
 
       const all = notificationRepo.getAll()
-      const overdueNotif = all.find(n => n.type === 'task_overdue')
+      const overdueNotif = all.find((n) => n.type === 'task_overdue')
       expect(overdueNotif).toBeDefined()
       expect(overdueNotif!.title).toContain('vencida')
 
@@ -212,13 +214,14 @@ describe('NotificationService', () => {
         VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
       `).run(uuidv4(), projectId, 'Task para hoje', 'todo', today)
 
-      db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value')
-        .run('taskCheckInterval', 'disabled')
+      db.prepare(
+        'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value'
+      ).run('taskCheckInterval', 'disabled')
 
       service.start()
 
       const all = notificationRepo.getAll()
-      const dueTodayNotif = all.find(n => n.type === 'task_due_today')
+      const dueTodayNotif = all.find((n) => n.type === 'task_due_today')
       expect(dueTodayNotif).toBeDefined()
       expect(dueTodayNotif!.title).toContain('hoje')
 
@@ -227,8 +230,9 @@ describe('NotificationService', () => {
 
     it('não deve gerar notificação quando não há tasks vencidas', () => {
       const db = getTestDatabase()
-      db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value')
-        .run('taskCheckInterval', 'disabled')
+      db.prepare(
+        'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value'
+      ).run('taskCheckInterval', 'disabled')
 
       service.start()
 

@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import React from 'react'
 import i18n from 'i18next'
 import { Settings } from '../../../src/renderer/components/Settings'
 import { AppProvider } from '../../../src/renderer/components/AppContext'
@@ -63,7 +62,9 @@ describe('Settings - Language Selector', () => {
     ;(window.electronAPI as any).openDatabaseFolder = vi.fn().mockResolvedValue(undefined)
     ;(window.electronAPI as any).changeDatabaseLocation = vi.fn().mockResolvedValue({ success: true })
     ;(window.electronAPI as any).checkDatabaseExists = vi.fn().mockResolvedValue(false)
-    ;(window.electronAPI as any).getEmbeddingsStatus = vi.fn().mockResolvedValue({ indexed: 0, total: 0, isIndexing: false })
+    ;(window.electronAPI as any).getEmbeddingsStatus = vi
+      .fn()
+      .mockResolvedValue({ indexed: 0, total: 0, isIndexing: false })
     ;(window.electronAPI as any).rebuildEmbeddings = vi.fn().mockResolvedValue(undefined)
 
     // Ensure i18n is set to pt-BR for tests

@@ -48,7 +48,7 @@ declare global {
   }
 
   var SpeechRecognition: {
-    new(): SpeechRecognition
+    new (): SpeechRecognition
     prototype: SpeechRecognition
   }
 }

@@ -47,9 +47,30 @@ describe('AIUsageRepository', () => {
 
   describe('getSummary', () => {
     beforeEach(() => {
-      repo.record({ operationType: 'categorization', model: 'claude', inputTokens: 100, outputTokens: 50, estimatedCost: 0.001, latencyMs: 800 })
-      repo.record({ operationType: 'categorization', model: 'claude', inputTokens: 200, outputTokens: 100, estimatedCost: 0.002, latencyMs: 900 })
-      repo.record({ operationType: 'summary', model: 'claude', inputTokens: 500, outputTokens: 300, estimatedCost: 0.005, latencyMs: 1500 })
+      repo.record({
+        operationType: 'categorization',
+        model: 'claude',
+        inputTokens: 100,
+        outputTokens: 50,
+        estimatedCost: 0.001,
+        latencyMs: 800,
+      })
+      repo.record({
+        operationType: 'categorization',
+        model: 'claude',
+        inputTokens: 200,
+        outputTokens: 100,
+        estimatedCost: 0.002,
+        latencyMs: 900,
+      })
+      repo.record({
+        operationType: 'summary',
+        model: 'claude',
+        inputTokens: 500,
+        outputTokens: 300,
+        estimatedCost: 0.005,
+        latencyMs: 1500,
+      })
     })
 
     it('deve retornar totais corretos', () => {
@@ -66,13 +87,13 @@ describe('AIUsageRepository', () => {
 
       expect(summary.byOperation).toHaveLength(2)
 
-      const categorization = summary.byOperation.find(o => o.operationType === 'categorization')
+      const categorization = summary.byOperation.find((o) => o.operationType === 'categorization')
       expect(categorization).toBeDefined()
       expect(categorization!.calls).toBe(2)
       expect(categorization!.inputTokens).toBe(300)
       expect(categorization!.outputTokens).toBe(150)
 
-      const summaryOp = summary.byOperation.find(o => o.operationType === 'summary')
+      const summaryOp = summary.byOperation.find((o) => o.operationType === 'summary')
       expect(summaryOp).toBeDefined()
       expect(summaryOp!.calls).toBe(1)
     })
@@ -110,9 +131,30 @@ describe('AIUsageRepository', () => {
 
   describe('getDailyUsage', () => {
     beforeEach(() => {
-      repo.record({ operationType: 'categorization', model: 'claude', inputTokens: 100, outputTokens: 50, estimatedCost: 0.001, latencyMs: 800 })
-      repo.record({ operationType: 'categorization', model: 'claude', inputTokens: 200, outputTokens: 100, estimatedCost: 0.002, latencyMs: 900 })
-      repo.record({ operationType: 'summary', model: 'claude', inputTokens: 500, outputTokens: 300, estimatedCost: 0.005, latencyMs: 1500 })
+      repo.record({
+        operationType: 'categorization',
+        model: 'claude',
+        inputTokens: 100,
+        outputTokens: 50,
+        estimatedCost: 0.001,
+        latencyMs: 800,
+      })
+      repo.record({
+        operationType: 'categorization',
+        model: 'claude',
+        inputTokens: 200,
+        outputTokens: 100,
+        estimatedCost: 0.002,
+        latencyMs: 900,
+      })
+      repo.record({
+        operationType: 'summary',
+        model: 'claude',
+        inputTokens: 500,
+        outputTokens: 300,
+        estimatedCost: 0.005,
+        latencyMs: 1500,
+      })
     })
 
     it('deve agrupar uso por dia', () => {
@@ -120,7 +162,7 @@ describe('AIUsageRepository', () => {
 
       expect(daily.length).toBeGreaterThanOrEqual(1)
       const today = new Date().toISOString().split('T')[0]
-      const todayData = daily.find(d => d.date === today)
+      const todayData = daily.find((d) => d.date === today)
       expect(todayData).toBeDefined()
       expect(todayData!.calls).toBe(3)
     })
@@ -138,9 +180,30 @@ describe('AIUsageRepository', () => {
 
   describe('getHistory', () => {
     beforeEach(() => {
-      repo.record({ operationType: 'categorization', model: 'claude', inputTokens: 100, outputTokens: 50, estimatedCost: 0.001, latencyMs: 800 })
-      repo.record({ operationType: 'categorization', model: 'claude', inputTokens: 200, outputTokens: 100, estimatedCost: 0.002, latencyMs: 900 })
-      repo.record({ operationType: 'summary', model: 'claude', inputTokens: 500, outputTokens: 300, estimatedCost: 0.005, latencyMs: 1500 })
+      repo.record({
+        operationType: 'categorization',
+        model: 'claude',
+        inputTokens: 100,
+        outputTokens: 50,
+        estimatedCost: 0.001,
+        latencyMs: 800,
+      })
+      repo.record({
+        operationType: 'categorization',
+        model: 'claude',
+        inputTokens: 200,
+        outputTokens: 100,
+        estimatedCost: 0.002,
+        latencyMs: 900,
+      })
+      repo.record({
+        operationType: 'summary',
+        model: 'claude',
+        inputTokens: 500,
+        outputTokens: 300,
+        estimatedCost: 0.005,
+        latencyMs: 1500,
+      })
     })
 
     it('deve retornar registros ordenados por data desc', () => {

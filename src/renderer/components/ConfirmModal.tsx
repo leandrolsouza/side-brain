@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import { useEffect } from 'react'
 import { AlertTriangle, X } from 'lucide-react'
 
 interface ConfirmModalProps {
@@ -49,7 +49,7 @@ export function ConfirmModal({
         <div className={`confirm-modal-header ${variant}`}>
           <AlertTriangle size={16} />
           <span>{title}</span>
-          <button className="inline-action-btn" onClick={onCancel} style={{ opacity: 1 }}>
+          <button type="button" className="inline-action-btn" onClick={onCancel} style={{ opacity: 1 }}>
             <X size={14} />
           </button>
         </div>
@@ -59,20 +59,20 @@ export function ConfirmModal({
           ))}
         </div>
         <div className="confirm-modal-footer">
-          <button className="vscode-button secondary" onClick={onCancel}>
+          <button type="button" className="vscode-button secondary" onClick={onCancel}>
             {cancelLabel}
           </button>
           {alternativeLabel && onAlternative && (
-            <button className="vscode-button secondary" onClick={onAlternative}>
+            <button type="button" className="vscode-button secondary" onClick={onAlternative}>
               {alternativeLabel}
             </button>
           )}
           {secondAlternativeLabel && onSecondAlternative && (
-            <button className="vscode-button secondary" onClick={onSecondAlternative}>
+            <button type="button" className="vscode-button secondary" onClick={onSecondAlternative}>
               {secondAlternativeLabel}
             </button>
           )}
-          <button className={`vscode-button ${variant}`} onClick={onConfirm}>
+          <button type="button" className={`vscode-button ${variant}`} onClick={onConfirm}>
             {confirmLabel}
           </button>
         </div>

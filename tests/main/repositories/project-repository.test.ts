@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { createTestDatabase, closeTestDatabase, getTestDatabase } from '../setup'
+import { createTestDatabase, closeTestDatabase } from '../setup'
 import { ProjectRepository } from '../../../src/main/database/repositories/project-repository'
 
 vi.mock('../../../src/main/database/schema', async () => {
@@ -63,9 +63,9 @@ describe('ProjectRepository', () => {
 
       const projects = repo.getAll()
       expect(projects).toHaveLength(2)
-      expect(projects.map(p => p.name)).toContain('Ativo 1')
-      expect(projects.map(p => p.name)).toContain('Ativo 2')
-      expect(projects.map(p => p.name)).not.toContain('Inativo')
+      expect(projects.map((p) => p.name)).toContain('Ativo 1')
+      expect(projects.map((p) => p.name)).toContain('Ativo 2')
+      expect(projects.map((p) => p.name)).not.toContain('Inativo')
     })
 
     it('deve retornar todos os projetos quando includeInactive=true', () => {

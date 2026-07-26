@@ -1,11 +1,14 @@
-import { ProactiveInsight } from '../../shared/types'
-import { EntryRepository } from '../database/repositories/entry-repository'
-import { ProjectRepository } from '../database/repositories/project-repository'
-import { TaskRepository } from '../database/repositories/task-repository'
-import { SettingsRepository } from '../database/repositories/settings-repository'
-import { AIService } from './ai-service'
+import type { ProactiveInsight } from '../../shared/types'
+import type { EntryRepository } from '../database/repositories/entry-repository'
+import type { ProjectRepository } from '../database/repositories/project-repository'
+import type { TaskRepository } from '../database/repositories/task-repository'
+import type { SettingsRepository } from '../database/repositories/settings-repository'
+import type { AIService } from './ai-service'
 import { t, tp } from '../i18n'
 import { v4 as uuid } from 'uuid'
+import { createScopedLogger } from './logger'
+
+const logger = createScopedLogger('insights')
 
 interface InsightsCache {
   insights: ProactiveInsight[]
@@ -23,7 +26,7 @@ export class InsightsService {
     private taskRepo: TaskRepository,
     private settingsRepo: SettingsRepository,
     private aiService: AIService
-  ) { }
+  ) {}
 
   /**
    * Generates proactive insights by analyzing patterns in tasks and entries.
@@ -66,10 +69,14 @@ export class InsightsService {
     })
 
     if (staleTasks.length > 0) {
-      const taskNames = staleTasks.slice(0, 3).map((task) => `"${task.title}"`).join(', ')
+      const taskNames = staleTasks
+        .slice(0, 3)
+        .map((task) => `"${task.title}"`)
+        .join(', ')
       const projectId = staleTasks[0].projectId
       const projectName = projects.find((p) => p.id === projectId)?.name
-      const extra = staleTasks.length > 3 ? t('prompts.insights.stale_tasks_extra', { count: staleTasks.length - 3 }) : ''
+      const extra =
+        staleTasks.length > 3 ? t('prompts.insights.stale_tasks_extra', { count: staleTasks.length - 3 }) : ''
       insights.push({
         id: uuid(),
         type: 'stale_tasks',
@@ -118,9 +125,7 @@ export class InsightsService {
 
     // Rule 4: Recurring blockers in same project
     for (const project of projects) {
-      const blockers = allEntries.filter(
-        (e) => e.projectId === project.id && e.type === 'blocker'
-      )
+      const blockers = allEntries.filter((e) => e.projectId === project.id && e.type === 'blocker')
       const recentBlockers = blockers.filter((b) => {
         const daysDiff = (now.getTime() - new Date(b.createdAt).getTime()) / (1000 * 60 * 60 * 24)
         return daysDiff <= 14
@@ -157,31 +162,27 @@ export class InsightsService {
         const aiInsights = await this.generateAISuggestions(projects, allTasks, allEntries)
         insights.push(...aiInsights)
       } catch (e) {
-        console.error('Failed to generate AI insights:', e)
+        logger.error('Failed to generate AI insights:', e)
         // Non-fatal — rule-based insights still work
       }
     }
 
     // Sort by priority and limit
     const priorityOrder = { high: 0, medium: 1, low: 2 }
-    return insights
-      .sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
-      .slice(0, 5)
+    return insights.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]).slice(0, 5)
   }
 
-  private async generateAISuggestions(
-    projects: any[],
-    tasks: any[],
-    entries: any[]
-  ): Promise<ProactiveInsight[]> {
+  private async generateAISuggestions(projects: any[], tasks: any[], entries: any[]): Promise<ProactiveInsight[]> {
     const settings = this.settingsRepo.get()
 
     // Build context for AI
-    const projectsSummary = projects.map((p) => {
-      const pTasks = tasks.filter((task: any) => task.projectId === p.id && task.status !== 'done')
-      const pEntries = entries.filter((e: any) => e.projectId === p.id).slice(0, 5)
-      return `${p.name}: ${pTasks.length} ${t('prompts.insights.context_pending_tasks')}, ${t('prompts.insights.context_last_entries')} ${pEntries.map((e: any) => `[${e.type}] ${e.improvedText.slice(0, 50)}`).join('; ')}`
-    }).join('\n')
+    const projectsSummary = projects
+      .map((p) => {
+        const pTasks = tasks.filter((task: any) => task.projectId === p.id && task.status !== 'done')
+        const pEntries = entries.filter((e: any) => e.projectId === p.id).slice(0, 5)
+        return `${p.name}: ${pTasks.length} ${t('prompts.insights.context_pending_tasks')}, ${t('prompts.insights.context_last_entries')} ${pEntries.map((e: any) => `[${e.type}] ${e.improvedText.slice(0, 50)}`).join('; ')}`
+      })
+      .join('\n')
 
     const pendingTasks = tasks
       .filter((task: any) => task.status !== 'done')
@@ -190,7 +191,8 @@ export class InsightsService {
         const pName = projects.find((p) => p.id === task.projectId)?.name || '?'
         const age = Math.floor((Date.now() - new Date(task.updatedAt).getTime()) / (1000 * 60 * 60 * 24))
         return `[${task.status}][${pName}] ${task.title} (${t('prompts.insights.context_days_without_update', { days: age })})`
-      }).join('\n')
+      })
+      .join('\n')
 
     const userMessage = t('prompts.insights.user_message', { projectsSummary, pendingTasks })
 
@@ -205,7 +207,11 @@ export class InsightsService {
       const jsonMatch = responseText.match(/\[[\s\S]*\]/)
       if (!jsonMatch) return []
 
-      const parsed = JSON.parse(jsonMatch[0]) as { title: string; description: string; priority: 'high' | 'medium' | 'low' }[]
+      const parsed = JSON.parse(jsonMatch[0]) as {
+        title: string
+        description: string
+        priority: 'high' | 'medium' | 'low'
+      }[]
       return parsed.map((item) => ({
         id: uuid(),
         type: 'suggestion' as const,

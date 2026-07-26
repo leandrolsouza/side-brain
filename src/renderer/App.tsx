@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { I18nextProvider } from 'react-i18next'
 import i18n from 'i18next'
@@ -29,7 +29,19 @@ import { UpdateNotification } from './components/UpdateNotification'
 import { OnboardingFlow } from './components/OnboardingFlow'
 import { AgentStudio } from './components/AgentStudio'
 
-export type View = 'dashboard' | 'capture' | 'projects' | 'entries' | 'meeting' | 'settings' | 'reports' | 'smart-chat' | 'error-center' | 'custom-fields' | 'connection-graph' | 'agents'
+export type View =
+  | 'dashboard'
+  | 'capture'
+  | 'projects'
+  | 'entries'
+  | 'meeting'
+  | 'settings'
+  | 'reports'
+  | 'smart-chat'
+  | 'error-center'
+  | 'custom-fields'
+  | 'connection-graph'
+  | 'agents'
 export type Theme = 'dark' | 'light'
 
 const MODEL_LABELS: Record<string, string> = {
@@ -44,19 +56,32 @@ const MODEL_LABELS: Record<string, string> = {
 
 const FONT_FAMILY_STACKS: Record<string, string> = {
   'system-ui': 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-  'inter': '"Inter", system-ui, sans-serif',
+  inter: '"Inter", system-ui, sans-serif',
   'segoe-ui': '"Segoe UI", system-ui, sans-serif',
-  'roboto': '"Roboto", system-ui, sans-serif',
+  roboto: '"Roboto", system-ui, sans-serif',
   'jetbrains-mono': '"JetBrains Mono", "Fira Code", monospace',
   'fira-code': '"Fira Code", "JetBrains Mono", monospace',
   'cascadia-code': '"Cascadia Code", "Fira Code", monospace',
-  'georgia': 'Georgia, "Times New Roman", serif',
+  georgia: 'Georgia, "Times New Roman", serif',
 }
 
 function AppContent() {
   const { t } = useTranslation('common')
   const { state, dispatch, navigateToProject, navigateToMeeting, refreshProjects } = useApp()
-  const { currentView, selectedProjectId, selectedProjectName, meetingProjectId, projectInitialTab, projectsRefreshKey, isSearchOpen, showDigest, showAbout, activeModelLabel, aiStatus, theme } = state
+  const {
+    currentView,
+    selectedProjectId,
+    selectedProjectName,
+    meetingProjectId,
+    projectInitialTab,
+    projectsRefreshKey,
+    isSearchOpen,
+    showDigest,
+    showAbout,
+    activeModelLabel,
+    aiStatus,
+    theme,
+  } = state
   const [appVersion, setAppVersion] = useState<string>('')
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null)
 
@@ -113,7 +138,9 @@ function AppContent() {
       try {
         const data = await window.electronAPI.getSettings()
         if (data?.dailyDigestEnabled === 'false') return
-      } catch { /* if settings fail, show digest anyway */ }
+      } catch {
+        /* if settings fail, show digest anyway */
+      }
 
       dispatch({ type: 'SET_DIGEST_OPEN', open: true })
       sessionStorage.setItem(digestKey, 'true')
@@ -164,7 +191,9 @@ function AppContent() {
         // Store dateFormat for components to read
         const dateFormat = data?.dateFormat || 'DD/MM/YYYY'
         document.documentElement.setAttribute('data-date-format', dateFormat)
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
     loadModel()
   }, [currentView, dispatch])
@@ -208,18 +237,30 @@ function AppContent() {
 
   const getTabTitle = (): string => {
     switch (currentView) {
-      case 'dashboard': return t('tabs.dashboard')
-      case 'capture': return t('tabs.capture')
-      case 'projects': return t('tabs.projects')
-      case 'entries': return selectedProjectName || t('tabs.entries')
-      case 'meeting': return t('tabs.meeting')
-      case 'settings': return t('tabs.settings')
-      case 'reports': return t('tabs.reports')
-      case 'smart-chat': return t('tabs.smartChat')
-      case 'error-center': return t('tabs.errorCenter')
-      case 'custom-fields': return t('tabs.customFields')
-      case 'connection-graph': return t('tabs.connectionGraph')
-      case 'agents': return t('tabs.agents', { defaultValue: 'Agentes' })
+      case 'dashboard':
+        return t('tabs.dashboard')
+      case 'capture':
+        return t('tabs.capture')
+      case 'projects':
+        return t('tabs.projects')
+      case 'entries':
+        return selectedProjectName || t('tabs.entries')
+      case 'meeting':
+        return t('tabs.meeting')
+      case 'settings':
+        return t('tabs.settings')
+      case 'reports':
+        return t('tabs.reports')
+      case 'smart-chat':
+        return t('tabs.smartChat')
+      case 'error-center':
+        return t('tabs.errorCenter')
+      case 'custom-fields':
+        return t('tabs.customFields')
+      case 'connection-graph':
+        return t('tabs.connectionGraph')
+      case 'agents':
+        return t('tabs.agents', { defaultValue: 'Agentes' })
     }
   }
 
@@ -233,23 +274,34 @@ function AppContent() {
         return <ProjectList onSelectProject={navigateToProject} onProjectsChanged={refreshProjects} />
       case 'entries':
         return selectedProjectId ? (
-          <ProjectView projectId={selectedProjectId} projectName={selectedProjectName} initialTab={projectInitialTab} onBack={handleBackToProjects} onNavigateToMeeting={navigateToMeeting} />
+          <ProjectView
+            projectId={selectedProjectId}
+            projectName={selectedProjectName}
+            initialTab={projectInitialTab}
+            onBack={handleBackToProjects}
+            onNavigateToMeeting={navigateToMeeting}
+          />
         ) : (
           <ProjectList onSelectProject={navigateToProject} onProjectsChanged={refreshProjects} />
         )
       case 'meeting':
-        return <MeetingMode projectId={meetingProjectId} onFinished={(projId) => {
-          if (projId) {
-            dispatch({ type: 'SELECT_PROJECT', projectId: projId, projectName: '' })
-            dispatch({ type: 'SET_PROJECT_TAB', tab: 'kanban' })
-            window.electronAPI.getProjects().then((projects) => {
-              const found = projects.find((p: any) => p.id === projId)
-              if (found) dispatch({ type: 'SET_SELECTED_PROJECT_NAME', name: found.name })
-            })
-          } else {
-            dispatch({ type: 'SET_VIEW', view: 'dashboard' })
-          }
-        }} />
+        return (
+          <MeetingMode
+            projectId={meetingProjectId}
+            onFinished={(projId) => {
+              if (projId) {
+                dispatch({ type: 'SELECT_PROJECT', projectId: projId, projectName: '' })
+                dispatch({ type: 'SET_PROJECT_TAB', tab: 'kanban' })
+                window.electronAPI.getProjects().then((projects) => {
+                  const found = projects.find((p: any) => p.id === projId)
+                  if (found) dispatch({ type: 'SET_SELECTED_PROJECT_NAME', name: found.name })
+                })
+              } else {
+                dispatch({ type: 'SET_VIEW', view: 'dashboard' })
+              }
+            }}
+          />
+        )
       case 'settings':
         return <Settings />
       case 'reports':
@@ -286,8 +338,19 @@ function AppContent() {
 
       {/* Body: Activity Bar + Sidebar + Editor */}
       <div className="workbench-body">
-        <ActivityBar currentView={currentView} onViewChange={(v) => dispatch({ type: 'SET_VIEW', view: v })} theme={theme} onThemeChange={(t) => dispatch({ type: 'SET_THEME', theme: t })} onAboutClick={() => dispatch({ type: 'SET_ABOUT_OPEN', open: true })} />
-        <Sidebar currentView={currentView} onViewChange={(v) => dispatch({ type: 'SET_VIEW', view: v })} onProjectSelect={navigateToProject} refreshKey={projectsRefreshKey} />
+        <ActivityBar
+          currentView={currentView}
+          onViewChange={(v) => dispatch({ type: 'SET_VIEW', view: v })}
+          theme={theme}
+          onThemeChange={(t) => dispatch({ type: 'SET_THEME', theme: t })}
+          onAboutClick={() => dispatch({ type: 'SET_ABOUT_OPEN', open: true })}
+        />
+        <Sidebar
+          currentView={currentView}
+          onViewChange={(v) => dispatch({ type: 'SET_VIEW', view: v })}
+          onProjectSelect={navigateToProject}
+          refreshKey={projectsRefreshKey}
+        />
 
         {/* Editor Area */}
         <div className="editor-area">
@@ -299,9 +362,7 @@ function AppContent() {
           </div>
 
           {/* Content */}
-          <div className="editor-content">
-            {renderContent()}
-          </div>
+          <div className="editor-content">{renderContent()}</div>
         </div>
       </div>
 
@@ -333,12 +394,25 @@ function AppContent() {
           <StatusBarErrorIndicator onClick={() => dispatch({ type: 'SET_VIEW', view: 'error-center' })} />
           <NotificationCenter />
           <UpdateNotification />
-          <div className="status-bar-item ai-status-indicator" title={aiStatus === 'processing' ? t('statusBar.aiProcessing') : aiStatus === 'error' ? t('statusBar.aiError') : t('statusBar.aiConnected')}>
+          <div
+            className="status-bar-item ai-status-indicator"
+            title={
+              aiStatus === 'processing'
+                ? t('statusBar.aiProcessing')
+                : aiStatus === 'error'
+                  ? t('statusBar.aiError')
+                  : t('statusBar.aiConnected')
+            }
+          >
             <span className={`ai-status-dot ${aiStatus}`} />
-            <span>{aiStatus === 'processing' ? t('statusBar.aiProcessing') : 'AI: ' + activeModelLabel}</span>
+            <span>{aiStatus === 'processing' ? t('statusBar.aiProcessing') : `AI: ${activeModelLabel}`}</span>
             {aiStatus === 'processing' && <span className="ai-status-progress" />}
           </div>
-          <div className="status-bar-item clickable" onClick={() => dispatch({ type: 'SET_VIEW', view: 'settings' })} title={t('statusBar.changeProvider')}>
+          <div
+            className="status-bar-item clickable"
+            onClick={() => dispatch({ type: 'SET_VIEW', view: 'settings' })}
+            title={t('statusBar.changeProvider')}
+          >
             <span>⚙</span>
           </div>
         </div>

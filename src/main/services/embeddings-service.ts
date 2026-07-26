@@ -1,10 +1,10 @@
 import { net } from 'electron'
-import { AppSettings, AIProvider as AIProviderType } from '../../shared/types'
-import { EmbeddingsRepository, EmbeddingRecord } from '../database/repositories/embeddings-repository'
-import { EntryRepository } from '../database/repositories/entry-repository'
-import { TaskRepository } from '../database/repositories/task-repository'
-import { SettingsRepository } from '../database/repositories/settings-repository'
-import { AIUsageRepository } from '../database/repositories/ai-usage-repository'
+import type { AppSettings, AIProvider as AIProviderType } from '../../shared/types'
+import type { EmbeddingsRepository } from '../database/repositories/embeddings-repository'
+import type { EntryRepository } from '../database/repositories/entry-repository'
+import type { TaskRepository } from '../database/repositories/task-repository'
+import type { SettingsRepository } from '../database/repositories/settings-repository'
+import type { AIUsageRepository } from '../database/repositories/ai-usage-repository'
 import { getErrorService } from './error-service'
 
 export interface SimilarityResult {
@@ -35,7 +35,7 @@ export class EmbeddingsService {
     private taskRepo: TaskRepository,
     private settingsRepo: SettingsRepository,
     private aiUsageRepo: AIUsageRepository
-  ) { }
+  ) {}
 
   /**
    * Check if the current provider supports embeddings.
@@ -195,7 +195,9 @@ export class EmbeddingsService {
   /**
    * Re-index everything (delete all embeddings and regenerate).
    */
-  async reindexAll(onProgress?: (current: number, total: number) => void): Promise<{ indexed: number; failed: number }> {
+  async reindexAll(
+    onProgress?: (current: number, total: number) => void
+  ): Promise<{ indexed: number; failed: number }> {
     this.embeddingsRepo.deleteAll()
     return this.indexAll(onProgress)
   }
@@ -236,9 +238,7 @@ export class EmbeddingsService {
     }
 
     // Sort by score descending and limit
-    return results
-      .sort((a, b) => b.score - a.score)
-      .slice(0, limit)
+    return results.sort((a, b) => b.score - a.score).slice(0, limit)
   }
 
   /**
@@ -265,7 +265,7 @@ export class EmbeddingsService {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${settings.openaiApiKey}`,
+        Authorization: `Bearer ${settings.openaiApiKey}`,
       },
       body: JSON.stringify(body),
     })
@@ -289,7 +289,9 @@ export class EmbeddingsService {
         estimatedCost: (inputTokens / 1000) * 0.00002, // $0.02/1M tokens
         latencyMs,
       })
-    } catch { /* non-fatal */ }
+    } catch {
+      /* non-fatal */
+    }
 
     const embedding = data.data?.[0]?.embedding
     if (!embedding || !Array.isArray(embedding)) {
@@ -314,7 +316,7 @@ export class EmbeddingsService {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${settings.bedrockApiKey}`,
+        Authorization: `Bearer ${settings.bedrockApiKey}`,
       },
       body: JSON.stringify(body),
     })
@@ -337,7 +339,9 @@ export class EmbeddingsService {
         estimatedCost: (inputTokens / 1000) * 0.0001,
         latencyMs,
       })
-    } catch { /* non-fatal */ }
+    } catch {
+      /* non-fatal */
+    }
 
     const embedding = data.embedding
     if (!embedding || !Array.isArray(embedding)) {
@@ -386,7 +390,9 @@ export class EmbeddingsService {
         estimatedCost: 0, // Gemini embedding is free
         latencyMs,
       })
-    } catch { /* non-fatal */ }
+    } catch {
+      /* non-fatal */
+    }
 
     const embedding = data.embedding?.values
     if (!embedding || !Array.isArray(embedding)) {
@@ -410,7 +416,7 @@ export class EmbeddingsService {
       'Content-Type': 'application/json',
     }
     if (settings.localApiKey) {
-      headers['Authorization'] = `Bearer ${settings.localApiKey}`
+      headers.Authorization = `Bearer ${settings.localApiKey}`
     }
 
     const startTime = Date.now()
@@ -438,7 +444,9 @@ export class EmbeddingsService {
         estimatedCost: 0,
         latencyMs,
       })
-    } catch { /* non-fatal */ }
+    } catch {
+      /* non-fatal */
+    }
 
     const embedding = data.data?.[0]?.embedding
     if (!embedding || !Array.isArray(embedding)) {
@@ -474,11 +482,16 @@ export class EmbeddingsService {
 
   private getEmbeddingModelName(settings: AppSettings): string {
     switch (settings.aiProvider) {
-      case 'openai': return 'text-embedding-3-small'
-      case 'bedrock': return 'amazon.titan-embed-text-v2:0'
-      case 'gemini': return 'text-embedding-004'
-      case 'local': return settings.localModelId || 'local-embedding'
-      default: return 'unknown'
+      case 'openai':
+        return 'text-embedding-3-small'
+      case 'bedrock':
+        return 'amazon.titan-embed-text-v2:0'
+      case 'gemini':
+        return 'text-embedding-004'
+      case 'local':
+        return settings.localModelId || 'local-embedding'
+      default:
+        return 'unknown'
     }
   }
 

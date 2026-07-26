@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { ChevronDown, FolderOpen, PenLine, Video, Sparkles } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { View } from '../App'
@@ -61,34 +61,33 @@ export function Sidebar({ currentView, onViewChange, onProjectSelect, refreshKey
 
   const getSidebarTitle = (): string => {
     switch (currentView) {
-      case 'dashboard': return t('sidebar.dashboard')
-      case 'capture': return t('sidebar.capture')
+      case 'dashboard':
+        return t('sidebar.dashboard')
+      case 'capture':
+        return t('sidebar.capture')
       case 'projects':
-      case 'entries': return t('sidebar.explorer')
-      case 'meeting': return t('sidebar.meeting')
-      case 'settings': return t('sidebar.settings')
-      case 'agents': return 'Agentes'
-      default: return ''
+      case 'entries':
+        return t('sidebar.explorer')
+      case 'meeting':
+        return t('sidebar.meeting')
+      case 'settings':
+        return t('sidebar.settings')
+      case 'agents':
+        return 'Agentes'
+      default:
+        return ''
     }
   }
 
   return (
     <div className="sidebar">
-      <div className="sidebar-header">
-        {getSidebarTitle()}
-      </div>
+      <div className="sidebar-header">{getSidebarTitle()}</div>
 
       <div className="sidebar-content">
         {/* Quick Actions Section */}
         <div className="sidebar-section">
-          <div
-            className="sidebar-section-header"
-            onClick={() => toggleSection('quickActions')}
-          >
-            <ChevronDown
-              size={16}
-              className={`chevron ${!expandedSections.quickActions ? 'collapsed' : ''}`}
-            />
+          <div className="sidebar-section-header" onClick={() => toggleSection('quickActions')}>
+            <ChevronDown size={16} className={`chevron ${!expandedSections.quickActions ? 'collapsed' : ''}`} />
             {t('sidebar.quickActions')}
           </div>
           {expandedSections.quickActions && (
@@ -113,29 +112,23 @@ export function Sidebar({ currentView, onViewChange, onProjectSelect, refreshKey
 
         {/* Projects Section */}
         <div className="sidebar-section">
-          <div
-            className="sidebar-section-header"
-            onClick={() => toggleSection('projects')}
-          >
-            <ChevronDown
-              size={16}
-              className={`chevron ${!expandedSections.projects ? 'collapsed' : ''}`}
-            />
+          <div className="sidebar-section-header" onClick={() => toggleSection('projects')}>
+            <ChevronDown size={16} className={`chevron ${!expandedSections.projects ? 'collapsed' : ''}`} />
             {t('sidebar.projects')}
           </div>
           {expandedSections.projects && (
             <div className="sidebar-section-body">
               {projects.map((project, index) => (
-                <div
-                  key={project.id}
-                  className="tree-item"
-                  onClick={() => onProjectSelect(project.id, project.name)}
-                >
+                <div key={project.id} className="tree-item" onClick={() => onProjectSelect(project.id, project.name)}>
                   <span className="project-color-dot" style={{ background: getProjectColor(index) }} />
                   <FolderOpen size={16} className="tree-item-icon" style={{ color: getProjectColor(index) }} />
                   <span className="tree-item-label">{project.name}</span>
                   {project.isAutoSuggested && (
-                    <Sparkles size={12} className="tree-item-icon" style={{ color: 'var(--vscode-notificationsWarningIcon-foreground)' }} />
+                    <Sparkles
+                      size={12}
+                      className="tree-item-icon"
+                      style={{ color: 'var(--vscode-notificationsWarningIcon-foreground)' }}
+                    />
                   )}
                 </div>
               ))}

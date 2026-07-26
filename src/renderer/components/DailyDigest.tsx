@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { DailyDigestData, CustomEntryType } from '../../shared/types'
+import type { DailyDigestData, CustomEntryType } from '../../shared/types'
 
 interface DailyDigestProps {
   onClose: () => void
@@ -13,22 +13,32 @@ export function DailyDigest({ onClose, onNavigateToProject }: DailyDigestProps) 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [entryTypes, setEntryTypes] = useState<CustomEntryType[]>([])
-  const [visibleSections, setVisibleSections] = useState<string[]>(['aiSuggestion', 'pendingTasks', 'yesterdayActivity'])
+  const [visibleSections, setVisibleSections] = useState<string[]>([
+    'aiSuggestion',
+    'pendingTasks',
+    'yesterdayActivity',
+  ])
 
   const typeLabels: Record<string, string> = useMemo(
-    () => Object.fromEntries(entryTypes.map(t => [t.key, t.label])),
+    () => Object.fromEntries(entryTypes.map((t) => [t.key, t.label])),
     [entryTypes]
   )
 
   useEffect(() => {
     loadDigest()
-    window.electronAPI.getEntryTypes().then(setEntryTypes).catch(() => { })
+    window.electronAPI
+      .getEntryTypes()
+      .then(setEntryTypes)
+      .catch(() => {})
     // Load section visibility from settings
-    window.electronAPI.getSettings().then((data) => {
-      if (data?.dailyDigestSections) {
-        setVisibleSections(data.dailyDigestSections.split(',').filter(Boolean))
-      }
-    }).catch(() => { })
+    window.electronAPI
+      .getSettings()
+      .then((data) => {
+        if (data?.dailyDigestSections) {
+          setVisibleSections(data.dailyDigestSections.split(',').filter(Boolean))
+        }
+      })
+      .catch(() => {})
   }, [])
 
   const loadDigest = async () => {
@@ -63,11 +73,15 @@ export function DailyDigest({ onClose, onNavigateToProject }: DailyDigestProps) 
         <div className="digest-modal" onClick={(e) => e.stopPropagation()}>
           <div className="digest-header">
             <h2>{t('dailyDigest.title')}</h2>
-            <button className="digest-close" onClick={onClose}>✕</button>
+            <button type="button" className="digest-close" onClick={onClose}>
+              ✕
+            </button>
           </div>
           <div className="digest-error">
             <p>{t('dailyDigest.errorGenerating', { error })}</p>
-            <button className="digest-retry-btn" onClick={loadDigest}>{t('dailyDigest.retry')}</button>
+            <button type="button" className="digest-retry-btn" onClick={loadDigest}>
+              {t('dailyDigest.retry')}
+            </button>
           </div>
         </div>
       </div>
@@ -87,7 +101,9 @@ export function DailyDigest({ onClose, onNavigateToProject }: DailyDigestProps) 
         {/* Header */}
         <div className="digest-header">
           <h2>{digest.greeting}</h2>
-          <button className="digest-close" onClick={onClose}>✕</button>
+          <button type="button" className="digest-close" onClick={onClose}>
+            ✕
+          </button>
         </div>
 
         <div className="digest-body">
@@ -126,7 +142,9 @@ export function DailyDigest({ onClose, onNavigateToProject }: DailyDigestProps) 
                       <li key={task.id}>{task.title}</li>
                     ))}
                     {digest.tasksNeedingAttention.overdue.length > 5 && (
-                      <li className="digest-more">{t('seeMore', { count: digest.tasksNeedingAttention.overdue.length - 5 })}</li>
+                      <li className="digest-more">
+                        {t('seeMore', { count: digest.tasksNeedingAttention.overdue.length - 5 })}
+                      </li>
                     )}
                   </ul>
                 </div>
@@ -143,9 +161,7 @@ export function DailyDigest({ onClose, onNavigateToProject }: DailyDigestProps) 
                 </div>
               )}
 
-              {totalPending === 0 && (
-                <p className="digest-empty">{t('dailyDigest.noPendingTasks')}</p>
-              )}
+              {totalPending === 0 && <p className="digest-empty">{t('dailyDigest.noPendingTasks')}</p>}
             </div>
           )}
 
@@ -174,7 +190,8 @@ export function DailyDigest({ onClose, onNavigateToProject }: DailyDigestProps) 
                     {digest.yesterdayActivity.entriesCreated.slice(0, 3).map((entry) => (
                       <li key={entry.id}>
                         <span className={`entry-type-badge ${entry.type}`}>{typeLabels[entry.type] || entry.type}</span>
-                        {entry.improvedText.slice(0, 80)}{entry.improvedText.length > 80 ? '...' : ''}
+                        {entry.improvedText.slice(0, 80)}
+                        {entry.improvedText.length > 80 ? '...' : ''}
                       </li>
                     ))}
                   </ul>
@@ -186,7 +203,7 @@ export function DailyDigest({ onClose, onNavigateToProject }: DailyDigestProps) 
 
         {/* Footer */}
         <div className="digest-footer">
-          <button className="digest-dismiss-btn" onClick={onClose}>
+          <button type="button" className="digest-dismiss-btn" onClick={onClose}>
             {t('dailyDigest.letsGo')}
           </button>
         </div>

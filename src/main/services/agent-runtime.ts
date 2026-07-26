@@ -1,4 +1,4 @@
-import {
+import type {
   AgentDefinition,
   AgentExecution,
   AgentExecutionEvent,
@@ -8,11 +8,11 @@ import {
   ToolCall,
   ToolDefinition,
 } from '../../shared/types'
-import { AgentRepository } from '../database/repositories/agent-repository'
-import { SettingsRepository } from '../database/repositories/settings-repository'
-import { AIProvider, AIToolResponse } from './ai-provider'
-import { AgentToolRegistry } from './agent-tool-registry'
-import { MCPManager } from './mcp-manager'
+import type { AgentRepository } from '../database/repositories/agent-repository'
+import type { SettingsRepository } from '../database/repositories/settings-repository'
+import type { AIProvider } from './ai-provider'
+import type { AgentToolRegistry } from './agent-tool-registry'
+import type { MCPManager } from './mcp-manager'
 import { BrowserWindow } from 'electron'
 
 /** Maximum recursion depth for agent delegation chains */
@@ -67,17 +67,13 @@ export class AgentRuntime {
     private agentRepo: AgentRepository,
     private settingsRepo: SettingsRepository,
     private mcpManager?: MCPManager
-  ) { }
+  ) {}
 
   /**
    * Execute an agent with a given input/goal.
    * This is the main entry point for running an agent.
    */
-  async execute(
-    agentId: string,
-    input: string,
-    options: ExecutionOptions = {}
-  ): Promise<ExecutionResult> {
+  async execute(agentId: string, input: string, options: ExecutionOptions = {}): Promise<ExecutionResult> {
     const agent = this.agentRepo.getById(agentId)
     if (!agent) {
       throw new Error(`Agent "${agentId}" not found`)
@@ -150,9 +146,7 @@ export class AgentRuntime {
     const tools = this.toolRegistry.getToolsForAgent(agent)
 
     // Add delegate tool if agent has delegation permission
-    let allTools = agent.skills.includes('delegate')
-      ? [...tools, this.getDelegateToolDefinition(agent)]
-      : [...tools]
+    let allTools = agent.skills.includes('delegate') ? [...tools, this.getDelegateToolDefinition(agent)] : [...tools]
 
     // Add MCP tools if agent has mcp_tools skill
     if (agent.skills.includes('mcp_tools') && this.mcpManager) {
@@ -164,9 +158,7 @@ export class AgentRuntime {
     const systemPrompt = this.buildSystemPrompt(agent)
 
     // Conversation messages for the loop
-    const messages: ConversationMessage[] = [
-      { role: 'user', content: input },
-    ]
+    const messages: ConversationMessage[] = [{ role: 'user', content: input }]
 
     let stepCount = 0
 
@@ -307,7 +299,9 @@ export class AgentRuntime {
 
     // Check permission
     if (!delegatingAgent.canDelegate.includes(agentId)) {
-      return JSON.stringify({ error: `Agente "${delegatingAgent.name}" não tem permissão para delegar a "${agentId}".` })
+      return JSON.stringify({
+        error: `Agente "${delegatingAgent.name}" não tem permissão para delegar a "${agentId}".`,
+      })
     }
 
     // Execute the target agent
@@ -372,13 +366,18 @@ ${agent.persona}
 - Não invente dados. Use apenas informações obtidas via ferramentas.`
 
     if (agent.skills.includes('delegate') && agent.canDelegate.length > 0) {
-      const delegateList = agent.canDelegate.map((id) => {
-        const target = this.agentRepo.getById(id)
-        if (target) return `- "${target.name}" (id: ${id}): ${target.description}`
-        return `- id: ${id}`
-      }).join('\n')
+      const delegateList = agent.canDelegate
+        .map((id) => {
+          const target = this.agentRepo.getById(id)
+          if (target) return `- "${target.name}" (id: ${id}): ${target.description}`
+          return `- id: ${id}`
+        })
+        .join('\n')
 
-      return baseInstructions + `\n\n## Delegação:\nVocê pode delegar tarefas para outros agentes usando a tool "delegate". Passe o ID e uma instrução clara.\n\nEquipe disponível:\n${delegateList}`
+      return (
+        baseInstructions +
+        `\n\n## Delegação:\nVocê pode delegar tarefas para outros agentes usando a tool "delegate". Passe o ID e uma instrução clara.\n\nEquipe disponível:\n${delegateList}`
+      )
     }
 
     return baseInstructions
@@ -386,17 +385,24 @@ ${agent.persona}
 
   private getDelegateToolDefinition(agent: AgentDefinition): ToolDefinition {
     // Build a descriptive list of delegatable agents with their names
-    const agentDescriptions = agent.canDelegate.map((id) => {
-      const target = this.agentRepo.getById(id)
-      return target ? `"${target.name}" (id: ${id})` : id
-    }).join(', ')
+    const agentDescriptions = agent.canDelegate
+      .map((id) => {
+        const target = this.agentRepo.getById(id)
+        return target ? `"${target.name}" (id: ${id})` : id
+      })
+      .join(', ')
 
     return {
       name: 'delegate',
       description: `Delega uma tarefa para outro agente da equipe. Agentes disponíveis: ${agentDescriptions}`,
       parameters: {
         agentId: { type: 'string', description: 'ID do agente para delegar a tarefa', required: true },
-        message: { type: 'string', description: 'Instrução/tarefa para o agente delegado. Seja específico sobre o que você quer que ele analise.', required: true },
+        message: {
+          type: 'string',
+          description:
+            'Instrução/tarefa para o agente delegado. Seja específico sobre o que você quer que ele analise.',
+          required: true,
+        },
       },
       requiredParams: ['agentId', 'message'],
     }

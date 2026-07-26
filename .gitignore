@@ -28,5 +28,5 @@ Thumbs.db
 *.log
 npm-debug.log*
 
-.kiro/
-scripts/
+# Renderer build artifacts (vite outputs to src/renderer/dist in some setups)
+src/renderer/dist/

@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { X, Trash2, Link2, Search, Plus, ArrowUpDown, ChevronDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { ConfirmModal } from './ConfirmModal'
-import { CONNECTION_TYPE_LABELS, ConnectionType, ConnectedEntry } from '../../shared/types'
+import { CONNECTION_TYPE_LABELS, type ConnectionType, type ConnectedEntry } from '../../shared/types'
 
 interface Entry {
   id: string
@@ -62,10 +62,10 @@ export function EntryList({ projectId }: EntryListProps) {
       window.electronAPI.getEntryTypes(),
       window.electronAPI.getActionStatuses(),
     ])
-    setTypeLabels(Object.fromEntries(types.map(t => [t.key, t.label])))
-    setTypeBadgeVariant(Object.fromEntries(types.map(t => [t.key, t.color])))
-    setActionLabels(Object.fromEntries(statuses.map(s => [s.key, s.label])))
-    setTypesAllowsAction(Object.fromEntries(types.map(t => [t.key, t.allowsAction])))
+    setTypeLabels(Object.fromEntries(types.map((t) => [t.key, t.label])))
+    setTypeBadgeVariant(Object.fromEntries(types.map((t) => [t.key, t.color])))
+    setActionLabels(Object.fromEntries(statuses.map((s) => [s.key, s.label])))
+    setTypesAllowsAction(Object.fromEntries(types.map((t) => [t.key, t.allowsAction])))
   }
 
   const loadEntries = async () => {
@@ -88,7 +88,7 @@ export function EntryList({ projectId }: EntryListProps) {
         pageSize: PAGE_SIZE,
         projectId,
       })
-      setEntries(prev => [...prev, ...result.data])
+      setEntries((prev) => [...prev, ...result.data])
       setCurrentPage(nextPage)
       setTotalEntries(result.total)
     } finally {
@@ -105,10 +105,11 @@ export function EntryList({ projectId }: EntryListProps) {
     // Filter by search query
     if (filterQuery.trim()) {
       const q = filterQuery.toLowerCase()
-      result = result.filter(entry =>
-        entry.improvedText.toLowerCase().includes(q) ||
-        entry.rawText.toLowerCase().includes(q) ||
-        (typeLabels[entry.type] || entry.type).toLowerCase().includes(q)
+      result = result.filter(
+        (entry) =>
+          entry.improvedText.toLowerCase().includes(q) ||
+          entry.rawText.toLowerCase().includes(q) ||
+          (typeLabels[entry.type] || entry.type).toLowerCase().includes(q)
       )
     }
 
@@ -134,7 +135,7 @@ export function EntryList({ projectId }: EntryListProps) {
 
   const handleSortChange = (field: SortField) => {
     if (sortField === field) {
-      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))
     } else {
       setSortField(field)
       setSortDirection(field === 'date' ? 'desc' : 'asc')
@@ -143,7 +144,7 @@ export function EntryList({ projectId }: EntryListProps) {
 
   const loadConnectionsForEntry = useCallback(async (entryId: string) => {
     const connections = await window.electronAPI.getConnectionsByEntry(entryId)
-    setConnectionsMap(prev => ({ ...prev, [entryId]: connections }))
+    setConnectionsMap((prev) => ({ ...prev, [entryId]: connections }))
   }, [])
 
   const toggleConnections = async (entryId: string) => {
@@ -215,7 +216,7 @@ export function EntryList({ projectId }: EntryListProps) {
       // Reload connections for this entry
       await loadConnectionsForEntry(connectModalEntry)
       // Ensure expanded
-      setExpandedConnections(prev => new Set(prev).add(connectModalEntry))
+      setExpandedConnections((prev) => new Set(prev).add(connectModalEntry))
       closeConnectModal()
     } catch (err: any) {
       // Connection already exists — silently ignore or could show toast
@@ -240,7 +241,10 @@ export function EntryList({ projectId }: EntryListProps) {
       {entries.length > 0 && (
         <div className="entry-list-toolbar">
           <div className="entry-list-search">
-            <Search size={14} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }} />
+            <Search
+              size={14}
+              style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}
+            />
             <input
               type="text"
               className="vscode-input"
@@ -251,6 +255,7 @@ export function EntryList({ projectId }: EntryListProps) {
             />
             {filterQuery && (
               <button
+                type="button"
                 className="inline-action-btn"
                 onClick={() => setFilterQuery('')}
                 style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', opacity: 0.6 }}
@@ -262,6 +267,7 @@ export function EntryList({ projectId }: EntryListProps) {
           <div className="entry-list-sort">
             <ArrowUpDown size={12} style={{ opacity: 0.6 }} />
             <button
+              type="button"
               className={`entry-sort-btn ${sortField === 'date' ? 'active' : ''}`}
               onClick={() => handleSortChange('date')}
               title={t('entryList.sortByDate')}
@@ -269,6 +275,7 @@ export function EntryList({ projectId }: EntryListProps) {
               {t('entryList.sortDate')} {sortField === 'date' && (sortDirection === 'desc' ? '↓' : '↑')}
             </button>
             <button
+              type="button"
               className={`entry-sort-btn ${sortField === 'type' ? 'active' : ''}`}
               onClick={() => handleSortChange('type')}
               title={t('entryList.sortByType')}
@@ -276,6 +283,7 @@ export function EntryList({ projectId }: EntryListProps) {
               {t('entryList.sortType')} {sortField === 'type' && (sortDirection === 'desc' ? '↓' : '↑')}
             </button>
             <button
+              type="button"
               className={`entry-sort-btn ${sortField === 'action' ? 'active' : ''}`}
               onClick={() => handleSortChange('action')}
               title={t('entryList.sortByStatus')}
@@ -298,15 +306,11 @@ export function EntryList({ projectId }: EntryListProps) {
 
       {entries.length === 0 ? (
         <div className="empty-state">
-          <span className="empty-state-text">
-            {t('entryList.emptyState')}
-          </span>
+          <span className="empty-state-text">{t('entryList.emptyState')}</span>
         </div>
       ) : filteredEntries.length === 0 ? (
         <div className="empty-state">
-          <span className="empty-state-text">
-            {t('entryList.noResults', { query: filterQuery })}
-          </span>
+          <span className="empty-state-text">{t('entryList.noResults', { query: filterQuery })}</span>
         </div>
       ) : (
         <div className="entry-list-scroll">
@@ -331,11 +335,14 @@ export function EntryList({ projectId }: EntryListProps) {
                         style={{ fontSize: 11, padding: '2px 6px' }}
                       >
                         {Object.entries(actionLabels).map(([value, label]) => (
-                          <option key={value} value={value}>{label}</option>
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
                         ))}
                       </select>
                     )}
                     <button
+                      type="button"
                       className="inline-action-btn"
                       onClick={() => openConnectModal(entry.id)}
                       title={t('entryList.connectTooltip')}
@@ -344,6 +351,7 @@ export function EntryList({ projectId }: EntryListProps) {
                       <Link2 size={14} />
                     </button>
                     <button
+                      type="button"
                       className="inline-action-btn"
                       onClick={() => handleDelete(entry.id)}
                       title={t('entryList.deleteTooltip')}
@@ -353,11 +361,16 @@ export function EntryList({ projectId }: EntryListProps) {
                     </button>
                   </div>
                 </div>
-                <div className="vscode-card-body">
-                  {entry.improvedText}
-                </div>
+                <div className="vscode-card-body">{entry.improvedText}</div>
                 {entry.rawText !== entry.improvedText && (
-                  <div style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', marginTop: 6, fontStyle: 'italic' }}>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: 'var(--vscode-descriptionForeground)',
+                      marginTop: 6,
+                      fontStyle: 'italic',
+                    }}
+                  >
                     {t('entryList.original')} {entry.rawText}
                   </div>
                 )}
@@ -365,12 +378,15 @@ export function EntryList({ projectId }: EntryListProps) {
                 {/* Connections toggle & display */}
                 <div style={{ marginTop: 8, borderTop: '1px solid var(--vscode-widget-border)', paddingTop: 6 }}>
                   <button
+                    type="button"
                     className="inline-action-btn"
                     onClick={() => toggleConnections(entry.id)}
                     style={{ fontSize: 11, opacity: 0.8, display: 'flex', alignItems: 'center', gap: 4 }}
                   >
                     <Link2 size={12} />
-                    {expandedConnections.has(entry.id) ? t('entryList.hideConnections') : t('entryList.showConnections')}
+                    {expandedConnections.has(entry.id)
+                      ? t('entryList.hideConnections')
+                      : t('entryList.showConnections')}
                   </button>
 
                   {expandedConnections.has(entry.id) && connectionsMap[entry.id] && (
@@ -381,20 +397,17 @@ export function EntryList({ projectId }: EntryListProps) {
                         </span>
                       ) : (
                         connectionsMap[entry.id].map((conn) => (
-                          <div
-                            key={conn.connection.id}
-                            className="connection-chip"
-                            title={conn.entry.improvedText}
-                          >
+                          <div key={conn.connection.id} className="connection-chip" title={conn.entry.improvedText}>
                             <span className="connection-chip-type">
                               {CONNECTION_TYPE_LABELS[conn.connection.connectionType] || conn.connection.connectionType}
                             </span>
                             <span className="connection-chip-text">
                               {conn.entry.improvedText.length > 50
-                                ? conn.entry.improvedText.slice(0, 50) + '...'
+                                ? `${conn.entry.improvedText.slice(0, 50)}...`
                                 : conn.entry.improvedText}
                             </span>
                             <button
+                              type="button"
                               className="connection-chip-remove"
                               onClick={() => handleDeleteConnection(conn.connection.id, entry.id)}
                               title={t('entryList.removeConnection')}
@@ -413,6 +426,7 @@ export function EntryList({ projectId }: EntryListProps) {
             {/* Load More button */}
             {hasMoreEntries && !filterQuery && (
               <button
+                type="button"
                 className="vscode-button"
                 onClick={loadMoreEntries}
                 disabled={isLoadingMore}
@@ -421,8 +435,7 @@ export function EntryList({ projectId }: EntryListProps) {
                 <ChevronDown size={14} />
                 {isLoadingMore
                   ? t('entryList.loadingMore')
-                  : t('entryList.loadMore', { remaining: totalEntries - entries.length })
-                }
+                  : t('entryList.loadMore', { remaining: totalEntries - entries.length })}
               </button>
             )}
           </div>
@@ -436,14 +449,16 @@ export function EntryList({ projectId }: EntryListProps) {
             <div className="summary-modal-header">
               <Link2 size={16} />
               <span>{t('entryList.connectEntry')}</span>
-              <button className="icon-button" onClick={closeConnectModal}>
+              <button type="button" className="icon-button" onClick={closeConnectModal}>
                 <X size={16} />
               </button>
             </div>
             <div className="summary-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {/* Connection type selector */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <label style={{ fontSize: 12, color: 'var(--vscode-descriptionForeground)' }}>{t('entryList.connectionType')}</label>
+                <label style={{ fontSize: 12, color: 'var(--vscode-descriptionForeground)' }}>
+                  {t('entryList.connectionType')}
+                </label>
                 <select
                   className="vscode-select"
                   value={selectedConnectionType}
@@ -451,7 +466,9 @@ export function EntryList({ projectId }: EntryListProps) {
                   style={{ fontSize: 12 }}
                 >
                   {Object.entries(CONNECTION_TYPE_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>{label}</option>
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -473,10 +490,14 @@ export function EntryList({ projectId }: EntryListProps) {
               {/* Search results */}
               <div style={{ maxHeight: 300, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {isSearching && (
-                  <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>{t('entryList.searching')}</span>
+                  <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>
+                    {t('entryList.searching')}
+                  </span>
                 )}
                 {!isSearching && searchQuery.length >= 2 && searchResults.length === 0 && (
-                  <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>{t('entryList.noEntriesFound')}</span>
+                  <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>
+                    {t('entryList.noEntriesFound')}
+                  </span>
                 )}
                 {searchResults.map((result) => (
                   <div
@@ -488,7 +509,7 @@ export function EntryList({ projectId }: EntryListProps) {
                       <Plus size={12} style={{ opacity: 0.6 }} />
                       <span style={{ fontSize: 12 }}>
                         {result.improvedText.length > 80
-                          ? result.improvedText.slice(0, 80) + '...'
+                          ? `${result.improvedText.slice(0, 80)}...`
                           : result.improvedText}
                       </span>
                     </div>

@@ -1,5 +1,16 @@
-import React, { useState, useEffect } from 'react'
-import { FileText, Clock, Users, Trash2, ChevronDown, ChevronRight, RefreshCw, Sparkles, AlertTriangle } from 'lucide-react'
+import type React from 'react'
+import { useState, useEffect } from 'react'
+import {
+  FileText,
+  Clock,
+  Users,
+  Trash2,
+  ChevronDown,
+  ChevronRight,
+  RefreshCw,
+  Sparkles,
+  AlertTriangle,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { MarkdownViewer } from './MarkdownViewer'
 
@@ -94,10 +105,14 @@ export function MeetingHistory({ projectId }: MeetingHistoryProps) {
 
   const getStatusLabel = (status: string): { text: string; variant: string } => {
     switch (status) {
-      case 'active': return { text: t('meetingHistory.statusActive'), variant: 'warning' }
-      case 'ended': return { text: t('meetingHistory.statusEnded'), variant: 'info' }
-      case 'processed': return { text: t('meetingHistory.statusProcessed'), variant: 'success' }
-      default: return { text: status, variant: 'neutral' }
+      case 'active':
+        return { text: t('meetingHistory.statusActive'), variant: 'warning' }
+      case 'ended':
+        return { text: t('meetingHistory.statusEnded'), variant: 'info' }
+      case 'processed':
+        return { text: t('meetingHistory.statusProcessed'), variant: 'success' }
+      default:
+        return { text: status, variant: 'neutral' }
     }
   }
 
@@ -125,10 +140,7 @@ export function MeetingHistory({ projectId }: MeetingHistoryProps) {
 
         return (
           <div key={meeting.id} className="meeting-history-item">
-            <div
-              className="meeting-history-header"
-              onClick={() => toggleExpand(meeting.id)}
-            >
+            <div className="meeting-history-header" onClick={() => toggleExpand(meeting.id)}>
               <div className="meeting-history-chevron">
                 {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
               </div>
@@ -143,7 +155,11 @@ export function MeetingHistory({ projectId }: MeetingHistoryProps) {
                   <span>
                     <Clock size={10} />
                     {meeting.meetingDate
-                      ? new Date(meeting.meetingDate + 'T12:00:00').toLocaleDateString(i18n.language, { day: '2-digit', month: '2-digit', year: 'numeric' })
+                      ? new Date(`${meeting.meetingDate}T12:00:00`).toLocaleDateString(i18n.language, {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                        })
                       : formatDate(meeting.startedAt)}
                   </span>
                   <span>
@@ -164,6 +180,7 @@ export function MeetingHistory({ projectId }: MeetingHistoryProps) {
               <div className="meeting-history-actions">
                 {(meeting.status === 'active' || meeting.status === 'ended') && (
                   <button
+                    type="button"
                     className="vscode-button secondary"
                     onClick={(e) => handleReprocess(e, meeting.id)}
                     disabled={processingId === meeting.id}
@@ -171,13 +188,18 @@ export function MeetingHistory({ projectId }: MeetingHistoryProps) {
                     style={{ fontSize: 11, padding: '3px 10px' }}
                   >
                     {processingId === meeting.id ? (
-                      <><Sparkles size={12} className="spinning" /> {t('meetingHistory.processing')}</>
+                      <>
+                        <Sparkles size={12} className="spinning" /> {t('meetingHistory.processing')}
+                      </>
                     ) : (
-                      <><RefreshCw size={12} /> {t('meetingHistory.reprocess')}</>
+                      <>
+                        <RefreshCw size={12} /> {t('meetingHistory.reprocess')}
+                      </>
                     )}
                   </button>
                 )}
                 <button
+                  type="button"
                   className="icon-button"
                   onClick={(e) => handleDelete(e, meeting.id)}
                   title={t('meetingHistory.deleteTooltip')}

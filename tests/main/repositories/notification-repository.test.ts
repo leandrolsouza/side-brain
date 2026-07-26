@@ -61,7 +61,7 @@ describe('NotificationRepository', () => {
       const all = repo.getAll()
       expect(all).toHaveLength(2)
       // Mais recente primeiro
-      const titles = all.map(n => n.title)
+      const titles = all.map((n) => n.title)
       expect(titles).toContain('Primeira')
       expect(titles).toContain('Segunda')
     })

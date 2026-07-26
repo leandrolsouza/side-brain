@@ -1,4 +1,3 @@
-import React from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
@@ -10,9 +9,7 @@ interface MarkdownViewerProps {
 export function MarkdownViewer({ content, className }: MarkdownViewerProps) {
   return (
     <div className={`markdown-viewer ${className || ''}`}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-        {content}
-      </ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
     </div>
   )
 }

@@ -1,15 +1,30 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import {
-  BarChart3, TrendingUp, CheckCircle2, FolderOpen, Clock, Calendar,
-  Users, Zap, DollarSign, RefreshCw, PieChart, Activity, Target,
+  BarChart3,
+  TrendingUp,
+  CheckCircle2,
+  FolderOpen,
+  Clock,
+  Calendar,
+  Users,
+  Zap,
+  RefreshCw,
+  PieChart,
+  Activity,
+  Target,
   AlertTriangle,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { AIUsageDashboard } from './AIUsageDashboard'
 import { ReportNarrative } from './ReportNarrative'
 import type {
-  ReportsData, ReportPeriod, EntryType, ActivityTimelinePoint,
-  EntryTypeDistribution, ProjectRanking, WeekdayActivity,
+  ReportsData,
+  ReportPeriod,
+  EntryType,
+  ActivityTimelinePoint,
+  EntryTypeDistribution,
+  ProjectRanking,
+  WeekdayActivity,
 } from '../../shared/types'
 
 type ReportsTab = 'productivity' | 'ai-usage'
@@ -24,8 +39,8 @@ const ENTRY_TYPE_COLORS: Record<EntryType, string> = {
 }
 
 function formatNumber(n: number): string {
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M'
-  if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K'
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
   return n.toLocaleString('pt-BR')
 }
 
@@ -58,9 +73,12 @@ export function Reports() {
     <div className="reports-page">
       {/* Header */}
       <div className="reports-header">
-        <h2><BarChart3 size={20} /> {t('title')}</h2>
+        <h2>
+          <BarChart3 size={20} /> {t('title')}
+        </h2>
         <div className="reports-tabs">
           <button
+            type="button"
             className={`reports-tab ${activeTab === 'productivity' ? 'active' : ''}`}
             onClick={() => setActiveTab('productivity')}
           >
@@ -68,6 +86,7 @@ export function Reports() {
             {t('tabProductivity')}
           </button>
           <button
+            type="button"
             className={`reports-tab ${activeTab === 'ai-usage' ? 'active' : ''}`}
             onClick={() => setActiveTab('ai-usage')}
           >
@@ -86,15 +105,22 @@ export function Reports() {
             <div className="reports-period-filter">
               {(['7d', '30d', '90d', 'all'] as ReportPeriod[]).map((p) => (
                 <button
+                  type="button"
                   key={p}
                   className={`period-btn ${period === p ? 'active' : ''}`}
                   onClick={() => setPeriod(p)}
                 >
-                  {p === '7d' ? t('period7d') : p === '30d' ? t('period30d') : p === '90d' ? t('period90d') : t('periodAll')}
+                  {p === '7d'
+                    ? t('period7d')
+                    : p === '30d'
+                      ? t('period30d')
+                      : p === '90d'
+                        ? t('period90d')
+                        : t('periodAll')}
                 </button>
               ))}
             </div>
-            <button className="btn-icon" onClick={loadData} title={t('refresh')}>
+            <button type="button" className="btn-icon" onClick={loadData} title={t('refresh')}>
               <RefreshCw size={16} />
             </button>
           </div>
@@ -110,15 +136,11 @@ export function Reports() {
               <OverviewCards overview={data.overview} />
 
               {/* Activity Timeline */}
-              {data.activityTimeline.length > 0 && (
-                <ActivityTimeline timeline={data.activityTimeline} />
-              )}
+              {data.activityTimeline.length > 0 && <ActivityTimeline timeline={data.activityTimeline} />}
 
               <div className="reports-grid-2col">
                 {/* Entry Type Distribution */}
-                {data.entryTypeDistribution.length > 0 && (
-                  <EntryTypeChart distribution={data.entryTypeDistribution} />
-                )}
+                {data.entryTypeDistribution.length > 0 && <EntryTypeChart distribution={data.entryTypeDistribution} />}
 
                 {/* Task Flow */}
                 <TaskFlowChart taskFlow={data.taskFlow} />
@@ -130,9 +152,7 @@ export function Reports() {
               )}
 
               {/* Project Ranking */}
-              {data.projectRanking.length > 0 && (
-                <ProjectRankingTable ranking={data.projectRanking} />
-              )}
+              {data.projectRanking.length > 0 && <ProjectRankingTable ranking={data.projectRanking} />}
             </div>
           ) : (
             <div className="reports-empty">
@@ -153,42 +173,58 @@ function OverviewCards({ overview }: { overview: ReportsData['overview'] }) {
   return (
     <div className="reports-overview-cards">
       <div className="reports-card">
-        <div className="reports-card-icon"><Activity size={20} /></div>
+        <div className="reports-card-icon">
+          <Activity size={20} />
+        </div>
         <div className="reports-card-content">
           <span className="reports-card-value">{formatNumber(overview.totalEntries)}</span>
           <span className="reports-card-label">{t('entries')}</span>
         </div>
       </div>
       <div className="reports-card">
-        <div className="reports-card-icon"><CheckCircle2 size={20} /></div>
+        <div className="reports-card-icon">
+          <CheckCircle2 size={20} />
+        </div>
         <div className="reports-card-content">
-          <span className="reports-card-value">{overview.tasksCompleted}/{overview.totalTasks}</span>
+          <span className="reports-card-value">
+            {overview.tasksCompleted}/{overview.totalTasks}
+          </span>
           <span className="reports-card-label">{t('tasksCompleted')}</span>
         </div>
       </div>
       <div className="reports-card">
-        <div className="reports-card-icon"><Target size={20} /></div>
+        <div className="reports-card-icon">
+          <Target size={20} />
+        </div>
         <div className="reports-card-content">
           <span className="reports-card-value">{overview.completionRate}%</span>
           <span className="reports-card-label">{t('completionRate')}</span>
         </div>
       </div>
       <div className="reports-card">
-        <div className="reports-card-icon"><FolderOpen size={20} /></div>
+        <div className="reports-card-icon">
+          <FolderOpen size={20} />
+        </div>
         <div className="reports-card-content">
-          <span className="reports-card-value">{overview.activeProjects}/{overview.totalProjects}</span>
+          <span className="reports-card-value">
+            {overview.activeProjects}/{overview.totalProjects}
+          </span>
           <span className="reports-card-label">{t('activeProjects')}</span>
         </div>
       </div>
       <div className="reports-card">
-        <div className="reports-card-icon"><Clock size={20} /></div>
+        <div className="reports-card-icon">
+          <Clock size={20} />
+        </div>
         <div className="reports-card-content">
           <span className="reports-card-value">{overview.avgTaskResolutionDays ?? '—'}</span>
           <span className="reports-card-label">{t('avgResolutionDays')}</span>
         </div>
       </div>
       <div className="reports-card">
-        <div className="reports-card-icon"><Users size={20} /></div>
+        <div className="reports-card-icon">
+          <Users size={20} />
+        </div>
         <div className="reports-card-content">
           <span className="reports-card-value">{formatNumber(overview.totalMeetings)}</span>
           <span className="reports-card-label">{t('meetings')}</span>
@@ -222,17 +258,16 @@ function ActivityTimeline({ timeline }: { timeline: ActivityTimelinePoint[] }) {
             <div
               key={day.date}
               className="reports-timeline-bar-group"
-              title={t('timelineTooltip', { date: day.date, entries: day.entries, tasksCreated: day.tasksCreated, tasksCompleted: day.tasksCompleted })}
+              title={t('timelineTooltip', {
+                date: day.date,
+                entries: day.entries,
+                tasksCreated: day.tasksCreated,
+                tasksCompleted: day.tasksCompleted,
+              })}
             >
               <div className="reports-timeline-bars">
-                <div
-                  className="reports-timeline-bar bar-entries"
-                  style={{ height: `${Math.max(entryHeight, 2)}%` }}
-                />
-                <div
-                  className="reports-timeline-bar bar-tasks"
-                  style={{ height: `${Math.max(taskHeight, 2)}%` }}
-                />
+                <div className="reports-timeline-bar bar-entries" style={{ height: `${Math.max(entryHeight, 2)}%` }} />
+                <div className="reports-timeline-bar bar-tasks" style={{ height: `${Math.max(taskHeight, 2)}%` }} />
               </div>
               <span className="reports-timeline-label">{day.date.slice(8, 10)}</span>
             </div>
@@ -240,8 +275,12 @@ function ActivityTimeline({ timeline }: { timeline: ActivityTimelinePoint[] }) {
         })}
       </div>
       <div className="reports-chart-legend">
-        <span><span className="legend-dot legend-entries" /> {t('legendEntries')}</span>
-        <span><span className="legend-dot legend-tasks-completed" /> {t('legendTasksCompleted')}</span>
+        <span>
+          <span className="legend-dot legend-entries" /> {t('legendEntries')}
+        </span>
+        <span>
+          <span className="legend-dot legend-tasks-completed" /> {t('legendTasksCompleted')}
+        </span>
       </div>
     </div>
   )
@@ -271,10 +310,7 @@ function EntryTypeChart({ distribution }: { distribution: EntryTypeDistribution[
         {distribution.map((item) => (
           <div key={item.type} className="reports-type-row">
             <div className="reports-type-label">
-              <span
-                className="reports-type-dot"
-                style={{ backgroundColor: ENTRY_TYPE_COLORS[item.type] }}
-              />
+              <span className="reports-type-dot" style={{ backgroundColor: ENTRY_TYPE_COLORS[item.type] }} />
               <span>{ENTRY_TYPE_LABELS_I18N[item.type]}</span>
             </div>
             <div className="reports-type-bar-container">
@@ -286,7 +322,9 @@ function EntryTypeChart({ distribution }: { distribution: EntryTypeDistribution[
                 }}
               />
             </div>
-            <span className="reports-type-count">{item.count} ({item.percentage}%)</span>
+            <span className="reports-type-count">
+              {item.count} ({item.percentage}%)
+            </span>
           </div>
         ))}
       </div>
@@ -315,7 +353,7 @@ function TaskFlowChart({ taskFlow }: { taskFlow: ReportsData['taskFlow'] }) {
       {/* Stacked bar */}
       {total > 0 && (
         <div className="reports-flow-bar">
-          {segments.map((seg) => (
+          {segments.map((seg) =>
             seg.count > 0 ? (
               <div
                 key={seg.label}
@@ -324,7 +362,7 @@ function TaskFlowChart({ taskFlow }: { taskFlow: ReportsData['taskFlow'] }) {
                 title={`${seg.label}: ${seg.count}`}
               />
             ) : null
-          ))}
+          )}
         </div>
       )}
 
@@ -332,7 +370,9 @@ function TaskFlowChart({ taskFlow }: { taskFlow: ReportsData['taskFlow'] }) {
         {segments.map((seg) => (
           <div key={seg.label} className="reports-flow-legend-item">
             <span className="legend-dot" style={{ backgroundColor: seg.color }} />
-            <span>{seg.label}: {seg.count}</span>
+            <span>
+              {seg.label}: {seg.count}
+            </span>
           </div>
         ))}
       </div>
@@ -349,7 +389,11 @@ function TaskFlowChart({ taskFlow }: { taskFlow: ReportsData['taskFlow'] }) {
           <div className="reports-flow-stat warning">
             <AlertTriangle size={12} />
             <span>
-              {t('longestWaiting', { title: taskFlow.longestWaitingTask.title, project: taskFlow.longestWaitingTask.projectName, days: taskFlow.longestWaitingTask.daysSinceUpdate })}
+              {t('longestWaiting', {
+                title: taskFlow.longestWaitingTask.title,
+                project: taskFlow.longestWaitingTask.projectName,
+                days: taskFlow.longestWaitingTask.daysSinceUpdate,
+              })}
             </span>
           </div>
         )}
@@ -391,8 +435,12 @@ function WeekdayChart({ weekday }: { weekday: WeekdayActivity[] }) {
         })}
       </div>
       <div className="reports-chart-legend">
-        <span><span className="legend-dot legend-entries" /> {t('legendEntries')}</span>
-        <span><span className="legend-dot legend-tasks-completed" /> {t('legendTasks')}</span>
+        <span>
+          <span className="legend-dot legend-entries" /> {t('legendEntries')}
+        </span>
+        <span>
+          <span className="legend-dot legend-tasks-completed" /> {t('legendTasks')}
+        </span>
       </div>
     </div>
   )
@@ -429,11 +477,16 @@ function ProjectRankingTable({ ranking }: { ranking: ProjectRanking[] }) {
                 <td>
                   {project.blockerCount > 0 ? (
                     <span className="reports-blocker-badge">{project.blockerCount}</span>
-                  ) : '—'}
+                  ) : (
+                    '—'
+                  )}
                 </td>
                 <td>
                   {project.lastActivityDate
-                    ? new Date(project.lastActivityDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+                    ? new Date(project.lastActivityDate).toLocaleDateString('pt-BR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                      })
                     : '—'}
                 </td>
               </tr>

@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react'
+import type React from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { FolderOpen, Plus, Sparkles, Pencil, Check, X, Archive, ArchiveRestore, Eye, EyeOff } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -106,6 +107,7 @@ export function ProjectList({ onSelectProject, onProjectsChanged }: ProjectListP
         <span className="panel-title">{t('title')}</span>
         <div className="flex-row">
           <button
+            type="button"
             className={`vscode-button secondary`}
             onClick={() => setShowInactive(!showInactive)}
             title={showInactive ? t('hideArchived') : t('showArchived')}
@@ -114,6 +116,7 @@ export function ProjectList({ onSelectProject, onProjectsChanged }: ProjectListP
             {showInactive ? t('hideArchived') : t('showArchived')}
           </button>
           <button
+            type="button"
             className="vscode-button secondary"
             onClick={() => setShowCreateInput(!showCreateInput)}
           >
@@ -135,6 +138,7 @@ export function ProjectList({ onSelectProject, onProjectsChanged }: ProjectListP
             autoFocus
           />
           <button
+            type="button"
             className="vscode-button"
             onClick={handleCreateProject}
             disabled={isCreating || !newProjectName.trim()}
@@ -142,8 +146,12 @@ export function ProjectList({ onSelectProject, onProjectsChanged }: ProjectListP
             {t('common:create')}
           </button>
           <button
+            type="button"
             className="vscode-button secondary"
-            onClick={() => { setShowCreateInput(false); setNewProjectName('') }}
+            onClick={() => {
+              setShowCreateInput(false)
+              setNewProjectName('')
+            }}
           >
             {t('common:cancel')}
           </button>
@@ -153,9 +161,7 @@ export function ProjectList({ onSelectProject, onProjectsChanged }: ProjectListP
       {projects.length === 0 ? (
         <div className="empty-state">
           <FolderOpen size={48} className="empty-state-icon" />
-          <span className="empty-state-text">
-            {t('emptyState')}
-          </span>
+          <span className="empty-state-text">{t('emptyState')}</span>
         </div>
       ) : (
         <div className="flex-col gap-4">
@@ -171,7 +177,14 @@ export function ProjectList({ onSelectProject, onProjectsChanged }: ProjectListP
             >
               <div className="vscode-card-header">
                 <div className="flex-row">
-                  <FolderOpen size={16} style={{ color: project.active ? 'var(--vscode-notificationsInfoIcon-foreground)' : 'var(--vscode-descriptionForeground)' }} />
+                  <FolderOpen
+                    size={16}
+                    style={{
+                      color: project.active
+                        ? 'var(--vscode-notificationsInfoIcon-foreground)'
+                        : 'var(--vscode-descriptionForeground)',
+                    }}
+                  />
 
                   {editingId === project.id ? (
                     <>
@@ -186,15 +199,23 @@ export function ProjectList({ onSelectProject, onProjectsChanged }: ProjectListP
                         style={{ flex: 1, padding: '2px 6px', fontSize: 13 }}
                       />
                       <button
+                        type="button"
                         className="icon-button"
-                        onClick={(e) => { e.stopPropagation(); saveEditing() }}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          saveEditing()
+                        }}
                         title={t('common:save')}
                       >
                         <Check size={14} style={{ color: 'var(--vscode-testing-iconPassed)' }} />
                       </button>
                       <button
+                        type="button"
                         className="icon-button"
-                        onClick={(e) => { e.stopPropagation(); cancelEditing() }}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          cancelEditing()
+                        }}
                         title={t('common:cancel')}
                       >
                         <X size={14} style={{ color: 'var(--vscode-errorForeground)' }} />
@@ -216,6 +237,7 @@ export function ProjectList({ onSelectProject, onProjectsChanged }: ProjectListP
                         </span>
                       )}
                       <button
+                        type="button"
                         className="icon-button"
                         onClick={(e) => handleToggleActive(e, project)}
                         title={project.active ? t('archiveProject') : t('reactivateProject')}
@@ -223,6 +245,7 @@ export function ProjectList({ onSelectProject, onProjectsChanged }: ProjectListP
                         {project.active ? <Archive size={14} /> : <ArchiveRestore size={14} />}
                       </button>
                       <button
+                        type="button"
                         className="icon-button"
                         onClick={(e) => startEditing(e, project)}
                         title={t('renameProject')}
@@ -234,7 +257,10 @@ export function ProjectList({ onSelectProject, onProjectsChanged }: ProjectListP
                 </div>
               </div>
               {project.description && editingId !== project.id && (
-                <div className="vscode-card-body" style={{ color: 'var(--vscode-descriptionForeground)', fontSize: 12 }}>
+                <div
+                  className="vscode-card-body"
+                  style={{ color: 'var(--vscode-descriptionForeground)', fontSize: 12 }}
+                >
                   {project.description}
                 </div>
               )}

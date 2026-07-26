@@ -1,5 +1,6 @@
 import { safeHandle } from './safe-handle'
 import { getContainer } from '../services/container'
+import type { MCPServerConfig } from '../../shared/types'
 
 export function registerMCPHandlers(): void {
   const { mcpManager } = getContainer()
@@ -10,11 +11,17 @@ export function registerMCPHandlers(): void {
     return mcpManager.getConfigs()
   })
 
-  safeHandle('mcp:addServer', async (_event, data: { name: string; command: string; args: string[]; env?: Record<string, string>; enabled: boolean }) => {
-    return mcpManager.addServer(data)
-  })
+  safeHandle(
+    'mcp:addServer',
+    async (
+      _event,
+      data: { name: string; command: string; args: string[]; env?: Record<string, string>; enabled: boolean }
+    ) => {
+      return mcpManager.addServer(data)
+    }
+  )
 
-  safeHandle('mcp:updateServer', async (_event, id: string, updates: any) => {
+  safeHandle('mcp:updateServer', async (_event, id: string, updates: Partial<Omit<MCPServerConfig, 'id'>>) => {
     return mcpManager.updateServer(id, updates)
   })
 

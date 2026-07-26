@@ -1,0 +1,908 @@
+/* === Dashboard === */
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 12px;
+}
+
+.dashboard-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--vscode-descriptionForeground);
+}
+
+/* Greeting bar */
+.dashboard-greeting-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dashboard-greeting {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dashboard-greeting-text {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+  margin: 0;
+}
+
+.dashboard-greeting-summary {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.dashboard-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* KPI Cards Row */
+.dashboard-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+
+.dashboard-kpi-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--vscode-sideBar-background, #252526);
+  border: 1px solid var(--vscode-panel-border, #2d2d2d);
+  border-radius: 10px;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+}
+
+.dashboard-kpi-card:hover {
+  border-color: var(--vscode-focusBorder, #007fd4);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.kpi-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.kpi-icon-pending {
+  background: rgba(117, 190, 255, 0.12);
+  color: #75beff;
+}
+
+.kpi-icon-progress {
+  background: rgba(204, 167, 0, 0.12);
+  color: #cca700;
+}
+
+.kpi-icon-done {
+  background: rgba(73, 180, 73, 0.12);
+  color: #49b449;
+}
+
+.kpi-icon-entries {
+  background: rgba(197, 134, 192, 0.12);
+  color: #c586c0;
+}
+
+.kpi-icon-projects {
+  background: rgba(79, 193, 255, 0.12);
+  color: #4fc1ff;
+}
+
+.kpi-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.kpi-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--vscode-foreground);
+  line-height: 1.1;
+}
+
+.kpi-label {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Main 2-column grid */
+.dashboard-main-grid {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+.dashboard-col-left,
+.dashboard-col-right {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* Dashboard Card (replaces dashboard-section) */
+.dashboard-card {
+  background: var(--vscode-sideBar-background, #252526);
+  border: 1px solid var(--vscode-panel-border, #2d2d2d);
+  border-radius: 10px;
+  padding: 16px 18px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  animation: listItemEnter 0.3s ease forwards;
+}
+
+.dashboard-card:hover {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+}
+
+.dashboard-card-focus {
+  border-color: transparent;
+  position: relative;
+  background: var(--vscode-sideBar-background, #252526);
+  background-clip: padding-box;
+}
+
+.dashboard-card-focus::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 11px;
+  padding: 1px;
+  background: linear-gradient(135deg, #007fd4, #75beff, #c586c0);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.dashboard-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--vscode-descriptionForeground);
+  margin: 0 0 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dashboard-card-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.dashboard-card-title-row .dashboard-card-title {
+  margin-bottom: 0;
+}
+
+/* Entry Activity Graph */
+.activity-graph-loading {
+  padding: 20px;
+  text-align: center;
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+}
+
+.activity-graph-stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.activity-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.activity-stat-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+.activity-stat-label {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.activity-graph-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-x: auto;
+}
+
+.activity-graph-months {
+  display: flex;
+  position: relative;
+  height: 16px;
+  margin-left: 28px;
+  margin-bottom: 2px;
+}
+
+.activity-graph-month {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  position: absolute;
+  white-space: nowrap;
+}
+
+.activity-graph-day-label-spacer {
+  width: 28px;
+  flex-shrink: 0;
+}
+
+.activity-graph-body {
+  display: flex;
+  gap: 4px;
+}
+
+.activity-graph-day-labels {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 24px;
+  flex-shrink: 0;
+}
+
+.activity-graph-day-label {
+  font-size: 9px;
+  color: var(--vscode-descriptionForeground);
+  height: 11px;
+  line-height: 11px;
+  text-align: right;
+  padding-right: 4px;
+}
+
+.activity-graph-grid {
+  display: flex;
+  gap: 2px;
+  position: relative;
+}
+
+.activity-graph-week {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.activity-graph-cell {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  transition: outline 0.1s;
+}
+
+.activity-graph-cell:hover {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+
+.activity-graph-cell.empty {
+  visibility: hidden;
+}
+
+.activity-graph-cell.level-0 {
+  background: var(--vscode-editor-background, #161b22);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.activity-graph-cell.level-1 {
+  background: #0e4429;
+}
+
+.activity-graph-cell.level-2 {
+  background: #006d32;
+}
+
+.activity-graph-cell.level-3 {
+  background: #26a641;
+}
+
+.activity-graph-cell.level-4 {
+  background: #39d353;
+}
+
+.activity-graph-tooltip {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  background: var(--vscode-editorHoverWidget-background, #252526);
+  border: 1px solid var(--vscode-editorHoverWidget-border, #454545);
+  border-radius: 6px;
+  padding: 6px 10px;
+  pointer-events: none;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.activity-graph-tooltip strong {
+  font-size: 11px;
+  color: var(--vscode-foreground);
+}
+
+.activity-graph-tooltip span {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.activity-graph-legend {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.activity-graph-legend .activity-graph-cell {
+  width: 10px;
+  height: 10px;
+}
+
+.activity-graph-legend .activity-graph-cell:hover {
+  outline: none;
+}
+
+.activity-graph-legend-label {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  margin: 0 4px;
+}
+
+.stat-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  background: var(--vscode-badge-background, #4d4d4d);
+  color: var(--vscode-badge-foreground, #fff);
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.dashboard-due-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dashboard-due-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  background: var(--vscode-sideBar-background);
+  transition: background 0.15s, transform 0.12s, box-shadow 0.15s;
+}
+
+.dashboard-due-item:hover {
+  background: var(--vscode-list-hoverBackground, #2a2d2e);
+  transform: translateX(3px);
+}
+
+.dashboard-due-item.due-overdue {
+  border-left: 3px solid #f48771;
+}
+
+.dashboard-due-item.due-today {
+  border-left: 3px solid #f9c74f;
+}
+
+.dashboard-due-item.due-soon {
+  border-left: 3px solid #4fc1ff;
+}
+
+.dashboard-due-date {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--vscode-descriptionForeground);
+  min-width: 40px;
+}
+
+.dashboard-due-title {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dashboard-due-project {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.8;
+}
+
+.dashboard-due-badge {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.dashboard-due-badge.overdue {
+  color: #f48771;
+  background: rgba(244, 135, 113, 0.12);
+}
+
+.dashboard-due-badge.today {
+  color: #f9c74f;
+  background: rgba(249, 199, 79, 0.12);
+}
+
+.dashboard-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px;
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+  opacity: 0.7;
+  border: 1px dashed var(--vscode-panel-border, #2d2d2d);
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.01) 0%, rgba(117, 190, 255, 0.03) 100%);
+}
+
+.dashboard-empty svg {
+  animation: emptyFloat 3s ease-in-out infinite;
+  opacity: 0.5;
+}
+
+/* Task groups */
+.dashboard-task-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.task-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.task-group-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--vscode-descriptionForeground);
+  margin-bottom: 2px;
+}
+
+.dot-action {
+  color: var(--vscode-notificationsInfoIcon-foreground, #75beff);
+  fill: currentColor;
+}
+
+.dot-progress {
+  color: var(--vscode-notificationsWarningIcon-foreground, #cca700);
+  fill: currentColor;
+}
+
+.dot-waiting {
+  color: #c586c0;
+}
+
+.dashboard-task-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.12s, transform 0.12s;
+}
+
+.dashboard-task-item:hover {
+  background: var(--vscode-list-hoverBackground, rgba(255, 255, 255, 0.05));
+  transform: translateX(3px);
+}
+
+.dashboard-task-title {
+  flex: 1;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dashboard-task-project {
+  font-size: 10px;
+  padding: 1px 6px;
+  background: var(--vscode-badge-background, #4d4d4d);
+  color: var(--vscode-badge-foreground, #fff);
+  border-radius: 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.task-group-toggle {
+  background: none;
+  border: none;
+  color: var(--vscode-textLink-foreground, #3794ff);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 4px 10px;
+  margin-top: 2px;
+  border-radius: 3px;
+  transition: background 0.12s;
+}
+
+.task-group-toggle:hover {
+  background: var(--vscode-list-hoverBackground, rgba(255, 255, 255, 0.05));
+}
+
+/* Activity list */
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.activity-item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.12s, transform 0.12s;
+  font-size: 12px;
+}
+
+.activity-item:hover {
+  background: var(--vscode-list-hoverBackground, rgba(255, 255, 255, 0.05));
+  transform: translateX(3px);
+}
+
+.activity-time {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  white-space: nowrap;
+  min-width: 70px;
+}
+
+.activity-project {
+  font-size: 11px;
+  color: var(--vscode-notificationsInfoIcon-foreground, #75beff);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.activity-text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--vscode-foreground);
+}
+
+/* Focus of the day */
+.focus-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.focus-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: border-color 0.15s, background 0.15s, transform 0.12s;
+}
+
+.focus-item:hover {
+  border-color: var(--vscode-focusBorder, #007fd4);
+  background: var(--vscode-list-hoverBackground, #2a2d2e);
+  transform: translateX(3px);
+}
+
+.focus-item-status {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.focus-icon-overdue {
+  color: #f85149;
+}
+
+.focus-icon-today {
+  color: #cca700;
+}
+
+.focus-icon-progress {
+  color: #75beff;
+}
+
+.focus-item-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.focus-item-title {
+  font-size: 12px;
+  color: var(--vscode-foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.focus-item-project {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.focus-badge {
+  flex-shrink: 0;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.focus-badge.overdue {
+  background: rgba(248, 81, 73, 0.15);
+  color: #f85149;
+}
+
+.focus-badge.today {
+  background: rgba(204, 167, 0, 0.15);
+  color: #cca700;
+}
+
+/* Pending review section */
+.review-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--vscode-editor-background, #1e1e1e);
+  border: 1px solid var(--vscode-panel-border, #2d2d2d);
+  border-radius: 4px;
+}
+
+.review-summary-count {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.review-count-number {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--vscode-notificationsWarningIcon-foreground, #cca700);
+}
+
+.review-count-label {
+  font-size: 12px;
+  color: var(--vscode-foreground);
+}
+
+.review-summary-hint {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  margin: 0;
+}
+
+/* Stat chip warning variant */
+.stat-chip-warning {
+  color: var(--vscode-notificationsWarningIcon-foreground, #cca700) !important;
+}
+
+/* Yesterday recap section */
+.dashboard-yesterday .yesterday-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.yesterday-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.yesterday-group-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--vscode-descriptionForeground);
+  margin-bottom: 2px;
+}
+
+.yesterday-icon-done {
+  color: #49b449;
+}
+
+.yesterday-icon-entries {
+  color: #75beff;
+}
+
+.yesterday-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.12s;
+}
+
+.yesterday-item:hover {
+  background: var(--vscode-list-hoverBackground, #2a2d2e);
+  transform: translateX(3px);
+}
+
+.yesterday-item-text {
+  flex: 1;
+  font-size: 12px;
+  color: var(--vscode-foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.yesterday-item-project {
+  flex-shrink: 0;
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.yesterday-more {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  padding-left: 8px;
+  font-style: italic;
+}
+
+/* === Summary Card (used in Dashboard + ProjectView) === */
+.dashboard-summary-card {
+  background: var(--vscode-sideBar-background, #252526);
+  border: 1px solid var(--vscode-notificationsInfoIcon-foreground, #75beff);
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+
+.dashboard-summary-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--vscode-notificationsInfoIcon-foreground, #75beff);
+}
+
+.dashboard-summary-header span {
+  flex: 1;
+}
+
+.dashboard-summary-text {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--vscode-foreground);
+  white-space: pre-wrap;
+}
+
+/* === Summary Modal === */
+.summary-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9998;
+  backdrop-filter: blur(8px) saturate(120%);
+  animation: fadeIn 0.2s ease;
+}
+
+.summary-modal {
+  width: 560px;
+  max-width: 90vw;
+  max-height: 75vh;
+  background: var(--vscode-editor-background, #1e1e1e);
+  border: 1px solid rgba(117, 190, 255, 0.3);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+  animation: scaleIn 0.2s ease;
+}
+
+.summary-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--vscode-panel-border, #2d2d2d);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--vscode-notificationsInfoIcon-foreground, #75beff);
+}
+
+.summary-modal-header span {
+  flex: 1;
+}
+
+.summary-modal-body {
+  padding: 16px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+

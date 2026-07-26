@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Download, RefreshCw, CheckCircle, XCircle, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -50,15 +50,13 @@ export function UpdateNotification() {
         <>
           <div className="update-notification-content">
             <Download size={16} />
-            <span>
-              {t('update.available', { version: updateStatus.info?.version })}
-            </span>
+            <span>{t('update.available', { version: updateStatus.info?.version })}</span>
           </div>
           <div className="update-notification-actions">
-            <button className="update-btn update-btn-primary" onClick={handleDownload}>
+            <button type="button" className="update-btn update-btn-primary" onClick={handleDownload}>
               {t('update.download')}
             </button>
-            <button className="update-btn update-btn-dismiss" onClick={handleDismiss}>
+            <button type="button" className="update-btn update-btn-dismiss" onClick={handleDismiss}>
               <X size={14} />
             </button>
           </div>
@@ -89,10 +87,10 @@ export function UpdateNotification() {
             <span>{t('update.ready')}</span>
           </div>
           <div className="update-notification-actions">
-            <button className="update-btn update-btn-primary" onClick={handleInstall}>
+            <button type="button" className="update-btn update-btn-primary" onClick={handleInstall}>
               {t('update.install')}
             </button>
-            <button className="update-btn update-btn-dismiss" onClick={handleDismiss}>
+            <button type="button" className="update-btn update-btn-dismiss" onClick={handleDismiss}>
               <X size={14} />
             </button>
           </div>
@@ -105,7 +103,7 @@ export function UpdateNotification() {
             <XCircle size={16} />
             <span>{t('update.error', { error: updateStatus.error })}</span>
           </div>
-          <button className="update-btn update-btn-dismiss" onClick={handleDismiss}>
+          <button type="button" className="update-btn update-btn-dismiss" onClick={handleDismiss}>
             <X size={14} />
           </button>
         </>

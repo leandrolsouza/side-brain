@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
-import React from 'react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { EntryActivityGraph } from '../../../src/renderer/components/EntryActivityGraph'
 
 describe('EntryActivityGraph', () => {
@@ -11,7 +10,7 @@ describe('EntryActivityGraph', () => {
   describe('renderização', () => {
     it('deve exibir loading enquanto carrega dados', () => {
       // Keep the promise pending to simulate loading
-      window.electronAPI.getEntryActivityHeatmap = vi.fn().mockReturnValue(new Promise(() => { }))
+      window.electronAPI.getEntryActivityHeatmap = vi.fn().mockReturnValue(new Promise(() => {}))
 
       render(<EntryActivityGraph />)
 
@@ -237,7 +236,7 @@ describe('EntryActivityGraph', () => {
 
   describe('tratamento de erro', () => {
     it('deve lidar com erro na API sem quebrar', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { })
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
       window.electronAPI.getEntryActivityHeatmap = vi.fn().mockRejectedValue(new Error('API Error'))
 
       render(<EntryActivityGraph />)

@@ -1,6 +1,21 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import type React from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Send, Bot, User, Loader2, MessageCircle, FileText, CheckSquare, Sparkles, Plus, Trash2, MessageSquare, MoreHorizontal, Pencil, X } from 'lucide-react'
+import {
+  Send,
+  Bot,
+  User,
+  Loader2,
+  MessageCircle,
+  FileText,
+  CheckSquare,
+  Sparkles,
+  Plus,
+  Trash2,
+  MessageSquare,
+  MoreHorizontal,
+  Pencil,
+} from 'lucide-react'
 import { MarkdownViewer } from './MarkdownViewer'
 
 interface ChatMessage {
@@ -118,9 +133,7 @@ export function SmartChat() {
     if (!editingTitle.trim()) return
     try {
       await window.electronAPI.smartChatRenameConversation(id, editingTitle.trim())
-      setConversations((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, title: editingTitle.trim() } : c))
-      )
+      setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, title: editingTitle.trim() } : c)))
       setEditingId(null)
       setEditingTitle('')
     } catch (error) {
@@ -175,9 +188,12 @@ export function SmartChat() {
 
   const getSourceIcon = (type: string) => {
     switch (type) {
-      case 'entry': return <FileText size={10} />
-      case 'task': return <CheckSquare size={10} />
-      default: return <FileText size={10} />
+      case 'entry':
+        return <FileText size={10} />
+      case 'task':
+        return <CheckSquare size={10} />
+      default:
+        return <FileText size={10} />
     }
   }
 
@@ -189,6 +205,7 @@ export function SmartChat() {
         <span className="smart-chat-badge">{t('badge')}</span>
         <div className="smart-chat-header-actions">
           <button
+            type="button"
             className="smart-chat-header-btn"
             onClick={handleNewConversation}
             title={t('newConversation')}
@@ -196,6 +213,7 @@ export function SmartChat() {
             <Plus size={14} />
           </button>
           <button
+            type="button"
             className="smart-chat-header-btn"
             onClick={() => setShowSidebar(!showSidebar)}
             title={t('toggleHistory')}
@@ -238,6 +256,7 @@ export function SmartChat() {
                     <>
                       <span className="smart-chat-sidebar-item-title">{conv.title}</span>
                       <button
+                        type="button"
                         className="smart-chat-sidebar-item-menu"
                         onClick={(e) => {
                           e.stopPropagation()
@@ -251,6 +270,7 @@ export function SmartChat() {
                   {contextMenuId === conv.id && (
                     <div className="smart-chat-context-menu" onClick={(e) => e.stopPropagation()}>
                       <button
+                        type="button"
                         onClick={() => {
                           setEditingId(conv.id)
                           setEditingTitle(conv.title)
@@ -260,10 +280,7 @@ export function SmartChat() {
                         <Pencil size={11} />
                         <span>{t('rename')}</span>
                       </button>
-                      <button
-                        className="danger"
-                        onClick={() => handleDeleteConversation(conv.id)}
-                      >
+                      <button type="button" className="danger" onClick={() => handleDeleteConversation(conv.id)}>
                         <Trash2 size={11} />
                         <span>{t('delete')}</span>
                       </button>
@@ -287,11 +304,7 @@ export function SmartChat() {
                 <p>{t('welcomeSubtitle')}</p>
                 <div className="smart-chat-suggestions">
                   {SUGGESTED_QUESTIONS.map((q) => (
-                    <button
-                      key={q}
-                      className="smart-chat-suggestion"
-                      onClick={() => handleSend(q)}
-                    >
+                    <button type="button" key={q} className="smart-chat-suggestion" onClick={() => handleSend(q)}>
                       {q}
                     </button>
                   ))}
@@ -305,11 +318,7 @@ export function SmartChat() {
                   {msg.role === 'user' ? <User size={14} /> : <Bot size={14} />}
                 </div>
                 <div className="smart-chat-message-content">
-                  {msg.role === 'assistant' ? (
-                    <MarkdownViewer content={msg.content} />
-                  ) : (
-                    <p>{msg.content}</p>
-                  )}
+                  {msg.role === 'assistant' ? <MarkdownViewer content={msg.content} /> : <p>{msg.content}</p>}
                   {msg.sources && msg.sources.length > 0 && (
                     <div className="smart-chat-sources">
                       <span className="smart-chat-sources-label">{t('sources')}</span>
@@ -367,6 +376,7 @@ export function SmartChat() {
               disabled={isLoading}
             />
             <button
+              type="button"
               className="smart-chat-send"
               onClick={() => handleSend()}
               disabled={!input.trim() || isLoading}

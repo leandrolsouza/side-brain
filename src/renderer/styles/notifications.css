@@ -1,0 +1,465 @@
+/* === Notification Center === */
+
+.notification-bell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #f85149;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* Panel */
+.notification-panel {
+  position: fixed;
+  bottom: 32px;
+  right: 12px;
+  width: 360px;
+  max-height: 480px;
+  background: var(--vscode-sideBar-background, #252526);
+  border: 1px solid var(--vscode-panel-border, #2d2d2d);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  z-index: 9000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: notificationSlideUp 0.2s ease;
+}
+
+@keyframes notificationSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.notification-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--vscode-panel-border, #2d2d2d);
+}
+
+.notification-panel-header h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--vscode-editor-foreground);
+  margin: 0;
+}
+
+.notification-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.notification-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  color: var(--vscode-descriptionForeground);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.notification-action-btn:hover {
+  background: var(--vscode-list-hoverBackground, #2a2d2e);
+  color: var(--vscode-editor-foreground);
+}
+
+/* Notification list */
+.notification-panel-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.notification-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 40px 20px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.notification-empty p {
+  font-size: 12px;
+  margin: 0;
+}
+
+/* Notification item */
+.notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  transition: background 0.12s;
+}
+
+.notification-item:hover {
+  background: var(--vscode-list-hoverBackground, #2a2d2e);
+}
+
+.notification-item--unread {
+  background: rgba(117, 190, 255, 0.04);
+  border-left: 2px solid var(--vscode-activityBarBadge-background, #007acc);
+}
+
+.notification-item-icon {
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.notification-icon {
+  color: var(--vscode-descriptionForeground);
+}
+
+.notification-icon--danger {
+  color: var(--vscode-errorForeground, #f48771);
+}
+
+.notification-icon--warning {
+  color: var(--vscode-notificationsWarningIcon-foreground, #cca700);
+}
+
+.notification-icon--info {
+  color: var(--vscode-notificationsInfoIcon-foreground, #75beff);
+}
+
+.notification-icon--success {
+  color: var(--vscode-testing-iconPassed, #73c991);
+}
+
+.notification-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-item-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--vscode-editor-foreground);
+  margin-bottom: 2px;
+}
+
+.notification-item-body {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.notification-item-time {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.7;
+  margin-top: 4px;
+}
+
+.notification-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.notification-item:hover .notification-item-actions {
+  opacity: 1;
+}
+
+.notification-item-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  color: var(--vscode-descriptionForeground);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.notification-item-btn:hover {
+  background: var(--vscode-sideBarSectionHeader-background);
+  color: var(--vscode-editor-foreground);
+}
+
+/* Toast container */
+.notification-toast-container {
+  position: fixed;
+  bottom: 40px;
+  right: 16px;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 8px;
+  z-index: 9500;
+  pointer-events: none;
+}
+
+.notification-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--vscode-sideBar-background, #252526);
+  border: 1px solid var(--vscode-panel-border, #2d2d2d);
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+  min-width: 300px;
+  max-width: 380px;
+  pointer-events: auto;
+  animation: toastSlideIn 0.3s ease;
+}
+
+.notification-toast--exit {
+  animation: toastSlideOut 0.3s ease forwards;
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes toastSlideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+}
+
+.notification-toast-icon {
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+
+.notification-toast-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-toast-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--vscode-editor-foreground);
+  margin-bottom: 2px;
+}
+
+.notification-toast-body {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  line-height: 1.4;
+}
+
+.notification-toast-close {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--vscode-descriptionForeground);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.notification-toast-close:hover {
+  background: var(--vscode-list-hoverBackground, #2a2d2e);
+  color: var(--vscode-editor-foreground);
+}
+
+
+/* === App Toast (generic feedback) === */
+.app-toast-container {
+  position: fixed;
+  bottom: 40px;
+  right: 16px;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 8px;
+  z-index: 10000;
+  pointer-events: none;
+}
+
+.app-toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--vscode-sideBar-background, #252526);
+  border: 1px solid var(--vscode-panel-border, #2d2d2d);
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+  min-width: 260px;
+  max-width: 380px;
+  pointer-events: auto;
+  animation: appToastSlideIn 0.3s ease;
+}
+
+.app-toast--exit {
+  animation: appToastSlideOut 0.3s ease forwards;
+}
+
+@keyframes appToastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes appToastSlideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+}
+
+.app-toast--success {
+  border-color: rgba(35, 209, 139, 0.4);
+}
+
+.app-toast--success .app-toast-icon {
+  color: var(--vscode-testing-iconPassed, #23d18b);
+}
+
+.app-toast--error {
+  border-color: rgba(248, 81, 73, 0.4);
+}
+
+.app-toast--error .app-toast-icon {
+  color: var(--vscode-errorForeground, #f85149);
+}
+
+.app-toast--warning {
+  border-color: rgba(229, 192, 123, 0.4);
+}
+
+.app-toast--warning .app-toast-icon {
+  color: var(--vscode-editorWarning-foreground, #e5c07b);
+}
+
+.app-toast--info {
+  border-color: rgba(79, 163, 255, 0.4);
+}
+
+.app-toast--info .app-toast-icon {
+  color: var(--vscode-editorInfo-foreground, #4fa3ff);
+}
+
+.app-toast-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.app-toast-message {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--vscode-editor-foreground);
+  line-height: 1.4;
+}
+
+.app-toast-close {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--vscode-descriptionForeground);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.app-toast-close:hover {
+  background: var(--vscode-list-hoverBackground, #2a2d2e);
+  color: var(--vscode-editor-foreground);
+}
+
+
+/* === Activity Bar Badge (Error count) === */
+.activity-bar-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  background: #f85149;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  line-height: 1;
+  pointer-events: none;
+}
+

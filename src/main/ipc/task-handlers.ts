@@ -1,6 +1,6 @@
 import { safeHandle } from './safe-handle'
 import { getContainer } from '../services/container'
-import type { PaginationParams, TaskStatus } from '../../shared/types'
+import type { PaginationParams, Task, TaskStatus } from '../../shared/types'
 
 export function registerTaskHandlers(): void {
   const { taskRepo } = getContainer()
@@ -13,17 +13,27 @@ export function registerTaskHandlers(): void {
     return taskRepo.getAll()
   })
 
-  safeHandle('task:getPaginated', async (_event, params: PaginationParams & { projectId?: string; status?: TaskStatus }) => {
-    return taskRepo.getPaginated(params)
-  })
+  safeHandle(
+    'task:getPaginated',
+    async (_event, params: PaginationParams & { projectId?: string; status?: TaskStatus }) => {
+      return taskRepo.getPaginated(params)
+    }
+  )
 
   safeHandle('task:create', async (_event, data: { projectId: string; title: string; description?: string }) => {
     return taskRepo.create(data)
   })
 
-  safeHandle('task:update', async (_event, id: string, updates: Record<string, any>) => {
-    return taskRepo.update(id, updates)
-  })
+  safeHandle(
+    'task:update',
+    async (
+      _event,
+      id: string,
+      updates: Partial<Pick<Task, 'title' | 'description' | 'status' | 'assignee' | 'dueDate'>>
+    ) => {
+      return taskRepo.update(id, updates)
+    }
+  )
 
   safeHandle('task:delete', async (_event, id: string) => {
     return taskRepo.delete(id)

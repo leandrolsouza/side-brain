@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { createTestDatabase, closeTestDatabase, getTestDatabase } from '../setup'
+import { createTestDatabase, closeTestDatabase } from '../setup'
 import { MeetingService } from '../../../src/main/services/meeting-service'
 import { MeetingRepository } from '../../../src/main/database/repositories/meeting-repository'
 import { EntryRepository } from '../../../src/main/database/repositories/entry-repository'
@@ -7,8 +7,8 @@ import { ProjectRepository } from '../../../src/main/database/repositories/proje
 import { TaskRepository } from '../../../src/main/database/repositories/task-repository'
 import { SettingsRepository } from '../../../src/main/database/repositories/settings-repository'
 import { NotificationRepository } from '../../../src/main/database/repositories/notification-repository'
-import { AIService } from '../../../src/main/services/ai-service'
-import { MeetingProcessResult } from '../../../src/shared/types'
+import type { AIService } from '../../../src/main/services/ai-service'
+import type { MeetingProcessResult } from '../../../src/shared/types'
 
 vi.mock('../../../src/main/database/schema', async () => {
   const setup = await import('../setup')
@@ -49,7 +49,13 @@ describe('MeetingService', () => {
     settingsRepo = new SettingsRepository()
     notificationRepo = new NotificationRepository()
     service = new MeetingService(
-      meetingRepo, entryRepo, projectRepo, taskRepo, settingsRepo, notificationRepo, mockAIService
+      meetingRepo,
+      entryRepo,
+      projectRepo,
+      taskRepo,
+      settingsRepo,
+      notificationRepo,
+      mockAIService
     )
 
     const project = projectRepo.create('Projeto Teste')
@@ -185,7 +191,14 @@ describe('MeetingService', () => {
 
   describe('prepareMeeting', () => {
     it('deve chamar AI com contexto do projeto', async () => {
-      entryRepo.create({ rawText: 'Bloqueio', improvedText: 'Bloqueio no deploy', projectId, type: 'blocker', action: 'action_needed', reviewStatus: 'auto_approved' })
+      entryRepo.create({
+        rawText: 'Bloqueio',
+        improvedText: 'Bloqueio no deploy',
+        projectId,
+        type: 'blocker',
+        action: 'action_needed',
+        reviewStatus: 'auto_approved',
+      })
       taskRepo.create({ projectId, title: 'Task pendente', status: 'in_progress' })
 
       const result = await service.prepareMeeting(projectId, 'Daily', ['Alice'])
@@ -201,9 +214,7 @@ describe('MeetingService', () => {
     })
 
     it('deve lançar erro quando projeto não existe', async () => {
-      await expect(
-        service.prepareMeeting('id-inexistente', 'Meeting', [])
-      ).rejects.toThrow('Project not found')
+      await expect(service.prepareMeeting('id-inexistente', 'Meeting', [])).rejects.toThrow('Project not found')
     })
   })
 
@@ -216,14 +227,10 @@ describe('MeetingService', () => {
 
       const mockResult: MeetingProcessResult = {
         minutes: '# Ata da Reunião\n\n- Ponto 1',
-        entries: [
-          { text: 'Decisão sobre deploy', type: 'decision', action: 'action_needed' },
-        ],
-        tasks: [
-          { title: 'Fazer deploy', description: 'Até sexta' },
-        ],
+        entries: [{ text: 'Decisão sobre deploy', type: 'decision', action: 'action_needed' }],
+        tasks: [{ title: 'Fazer deploy', description: 'Até sexta' }],
       }
-        ; (mockAIService.processMeeting as any) = vi.fn().mockResolvedValue(mockResult)
+      ;(mockAIService.processMeeting as any) = vi.fn().mockResolvedValue(mockResult)
 
       const result = await service.analyze(meeting.id)
 
@@ -247,7 +254,7 @@ describe('MeetingService', () => {
       const meeting = service.create({ projectId, title: 'Meeting' })
       service.end(meeting.id)
 
-        ; (mockAIService.processMeeting as any) = vi.fn().mockRejectedValue(new Error('AI timeout'))
+      ;(mockAIService.processMeeting as any) = vi.fn().mockRejectedValue(new Error('AI timeout'))
 
       await expect(service.analyze(meeting.id)).rejects.toThrow('AI timeout')
 
@@ -296,11 +303,7 @@ describe('MeetingService', () => {
       const meeting = service.create({ projectId, title: 'Meeting' })
       taskRepo.create({ projectId, title: 'Task Existente' })
 
-      const { taskIds } = service.saveSelected(
-        meeting.id,
-        [],
-        [{ title: 'Task Existente' }]
-      )
+      const { taskIds } = service.saveSelected(meeting.id, [], [{ title: 'Task Existente' }])
 
       // Não criou duplicata
       expect(taskIds).toHaveLength(0)

@@ -5,6 +5,24 @@ Todas as mudanças notáveis do SideBrain serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.9.0] - 2026-07-26
+
+### Adicionado
+- **Logger estruturado** com `electron-log` — `createScopedLogger()` para logging contextualizado no main process com fallback seguro para testes e ambientes sem Electron
+- **Tipos MCP compartilhados** — `src/shared/types/mcp.ts` com interfaces `MCPServerConfig`, `MCPServerStatus` e `MCPToolInfo`
+- **Scripts de qualidade de código** — `lint`, `lint:fix`, `format`, `typecheck` e `check-i18n` adicionados ao `package.json`
+- **Biome** como linter e formatter unificado (substitui configurações ad-hoc)
+
+### Alterado
+- **AI Provider refatorado para arquitetura de adapters** — cada provedor (Bedrock, OpenAI, Gemini, Grok, Local, OpenAI-compatible) agora tem seu próprio adapter em `src/main/services/ai-providers/`; `AIProvider` funciona como facade de roteamento
+- **Agent Studio desmembrado em subcomponentes** — `AgentStudio.tsx` reorganizado com componentes dedicados em `src/renderer/components/agent-studio/`: `AgentCreator`, `AgentList`, `AgentRunner`, `ExecutionDetail`, `ExecutionLog`, `MCPSettings`, `TeamCreator`, `TeamDiscussion`, `TeamList`, `TemplateSelector`
+- **CSS global dividido em módulos temáticos** — `global.css` refatorado como index de imports; estilos separados em ~20 arquivos (`theme.css`, `layout.css`, `components.css`, `dashboard.css`, `kanban.css`, `entries.css`, `chat.css`, `meeting.css`, `settings.css`, `capture.css`, `notifications.css`, `reports.css`, `digest.css`, `search.css`, `forms.css`, `errors.css`, `workspace.css`, `misc.css`)
+- **Dependências reorganizadas** — libs de frontend (`react`, `react-dom`, `lucide-react`, `i18next`, `react-i18next`, `react-force-graph-2d`, `react-markdown`, `remark-gfm`) movidas para `devDependencies`; `better-sqlite3` atualizado para `^13.0.1`; `electron-log` adicionado como dependência de runtime; removido `npm-check-updates` e `@types/uuid`
+- **CI de release melhorado** — workflow `release.yml` usa matrix multi-plataforma (Windows/macOS/Linux) com upload de assets via script; comentários sobre code signing adicionados
+
+### Removido
+- `ReviewInbox.tsx` — componente removido (funcionalidade de revisão integrada ao fluxo principal)
+
 ## [0.8.0] - 2025-07-14
 
 ### Adicionado

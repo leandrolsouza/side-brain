@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import React from 'react'
 import { GlobalSearch } from '../../../src/renderer/components/GlobalSearch'
 
 describe('GlobalSearch', () => {
@@ -18,7 +17,16 @@ describe('GlobalSearch', () => {
       { id: 'p2', name: 'Frontend', active: true, createdAt: '2025-01-01', isAutoSuggested: false },
     ])
     window.electronAPI.getEntryTypes = vi.fn().mockResolvedValue([
-      { id: '1', key: 'information', label: 'Informação', icon: 'Info', color: 'info', isDefault: true, sortOrder: 0, allowsAction: false },
+      {
+        id: '1',
+        key: 'information',
+        label: 'Informação',
+        icon: 'Info',
+        color: 'info',
+        isDefault: true,
+        sortOrder: 0,
+        allowsAction: false,
+      },
     ])
   })
 
@@ -69,7 +77,18 @@ describe('GlobalSearch', () => {
     it('deve chamar globalSearch após debounce', async () => {
       const user = userEvent.setup()
       window.electronAPI.globalSearch = vi.fn().mockResolvedValue({
-        entries: [{ id: 'e1', rawText: 'Deploy', improvedText: 'Deploy na AWS', projectId: 'p1', type: 'information', action: 'none', reviewStatus: 'auto_approved', createdAt: '2025-01-15' }],
+        entries: [
+          {
+            id: 'e1',
+            rawText: 'Deploy',
+            improvedText: 'Deploy na AWS',
+            projectId: 'p1',
+            type: 'information',
+            action: 'none',
+            reviewStatus: 'auto_approved',
+            createdAt: '2025-01-15',
+          },
+        ],
         tasks: [],
         projects: [],
       })
@@ -79,16 +98,39 @@ describe('GlobalSearch', () => {
       const input = await waitFor(() => screen.getByPlaceholderText('Buscar entradas, tasks, projetos...'))
       await user.type(input, 'deploy')
 
-      await waitFor(() => {
-        expect(window.electronAPI.globalSearch).toHaveBeenCalledWith('deploy', {})
-      }, { timeout: 1000 })
+      await waitFor(
+        () => {
+          expect(window.electronAPI.globalSearch).toHaveBeenCalledWith('deploy', {})
+        },
+        { timeout: 1000 }
+      )
     })
 
     it('deve exibir resultados de busca', async () => {
       const user = userEvent.setup()
       window.electronAPI.globalSearch = vi.fn().mockResolvedValue({
-        entries: [{ id: 'e1', rawText: 'Deploy', improvedText: 'Deploy na AWS', projectId: 'p1', type: 'information', action: 'none', reviewStatus: 'auto_approved', createdAt: '2025-06-15' }],
-        tasks: [{ id: 't1', projectId: 'p1', title: 'Configurar CI/CD', status: 'todo', createdAt: '2025-06-15', updatedAt: '2025-06-15' }],
+        entries: [
+          {
+            id: 'e1',
+            rawText: 'Deploy',
+            improvedText: 'Deploy na AWS',
+            projectId: 'p1',
+            type: 'information',
+            action: 'none',
+            reviewStatus: 'auto_approved',
+            createdAt: '2025-06-15',
+          },
+        ],
+        tasks: [
+          {
+            id: 't1',
+            projectId: 'p1',
+            title: 'Configurar CI/CD',
+            status: 'todo',
+            createdAt: '2025-06-15',
+            updatedAt: '2025-06-15',
+          },
+        ],
         projects: [{ id: 'p1', name: 'Backend API', active: true, createdAt: '2025-01-01', isAutoSuggested: false }],
       })
 
@@ -97,11 +139,14 @@ describe('GlobalSearch', () => {
       const input = await waitFor(() => screen.getByPlaceholderText('Buscar entradas, tasks, projetos...'))
       await user.type(input, 'backend')
 
-      await waitFor(() => {
-        expect(screen.getByText('Deploy na AWS')).toBeInTheDocument()
-        expect(screen.getByText('Configurar CI/CD')).toBeInTheDocument()
-        expect(screen.getByText('Backend API')).toBeInTheDocument()
-      }, { timeout: 1000 })
+      await waitFor(
+        () => {
+          expect(screen.getByText('Deploy na AWS')).toBeInTheDocument()
+          expect(screen.getByText('Configurar CI/CD')).toBeInTheDocument()
+          expect(screen.getByText('Backend API')).toBeInTheDocument()
+        },
+        { timeout: 1000 }
+      )
     })
 
     it('deve mostrar mensagem quando não há resultados', async () => {
@@ -117,9 +162,12 @@ describe('GlobalSearch', () => {
       const input = await waitFor(() => screen.getByPlaceholderText('Buscar entradas, tasks, projetos...'))
       await user.type(input, 'xyz-inexistente')
 
-      await waitFor(() => {
-        expect(screen.getByText(/Nenhum resultado/)).toBeInTheDocument()
-      }, { timeout: 1000 })
+      await waitFor(
+        () => {
+          expect(screen.getByText(/Nenhum resultado/)).toBeInTheDocument()
+        },
+        { timeout: 1000 }
+      )
     })
 
     it('não deve buscar quando query está vazio', async () => {
@@ -179,8 +227,28 @@ describe('GlobalSearch', () => {
     it('deve filtrar para mostrar apenas entries quando tab "Entradas" é clicado', async () => {
       const user = userEvent.setup()
       window.electronAPI.globalSearch = vi.fn().mockResolvedValue({
-        entries: [{ id: 'e1', rawText: 'E', improvedText: 'Entry result', projectId: 'p1', type: 'information', action: 'none', reviewStatus: 'auto_approved', createdAt: '2025-06-15' }],
-        tasks: [{ id: 't1', projectId: 'p1', title: 'Task result', status: 'todo', createdAt: '2025-06-15', updatedAt: '2025-06-15' }],
+        entries: [
+          {
+            id: 'e1',
+            rawText: 'E',
+            improvedText: 'Entry result',
+            projectId: 'p1',
+            type: 'information',
+            action: 'none',
+            reviewStatus: 'auto_approved',
+            createdAt: '2025-06-15',
+          },
+        ],
+        tasks: [
+          {
+            id: 't1',
+            projectId: 'p1',
+            title: 'Task result',
+            status: 'todo',
+            createdAt: '2025-06-15',
+            updatedAt: '2025-06-15',
+          },
+        ],
         projects: [],
       })
 

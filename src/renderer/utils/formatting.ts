@@ -7,11 +7,7 @@
  * Format a date using the active locale's conventions via Intl.DateTimeFormat.
  * If the date is invalid/unparseable, returns the original string unchanged.
  */
-export function formatDate(
-  date: Date | string,
-  locale: string,
-  options?: Intl.DateTimeFormatOptions
-): string {
+export function formatDate(date: Date | string, locale: string, options?: Intl.DateTimeFormatOptions): string {
   const dateObj = date instanceof Date ? date : new Date(date)
   if (isNaN(dateObj.getTime())) {
     return String(date)
@@ -23,11 +19,7 @@ export function formatDate(
  * Format a number using the active locale's decimal and thousands separators.
  * If the value is non-numeric, returns the original value unchanged.
  */
-export function formatNumber(
-  value: number | string,
-  locale: string,
-  options?: Intl.NumberFormatOptions
-): string {
+export function formatNumber(value: number | string, locale: string, options?: Intl.NumberFormatOptions): string {
   const num = typeof value === 'number' ? value : Number(value)
   if (typeof value === 'string' && isNaN(num)) {
     return value
@@ -43,10 +35,7 @@ export function formatNumber(
  * This ignores locale — the user's explicit date format setting takes precedence.
  * If the date is invalid, returns the original string unchanged.
  */
-export function formatStructuredDate(
-  date: Date | string,
-  format: 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD'
-): string {
+export function formatStructuredDate(date: Date | string, format: 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD'): string {
   const dateObj = date instanceof Date ? date : new Date(date)
   if (isNaN(dateObj.getTime())) {
     return String(date)

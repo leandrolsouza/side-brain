@@ -6,26 +6,26 @@ import type { ErrorCategory } from '../../shared/types'
  * Wrapper que captura erros de qualquer IPC handler e loga na Central de Erros.
  * Determina a categoria com base no channel name.
  */
-export function safeHandle(
+export function safeHandle<TArgs extends unknown[]>(
   channel: string,
-  handler: (event: Electron.IpcMainInvokeEvent, ...args: any[]) => Promise<any>
+  handler: (event: Electron.IpcMainInvokeEvent, ...args: TArgs) => Promise<unknown>
 ): void {
   ipcMain.handle(channel, async (event, ...args) => {
     try {
-      return await handler(event, ...args)
-    } catch (error: any) {
+      return await handler(event, ...(args as TArgs))
+    } catch (error) {
+      const err = error as { message?: string; stack?: string } | null | undefined
       const category = inferCategory(channel)
       // Avoid double-logging AI errors that were already logged at the service level
       // (e.g. HTTP 429/500 errors from Bedrock that are logged inside invokeConverse)
-      const isAlreadyLogged = category === 'ai'
-        && error?.message?.includes('API error')
-        && !channel.startsWith('meeting:')
+      const isAlreadyLogged =
+        category === 'ai' && err?.message?.includes('API error') && !channel.startsWith('meeting:')
       if (!isAlreadyLogged) {
         getErrorService().logError({
           category,
           severity: 'error',
-          message: error?.message || `Erro no handler ${channel}`,
-          stack: error?.stack,
+          message: err?.message || `Erro no handler ${channel}`,
+          stack: err?.stack,
           context: { channel, args: sanitizeArgs(args) },
         })
       }
@@ -35,23 +35,37 @@ export function safeHandle(
 }
 
 export function inferCategory(channel: string): ErrorCategory {
-  if (channel.startsWith('ai:') || channel.startsWith('digest:') || channel.startsWith('smart-chat:') || channel.startsWith('insights:')) return 'ai'
+  if (
+    channel.startsWith('ai:') ||
+    channel.startsWith('digest:') ||
+    channel.startsWith('smart-chat:') ||
+    channel.startsWith('insights:')
+  )
+    return 'ai'
   if (channel === 'meeting:process' || channel === 'meeting:prepare') return 'ai'
   if (channel.startsWith('agent:run') || channel.startsWith('agent:')) return 'ai'
-  if (channel.startsWith('entry:') || channel.startsWith('project:') || channel.startsWith('task:') || channel.startsWith('search:') || channel.startsWith('connection:')) return 'database'
+  if (
+    channel.startsWith('entry:') ||
+    channel.startsWith('project:') ||
+    channel.startsWith('task:') ||
+    channel.startsWith('search:') ||
+    channel.startsWith('connection:')
+  )
+    return 'database'
   if (channel.startsWith('meeting:')) return 'database'
-  if (channel.startsWith('backup:') || channel.startsWith('database:') || channel.startsWith('workspace:')) return 'database'
+  if (channel.startsWith('backup:') || channel.startsWith('database:') || channel.startsWith('workspace:'))
+    return 'database'
   if (channel.startsWith('notification:') || channel.startsWith('ai-usage:')) return 'database'
   return 'ipc'
 }
 
-function sanitizeArgs(args: any[]): string {
+function sanitizeArgs(args: unknown[]): string {
   try {
     const sanitized = args.map((arg) => {
-      if (typeof arg === 'string' && arg.length > 200) return arg.slice(0, 200) + '...'
+      if (typeof arg === 'string' && arg.length > 200) return `${arg.slice(0, 200)}...`
       if (typeof arg === 'object' && arg !== null) {
         const str = JSON.stringify(arg)
-        return str.length > 300 ? str.slice(0, 300) + '...' : str
+        return str.length > 300 ? `${str.slice(0, 300)}...` : str
       }
       return arg
     })

@@ -1,9 +1,9 @@
-import { DailyDigestData, Task, Entry } from '../../shared/types'
-import { EntryRepository } from '../database/repositories/entry-repository'
-import { TaskRepository } from '../database/repositories/task-repository'
-import { ProjectRepository } from '../database/repositories/project-repository'
-import { SettingsRepository } from '../database/repositories/settings-repository'
-import { AIService } from './ai-service'
+import type { DailyDigestData, Task } from '../../shared/types'
+import type { EntryRepository } from '../database/repositories/entry-repository'
+import type { TaskRepository } from '../database/repositories/task-repository'
+import type { ProjectRepository } from '../database/repositories/project-repository'
+import type { SettingsRepository } from '../database/repositories/settings-repository'
+import type { AIService } from './ai-service'
 import { t } from '../i18n'
 
 export class DigestService {
@@ -13,7 +13,7 @@ export class DigestService {
     private projectRepo: ProjectRepository,
     private settingsRepo: SettingsRepository,
     private aiService: AIService
-  ) { }
+  ) {}
 
   async generateDailyDigest(): Promise<DailyDigestData> {
     const now = new Date()
@@ -65,23 +65,26 @@ export class DigestService {
     const yesterday = new Date()
     yesterday.setDate(yesterday.getDate() - 1)
     const yesterdayStart = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate()).toISOString()
-    const yesterdayEnd = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59).toISOString()
+    const yesterdayEnd = new Date(
+      yesterday.getFullYear(),
+      yesterday.getMonth(),
+      yesterday.getDate(),
+      23,
+      59,
+      59
+    ).toISOString()
 
     // Entries created yesterday
     const allEntries = this.entryRepo.getAll()
-    const entriesCreated = allEntries.filter((e) =>
-      e.createdAt >= yesterdayStart && e.createdAt <= yesterdayEnd
-    )
+    const entriesCreated = allEntries.filter((e) => e.createdAt >= yesterdayStart && e.createdAt <= yesterdayEnd)
 
     // Tasks completed yesterday (updatedAt within yesterday and status = done)
-    const tasksCompleted = allTasks.filter((task) =>
-      task.status === 'done' && task.updatedAt >= yesterdayStart && task.updatedAt <= yesterdayEnd
+    const tasksCompleted = allTasks.filter(
+      (task) => task.status === 'done' && task.updatedAt >= yesterdayStart && task.updatedAt <= yesterdayEnd
     )
 
     // Tasks created yesterday
-    const tasksCreated = allTasks.filter((task) =>
-      task.createdAt >= yesterdayStart && task.createdAt <= yesterdayEnd
-    )
+    const tasksCreated = allTasks.filter((task) => task.createdAt >= yesterdayStart && task.createdAt <= yesterdayEnd)
 
     return { entriesCreated, tasksCompleted, tasksCreated }
   }
@@ -99,9 +102,16 @@ export class DigestService {
     const projects = this.projectRepo.getAll()
     const projectMap = new Map(projects.map((p) => [p.id, p.name]))
 
-    const pendingTasksText = [...tasksNeedingAttention.inProgress, ...tasksNeedingAttention.overdue, ...tasksNeedingAttention.waiting]
+    const pendingTasksText = [
+      ...tasksNeedingAttention.inProgress,
+      ...tasksNeedingAttention.overdue,
+      ...tasksNeedingAttention.waiting,
+    ]
       .slice(0, 15)
-      .map((task) => `[${task.status}] ${task.title} (Projeto: ${projectMap.get(task.projectId) || t('prompts.digest.unknown_project')})`)
+      .map(
+        (task) =>
+          `[${task.status}] ${task.title} (Projeto: ${projectMap.get(task.projectId) || t('prompts.digest.unknown_project')})`
+      )
       .join('\n')
 
     const yesterdayText = yesterdayActivity.entriesCreated

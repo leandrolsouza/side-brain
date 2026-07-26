@@ -1,6 +1,6 @@
 import { safeHandle } from './safe-handle'
 import { getContainer } from '../services/container'
-import type { EntryConfirmRequest, PaginationParams } from '../../shared/types'
+import type { Entry, EntryConfirmRequest, PaginationParams } from '../../shared/types'
 
 export function registerEntryHandlers(): void {
   const { entryService, entryRepo } = getContainer()
@@ -29,9 +29,16 @@ export function registerEntryHandlers(): void {
     return entryService.getEntriesPaginated(params)
   })
 
-  safeHandle('entry:update', async (_event, id: string, updates: Record<string, any>) => {
-    return entryService.updateEntry(id, updates)
-  })
+  safeHandle(
+    'entry:update',
+    async (
+      _event,
+      id: string,
+      updates: Partial<Pick<Entry, 'improvedText' | 'projectId' | 'type' | 'action' | 'reviewStatus'>>
+    ) => {
+      return entryService.updateEntry(id, updates)
+    }
+  )
 
   safeHandle('entry:delete', async (_event, id: string) => {
     return entryService.deleteEntry(id)

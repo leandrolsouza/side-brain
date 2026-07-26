@@ -5,18 +5,24 @@ import type { ConnectionType } from '../../shared/types'
 export function registerConnectionHandlers(): void {
   const { connectionRepo, entryRepo, settingsRepo, aiService } = getContainer()
 
-  safeHandle('connection:create', async (_event, data: {
-    sourceEntryId: string
-    targetEntryId: string
-    connectionType: ConnectionType
-    description?: string
-  }) => {
-    // Check if connection already exists in either direction
-    if (connectionRepo.exists(data.sourceEntryId, data.targetEntryId)) {
-      throw new Error('Conexão já existe entre essas entradas')
+  safeHandle(
+    'connection:create',
+    async (
+      _event,
+      data: {
+        sourceEntryId: string
+        targetEntryId: string
+        connectionType: ConnectionType
+        description?: string
+      }
+    ) => {
+      // Check if connection already exists in either direction
+      if (connectionRepo.exists(data.sourceEntryId, data.targetEntryId)) {
+        throw new Error('Conexão já existe entre essas entradas')
+      }
+      return connectionRepo.create(data)
     }
-    return connectionRepo.create(data)
-  })
+  )
 
   safeHandle('connection:getByEntry', async (_event, entryId: string) => {
     return connectionRepo.getByEntryId(entryId)
@@ -31,14 +37,20 @@ export function registerConnectionHandlers(): void {
     return connectionRepo.searchEntries(query, excludeEntryId)
   })
 
-  safeHandle('connection:getGraphData', async (_event, filters?: {
-    projectId?: string
-    dateFrom?: string
-    minConnections?: number
-    connectionType?: string
-  }) => {
-    return connectionRepo.getAllForGraph(filters)
-  })
+  safeHandle(
+    'connection:getGraphData',
+    async (
+      _event,
+      filters?: {
+        projectId?: string
+        dateFrom?: string
+        minConnections?: number
+        connectionType?: string
+      }
+    ) => {
+      return connectionRepo.getAllForGraph(filters)
+    }
+  )
 
   safeHandle('connection:discover', async (_event, projectId?: string) => {
     const settings = settingsRepo.get()
@@ -53,7 +65,7 @@ export function registerConnectionHandlers(): void {
 
     // Ask AI to find connections
     const suggestions = await aiService.discoverConnections(
-      entries.map(e => ({
+      entries.map((e) => ({
         id: e.id,
         improvedText: e.improvedText,
         type: e.type,

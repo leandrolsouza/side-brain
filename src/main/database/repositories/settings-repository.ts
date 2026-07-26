@@ -1,6 +1,15 @@
 import { getDatabase } from '../schema'
-import { AppSettings, DEFAULT_SETTINGS } from '../../../shared/types'
-import { encryptValue, decryptValue, isSensitiveKey, DecryptionError, tryMigrateEncryptedValue } from '../../services/safe-storage-service'
+import { type AppSettings, DEFAULT_SETTINGS } from '../../../shared/types'
+import {
+  encryptValue,
+  decryptValue,
+  isSensitiveKey,
+  DecryptionError,
+  tryMigrateEncryptedValue,
+} from '../../services/safe-storage-service'
+import { createScopedLogger } from '../../services/logger'
+
+const logger = createScopedLogger('settings')
 
 export class SettingsRepository {
   get(): AppSettings {
@@ -17,7 +26,7 @@ export class SettingsRepository {
         if (isSensitiveKey(key)) {
           try {
             const value = decryptValue(row.value, key)
-              ; (settings as any)[key] = value
+            ;(settings as any)[key] = value
           } catch (error) {
             if (error instanceof DecryptionError) {
               // In dev mode, attempt to migrate: try raw safeStorage decryption
@@ -26,18 +35,18 @@ export class SettingsRepository {
               if (migrated !== null) {
                 // Successfully decrypted — re-store as plain-text for dev mode
                 migratedEntries.push([key, migrated])
-                  ; (settings as any)[key] = migrated
+                ;(settings as any)[key] = migrated
               } else {
                 // Truly unrecoverable
                 corruptedKeys.push(key)
-                  ; (settings as any)[key] = ''
+                ;(settings as any)[key] = ''
               }
             } else {
               throw error
             }
           }
         } else {
-          ; (settings as any)[key] = row.value
+          ;(settings as any)[key] = row.value
         }
       }
     }
@@ -54,7 +63,9 @@ export class SettingsRepository {
         }
       })
       upsertMany(migratedEntries)
-      console.info(`[SettingsRepository] Migrated ${migratedEntries.length} credential(s) from encrypted to plain-text (dev mode): ${migratedEntries.map(e => e[0]).join(', ')}`)
+      logger.info(
+        `[SettingsRepository] Migrated ${migratedEntries.length} credential(s) from encrypted to plain-text (dev mode): ${migratedEntries.map((e) => e[0]).join(', ')}`
+      )
     }
 
     // Remove corrupted encrypted values from DB so user can re-enter
@@ -66,7 +77,9 @@ export class SettingsRepository {
         }
       })
       deleteMany(corruptedKeys)
-      console.warn(`[SettingsRepository] Cleared ${corruptedKeys.length} corrupted credential(s) from DB: ${corruptedKeys.join(', ')}. User needs to re-enter them.`)
+      logger.warn(
+        `[SettingsRepository] Cleared ${corruptedKeys.length} corrupted credential(s) from DB: ${corruptedKeys.join(', ')}. User needs to re-enter them.`
+      )
     }
 
     return settings

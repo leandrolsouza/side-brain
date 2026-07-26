@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import type React from 'react'
+import { useState } from 'react'
 import { FolderPlus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -29,9 +30,7 @@ export function OnboardingFirstProject({ onNext, onSkip }: Props) {
         <FolderPlus size={48} strokeWidth={1.5} />
       </div>
       <h1 className="onboarding-title">{t('onboarding.firstProjectTitle')}</h1>
-      <p className="onboarding-description">
-        {t('onboarding.firstProjectDescription')}
-      </p>
+      <p className="onboarding-description">{t('onboarding.firstProjectDescription')}</p>
 
       <div className="onboarding-form">
         <label className="onboarding-label">{t('onboarding.projectNameLabel')}</label>
@@ -44,20 +43,14 @@ export function OnboardingFirstProject({ onNext, onSkip }: Props) {
           placeholder={t('onboarding.projectNamePlaceholder')}
           autoFocus
         />
-        <p className="onboarding-hint">
-          {t('onboarding.projectNameHint')}
-        </p>
+        <p className="onboarding-hint">{t('onboarding.projectNameHint')}</p>
       </div>
 
       <div className="onboarding-actions">
-        <button className="onboarding-btn-secondary" onClick={onSkip}>
+        <button type="button" className="onboarding-btn-secondary" onClick={onSkip}>
           {t('onboarding.skip')}
         </button>
-        <button
-          className="onboarding-btn-primary"
-          onClick={handleCreate}
-          disabled={!projectName.trim()}
-        >
+        <button type="button" className="onboarding-btn-primary" onClick={handleCreate} disabled={!projectName.trim()}>
           {t('onboarding.createProject')}
         </button>
       </div>

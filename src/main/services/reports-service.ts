@@ -1,6 +1,6 @@
 import { ReportsRepository } from '../database/repositories/reports-repository'
-import { SettingsRepository } from '../database/repositories/settings-repository'
-import { AIService } from './ai-service'
+import type { SettingsRepository } from '../database/repositories/settings-repository'
+import type { AIService } from './ai-service'
 import type { ReportsData, ReportPeriod } from '../../shared/types'
 import { t } from '../i18n'
 
@@ -10,7 +10,7 @@ export class ReportsService {
   constructor(
     private settingsRepo?: SettingsRepository,
     private aiService?: AIService
-  ) { }
+  ) {}
 
   private getDateRange(period: ReportPeriod): { dateFrom?: string; dateTo?: string } {
     if (period === 'all') return {}
@@ -63,22 +63,20 @@ export class ReportsService {
       )
     }
 
-    return this.aiService.invokeConverseForChat(
-      systemPrompt,
-      userMessage,
-      settings,
-      'insights'
-    )
+    return this.aiService.invokeConverseForChat(systemPrompt, userMessage, settings, 'insights')
   }
 
   private buildDataSummary(data: ReportsData, period: ReportPeriod): string {
-    const periodLabel = period === '7d' ? '7 dias' : period === '30d' ? '30 dias' : period === '90d' ? '90 dias' : 'todo o histórico'
+    const periodLabel =
+      period === '7d' ? '7 dias' : period === '30d' ? '30 dias' : period === '90d' ? '90 dias' : 'todo o histórico'
     const parts: string[] = []
 
     // Overview
     parts.push(`Período: ${periodLabel}`)
     parts.push(`Entradas criadas: ${data.overview.totalEntries}`)
-    parts.push(`Tarefas totais: ${data.overview.totalTasks} (${data.overview.tasksCompleted} concluídas, ${data.overview.tasksPending} pendentes)`)
+    parts.push(
+      `Tarefas totais: ${data.overview.totalTasks} (${data.overview.tasksCompleted} concluídas, ${data.overview.tasksPending} pendentes)`
+    )
     parts.push(`Taxa de conclusão: ${data.overview.completionRate}%`)
     parts.push(`Projetos ativos: ${data.overview.activeProjects}/${data.overview.totalProjects}`)
     parts.push(`Reuniões: ${data.overview.totalMeetings}`)
@@ -87,9 +85,13 @@ export class ReportsService {
     }
 
     // Task Flow
-    parts.push(`\nDistribuição de tasks: ${data.taskFlow.todo} a fazer, ${data.taskFlow.inProgress} em andamento, ${data.taskFlow.waiting} aguardando, ${data.taskFlow.done} concluídas`)
+    parts.push(
+      `\nDistribuição de tasks: ${data.taskFlow.todo} a fazer, ${data.taskFlow.inProgress} em andamento, ${data.taskFlow.waiting} aguardando, ${data.taskFlow.done} concluídas`
+    )
     if (data.taskFlow.longestWaitingTask) {
-      parts.push(`Task mais antiga em espera: "${data.taskFlow.longestWaitingTask.title}" (${data.taskFlow.longestWaitingTask.projectName}) — ${data.taskFlow.longestWaitingTask.daysSinceUpdate} dias`)
+      parts.push(
+        `Task mais antiga em espera: "${data.taskFlow.longestWaitingTask.title}" (${data.taskFlow.longestWaitingTask.projectName}) — ${data.taskFlow.longestWaitingTask.daysSinceUpdate} dias`
+      )
     }
 
     // Entry type distribution
@@ -105,15 +107,21 @@ export class ReportsService {
     if (data.projectRanking.length > 0) {
       parts.push(`\nProjetos mais ativos:`)
       for (const p of data.projectRanking.slice(0, 5)) {
-        parts.push(`- ${p.projectName}: ${p.entryCount} entradas, ${p.completedTasks}/${p.taskCount} tasks concluídas${p.blockerCount > 0 ? `, ${p.blockerCount} blockers` : ''}`)
+        parts.push(
+          `- ${p.projectName}: ${p.entryCount} entradas, ${p.completedTasks}/${p.taskCount} tasks concluídas${p.blockerCount > 0 ? `, ${p.blockerCount} blockers` : ''}`
+        )
       }
     }
 
     // Weekday patterns
     if (data.weekdayActivity.length > 0) {
-      const busiestDay = data.weekdayActivity.reduce((a, b) => (a.entries + a.tasksCompleted > b.entries + b.tasksCompleted ? a : b))
+      const busiestDay = data.weekdayActivity.reduce((a, b) =>
+        a.entries + a.tasksCompleted > b.entries + b.tasksCompleted ? a : b
+      )
       if (busiestDay.entries > 0 || busiestDay.tasksCompleted > 0) {
-        parts.push(`\nDia mais produtivo: ${busiestDay.label} (${busiestDay.entries} entradas, ${busiestDay.tasksCompleted} tasks concluídas)`)
+        parts.push(
+          `\nDia mais produtivo: ${busiestDay.label} (${busiestDay.entries} entradas, ${busiestDay.tasksCompleted} tasks concluídas)`
+        )
       }
     }
 

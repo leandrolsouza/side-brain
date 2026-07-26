@@ -1,20 +1,69 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import type React from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import {
-  Send, CheckCircle2, Mic, MicOff, Users, Gavel, AlertTriangle,
-  MessageSquare, Lightbulb, RefreshCw, Sparkles, X, Eye, Edit3,
-  FolderPlus, ChevronDown, PenLine, Info, Clock, Minus, AlertCircle,
-  Circle, Tag, Zap, Archive, Star, Flag, Heart, Shield, Bell,
-  Bookmark, Coffee, FileText, Globe, Home, Key, Link, Lock,
-  Mail, Map, Phone, Search, Settings, Smile, Target, Truck, Wifi,
-  Bug, LayoutTemplate
+  Send,
+  CheckCircle2,
+  Mic,
+  MicOff,
+  Users,
+  Gavel,
+  AlertTriangle,
+  MessageSquare,
+  Lightbulb,
+  RefreshCw,
+  Sparkles,
+  X,
+  Eye,
+  Edit3,
+  FolderPlus,
+  ChevronDown,
+  PenLine,
+  Info,
+  Clock,
+  Minus,
+  AlertCircle,
+  Circle,
+  Tag,
+  Zap,
+  Archive,
+  Star,
+  Flag,
+  Heart,
+  Shield,
+  Bell,
+  Bookmark,
+  Coffee,
+  FileText,
+  Globe,
+  Home,
+  Key,
+  Link,
+  Lock,
+  Mail,
+  Map as MapIcon,
+  Phone,
+  Search,
+  Settings,
+  Smile,
+  Target,
+  Truck,
+  Wifi,
+  Bug,
+  LayoutTemplate,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { CaptureTemplate, EntryPreviewResult, CustomEntryType, CustomActionStatus, StructuredTemplate, CaptureSnippet } from '@shared/types'
+import type {
+  CaptureTemplate,
+  EntryPreviewResult,
+  CustomEntryType,
+  CustomActionStatus,
+  StructuredTemplate,
+  CaptureSnippet,
+} from '@shared/types'
 import { CustomSelect } from './CustomSelect'
 import { useToast } from './ToastContext'
 import { TemplateFormModal } from './TemplateFormModal'
 import { SnippetAutocomplete, useSnippetTrigger } from './SnippetAutocomplete'
-import type { SelectOption } from './CustomSelect'
 
 interface CaptureInputProps {
   onProjectsChanged?: () => void
@@ -29,13 +78,55 @@ interface ProjectOption {
 type CaptureState = 'idle' | 'processing' | 'previewing' | 'confirming'
 
 const ICON_MAP: Record<string, React.ComponentType<{ size?: number }>> = {
-  Users, Gavel, AlertTriangle, MessageSquare, Lightbulb, RefreshCw,
-  Info, Clock, CheckCircle2, Minus, AlertCircle, Circle, PenLine,
-  Tag, Zap, Archive, Star, Flag, Heart, Shield, Bell,
-  Bookmark, Coffee, FileText, Globe, Home, Key, Link, Lock,
-  Mail, Map, Phone, Search, Settings, Smile, Target, Truck, Wifi,
-  Send, Mic, MicOff, Sparkles, X, Eye, Edit3, FolderPlus, ChevronDown,
-  Bug, LayoutTemplate,
+  Users,
+  Gavel,
+  AlertTriangle,
+  MessageSquare,
+  Lightbulb,
+  RefreshCw,
+  Info,
+  Clock,
+  CheckCircle2,
+  Minus,
+  AlertCircle,
+  Circle,
+  PenLine,
+  Tag,
+  Zap,
+  Archive,
+  Star,
+  Flag,
+  Heart,
+  Shield,
+  Bell,
+  Bookmark,
+  Coffee,
+  FileText,
+  Globe,
+  Home,
+  Key,
+  Link,
+  Lock,
+  Mail,
+  Map: MapIcon,
+  Phone,
+  Search,
+  Settings,
+  Smile,
+  Target,
+  Truck,
+  Wifi,
+  Send,
+  Mic,
+  MicOff,
+  Sparkles,
+  X,
+  Eye,
+  Edit3,
+  FolderPlus,
+  ChevronDown,
+  Bug,
+  LayoutTemplate,
 }
 
 export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
@@ -60,8 +151,8 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
   const [actionStatuses, setActionStatuses] = useState<CustomActionStatus[]>([])
 
   // Derived label maps
-  const TYPE_LABELS: Record<string, string> = Object.fromEntries(entryTypes.map(t => [t.key, t.label]))
-  const ACTION_LABELS: Record<string, string> = Object.fromEntries(actionStatuses.map(s => [s.key, s.label]))
+  const TYPE_LABELS: Record<string, string> = Object.fromEntries(entryTypes.map((t) => [t.key, t.label]))
+  const ACTION_LABELS: Record<string, string> = Object.fromEntries(actionStatuses.map((s) => [s.key, s.label]))
 
   // Preview editable fields
   const [editedImprovedText, setEditedImprovedText] = useState('')
@@ -122,18 +213,21 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
     setSnippets(snps)
   }
 
-  const handleTemplateSelect = useCallback((template: CaptureTemplate) => {
-    if (activeTemplate?.id === template.id) {
-      if (text === template.prefix || text.startsWith(template.prefix)) {
-        setText('')
+  const handleTemplateSelect = useCallback(
+    (template: CaptureTemplate) => {
+      if (activeTemplate?.id === template.id) {
+        if (text === template.prefix || text.startsWith(template.prefix)) {
+          setText('')
+        }
+        setActiveTemplate(null)
+      } else {
+        setText(template.prefix)
+        setActiveTemplate(template)
       }
-      setActiveTemplate(null)
-    } else {
-      setText(template.prefix)
-      setActiveTemplate(template)
-    }
-    inputRef.current?.focus()
-  }, [activeTemplate, text])
+      inputRef.current?.focus()
+    },
+    [activeTemplate, text]
+  )
 
   const toggleVoiceInput = useCallback(() => {
     if (isListening) {
@@ -150,7 +244,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
     recognition.interimResults = true
     recognition.continuous = true
 
-    baseTextRef.current = text ? (text.endsWith(' ') ? text : text + ' ') : ''
+    baseTextRef.current = text ? (text.endsWith(' ') ? text : `${text} `) : ''
 
     // Flag to track intentional stop vs premature end
     let intentionallyStopped = false
@@ -243,10 +337,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
         return
       }
 
-      const result = await window.electronAPI.previewEntry(
-        trimmed,
-        selectedProjectId || undefined
-      )
+      const result = await window.electronAPI.previewEntry(trimmed, selectedProjectId || undefined)
       setPreview(result)
       setBatchPreviews([])
 
@@ -392,82 +483,88 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
   }, [])
 
   // Handle snippet selection (replace /trigger with snippet content)
-  const handleSnippetSelect = useCallback((snippet: CaptureSnippet, replacementRange: { start: number; end: number }) => {
-    const before = text.slice(0, replacementRange.start)
-    const after = text.slice(replacementRange.end)
-    let content = snippet.content
+  const handleSnippetSelect = useCallback(
+    (snippet: CaptureSnippet, replacementRange: { start: number; end: number }) => {
+      const before = text.slice(0, replacementRange.start)
+      const after = text.slice(replacementRange.end)
+      let content = snippet.content
 
-    // Handle {{cursor}} placeholder — position cursor there
-    const cursorPlaceholder = '{{cursor}}'
-    const cursorIndex = content.indexOf(cursorPlaceholder)
-    if (cursorIndex !== -1) {
-      content = content.replace(cursorPlaceholder, '')
-    }
-
-    const newText = before + content + after
-    setText(newText)
-
-    // Position cursor
-    setTimeout(() => {
-      if (inputRef.current) {
-        const newCursorPos = cursorIndex !== -1
-          ? before.length + cursorIndex
-          : before.length + content.length
-        inputRef.current.setSelectionRange(newCursorPos, newCursorPos)
-        inputRef.current.focus()
-        setCursorPosition(newCursorPos)
+      // Handle {{cursor}} placeholder — position cursor there
+      const cursorPlaceholder = '{{cursor}}'
+      const cursorIndex = content.indexOf(cursorPlaceholder)
+      if (cursorIndex !== -1) {
+        content = content.replace(cursorPlaceholder, '')
       }
-    }, 0)
-  }, [text])
+
+      const newText = before + content + after
+      setText(newText)
+
+      // Position cursor
+      setTimeout(() => {
+        if (inputRef.current) {
+          const newCursorPos = cursorIndex !== -1 ? before.length + cursorIndex : before.length + content.length
+          inputRef.current.setSelectionRange(newCursorPos, newCursorPos)
+          inputRef.current.focus()
+          setCursorPosition(newCursorPos)
+        }
+      }, 0)
+    },
+    [text]
+  )
 
   // Handle structured template form submission
-  const handleTemplateFormSubmit = useCallback((outputText: string, hintType: string, hintAction: string) => {
-    // Set the text from the template output and trigger preview
-    setText(outputText)
-    setActiveStructuredTemplate(null)
+  const handleTemplateFormSubmit = useCallback(
+    (outputText: string, hintType: string, hintAction: string) => {
+      // Set the text from the template output and trigger preview
+      setText(outputText)
+      setActiveStructuredTemplate(null)
 
-    // Auto-submit for preview after a brief delay (let state settle)
-    setTimeout(async () => {
-      if (!outputText.trim()) return
-      setCaptureState('processing')
-      window.dispatchEvent(new Event('ai:start'))
-      try {
-        const result = await window.electronAPI.previewEntry(outputText, selectedProjectId || undefined)
-        setPreview(result)
-        setBatchPreviews([])
-        setEditedImprovedText(result.improvedText)
-        // Use template hints as defaults but respect AI's categorization
-        setEditedType(result.type || hintType)
-        setEditedAction(result.action || hintAction)
-        setIncludeSuggestedTask(!!result.suggestedTask)
+      // Auto-submit for preview after a brief delay (let state settle)
+      setTimeout(async () => {
+        if (!outputText.trim()) return
+        setCaptureState('processing')
+        window.dispatchEvent(new Event('ai:start'))
+        try {
+          const result = await window.electronAPI.previewEntry(outputText, selectedProjectId || undefined)
+          setPreview(result)
+          setBatchPreviews([])
+          setEditedImprovedText(result.improvedText)
+          // Use template hints as defaults but respect AI's categorization
+          setEditedType(result.type || hintType)
+          setEditedAction(result.action || hintAction)
+          setIncludeSuggestedTask(!!result.suggestedTask)
 
-        if (result.project.id) {
-          setEditedProjectId(result.project.id)
-          setIsCreatingProject(false)
-          setNewProjectName('')
-        } else if (result.project.suggestedName) {
-          setEditedProjectId('')
-          setIsCreatingProject(true)
-          setNewProjectName(result.project.suggestedName)
-        } else {
-          setEditedProjectId('')
-          setIsCreatingProject(false)
-          setNewProjectName('')
+          if (result.project.id) {
+            setEditedProjectId(result.project.id)
+            setIsCreatingProject(false)
+            setNewProjectName('')
+          } else if (result.project.suggestedName) {
+            setEditedProjectId('')
+            setIsCreatingProject(true)
+            setNewProjectName(result.project.suggestedName)
+          } else {
+            setEditedProjectId('')
+            setIsCreatingProject(false)
+            setNewProjectName('')
+          }
+
+          setCaptureState('previewing')
+          window.dispatchEvent(new Event('ai:end'))
+        } catch (error) {
+          console.error('Failed to preview entry:', error)
+          setCaptureState('idle')
+          window.dispatchEvent(new Event('ai:error'))
         }
-
-        setCaptureState('previewing')
-        window.dispatchEvent(new Event('ai:end'))
-      } catch (error) {
-        console.error('Failed to preview entry:', error)
-        setCaptureState('idle')
-        window.dispatchEvent(new Event('ai:error'))
-      }
-    }, 100)
-  }, [selectedProjectId])
+      }, 100)
+    },
+    [selectedProjectId]
+  )
 
   const isIdle = captureState === 'idle'
   const isProcessing = captureState === 'processing'
-  const isPreviewing = captureState === 'previewing'
+  // The preview card stays mounted while the confirmation is in flight ('confirming'),
+  // so the buttons can show the disabled/"confirming" state instead of unmounting.
+  const isPreviewing = captureState === 'previewing' || captureState === 'confirming'
 
   return (
     <div className="capture-page">
@@ -477,9 +574,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
           <PenLine size={24} />
         </div>
         <h2 className="capture-hero-title">{t('hero_title')}</h2>
-        <p className="capture-hero-subtitle">
-          {t('hero_subtitle')}
-        </p>
+        <p className="capture-hero-subtitle">{t('hero_subtitle')}</p>
       </div>
 
       {/* Main capture card */}
@@ -492,6 +587,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
               const Icon = ICON_MAP[template.icon]
               return (
                 <button
+                  type="button"
                   key={template.id}
                   className={`capture-template-chip ${activeTemplate?.id === template.id ? 'active' : ''}`}
                   onClick={() => handleTemplateSelect(template)}
@@ -518,6 +614,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
                 const Icon = ICON_MAP[stpl.icon] || FileText
                 return (
                   <button
+                    type="button"
                     key={stpl.id}
                     className={`capture-template-chip structured`}
                     onClick={() => setActiveStructuredTemplate(stpl)}
@@ -550,9 +647,9 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
             onKeyDown={handleKeyDown}
             onSelect={handleTextareaSelect}
             onClick={handleTextareaSelect}
-            placeholder={activeTemplate
-              ? `${activeTemplate.prefix}${activeTemplate.placeholder}`
-              : t('placeholder_default')}
+            placeholder={
+              activeTemplate ? `${activeTemplate.prefix}${activeTemplate.placeholder}` : t('placeholder_default')
+            }
             disabled={!isIdle}
             rows={5}
             autoFocus
@@ -582,7 +679,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
             <CustomSelect
               options={[
                 { value: '', label: t('project_auto') },
-                ...projects.map((p) => ({ value: p.id, label: p.name }))
+                ...projects.map((p) => ({ value: p.id, label: p.name })),
               ]}
               value={selectedProjectId}
               onChange={(val) => setSelectedProjectId(val)}
@@ -593,6 +690,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
           <div className="capture-actions">
             {speechSupported && (
               <button
+                type="button"
                 className={`capture-action-btn ${isListening ? 'recording' : ''}`}
                 onClick={toggleVoiceInput}
                 disabled={!isIdle}
@@ -603,6 +701,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
             )}
 
             <button
+              type="button"
               className="capture-send-btn"
               onClick={handlePreview}
               disabled={!text.trim() || !isIdle}
@@ -615,7 +714,11 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
               ) : (
                 <>
                   <Send size={14} />
-                  <span>{isBatchMode ? t('send_button_batch', { count: text.split(/\n\s*\n/).filter((p) => p.trim()).length }) : t('send_button')}</span>
+                  <span>
+                    {isBatchMode
+                      ? t('send_button_batch', { count: text.split(/\n\s*\n/).filter((p) => p.trim()).length })
+                      : t('send_button')}
+                  </span>
                 </>
               )}
             </button>
@@ -625,10 +728,18 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
 
       {/* Keyboard hints */}
       <div className="capture-hints">
-        <span><kbd>Enter</kbd> {t('hint_enter')}</span>
-        <span><kbd>Shift+Enter</kbd> {t('hint_shift_enter')}</span>
-        <span><kbd>Ctrl+N</kbd> {t('hint_ctrl_n')}</span>
-        <span><kbd>/</kbd> {t('hint_snippets', { defaultValue: 'snippets' })}</span>
+        <span>
+          <kbd>Enter</kbd> {t('hint_enter')}
+        </span>
+        <span>
+          <kbd>Shift+Enter</kbd> {t('hint_shift_enter')}
+        </span>
+        <span>
+          <kbd>Ctrl+N</kbd> {t('hint_ctrl_n')}
+        </span>
+        <span>
+          <kbd>/</kbd> {t('hint_snippets', { defaultValue: 'snippets' })}
+        </span>
       </div>
 
       {/* Preview Card */}
@@ -637,7 +748,12 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
           <div className="capture-preview-header">
             <Sparkles size={14} />
             <span>{t('preview_header')}</span>
-            <button className="capture-preview-close" onClick={handleCancel} title={t('preview_cancel_title')}>
+            <button
+              type="button"
+              className="capture-preview-close"
+              onClick={handleCancel}
+              title={t('preview_cancel_title')}
+            >
               <X size={14} />
             </button>
           </div>
@@ -671,7 +787,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
                   options={[
                     { value: '', label: t('preview_project_select') },
                     ...projects.map((p) => ({ value: p.id, label: p.name })),
-                    { value: '__new__', label: t('preview_project_new') }
+                    { value: '__new__', label: t('preview_project_new') },
                   ]}
                   value={editedProjectId}
                   onChange={(val) => {
@@ -696,6 +812,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
                     autoFocus
                   />
                   <button
+                    type="button"
                     className="vscode-button secondary"
                     onClick={() => {
                       setIsCreatingProject(false)
@@ -715,6 +832,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
                   <Sparkles size={12} />
                   <span>{t('preview_project_suggestion')}</span>
                   <button
+                    type="button"
                     className="capture-preview-suggestion-btn"
                     onClick={() => {
                       setIsCreatingProject(true)
@@ -780,14 +898,20 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
           {/* Confirm / Cancel */}
           <div className="capture-preview-actions">
             <button
+              type="button"
               className="vscode-button"
               onClick={handleConfirm}
-              disabled={captureState === 'confirming' || (!editedProjectId && !isCreatingProject) || (isCreatingProject && !newProjectName.trim())}
+              disabled={
+                captureState === 'confirming' ||
+                (!editedProjectId && !isCreatingProject) ||
+                (isCreatingProject && !newProjectName.trim())
+              }
             >
               <CheckCircle2 size={14} />
               {captureState === 'confirming' ? t('preview_confirming') : t('preview_confirm')}
             </button>
             <button
+              type="button"
               className="vscode-button secondary"
               onClick={handleCancel}
               disabled={captureState === 'confirming'}
@@ -795,9 +919,7 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
               {t('preview_back')}
             </button>
             {!editedProjectId && !isCreatingProject && (
-              <span className="capture-preview-warning">
-                {t('preview_warning_project')}
-              </span>
+              <span className="capture-preview-warning">{t('preview_warning_project')}</span>
             )}
           </div>
         </div>
@@ -809,7 +931,12 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
           <div className="capture-preview-header">
             <Sparkles size={14} />
             <span>{t('batch_preview_header', { count: batchPreviews.length })}</span>
-            <button className="capture-preview-close" onClick={handleCancel} title={t('preview_cancel_title')}>
+            <button
+              type="button"
+              className="capture-preview-close"
+              onClick={handleCancel}
+              title={t('preview_cancel_title')}
+            >
               <X size={14} />
             </button>
           </div>
@@ -834,14 +961,18 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
 
           <div className="capture-preview-actions">
             <button
+              type="button"
               className="vscode-button"
               onClick={handleBatchConfirm}
               disabled={captureState === 'confirming'}
             >
               <CheckCircle2 size={14} />
-              {captureState === 'confirming' ? t('preview_confirming') : t('batch_confirm_button', { count: batchPreviews.length })}
+              {captureState === 'confirming'
+                ? t('preview_confirming')
+                : t('batch_confirm_button', { count: batchPreviews.length })}
             </button>
             <button
+              type="button"
               className="vscode-button secondary"
               onClick={handleCancel}
               disabled={captureState === 'confirming'}
@@ -861,7 +992,6 @@ export function CaptureInput({ onProjectsChanged }: CaptureInputProps) {
           onClose={() => setActiveStructuredTemplate(null)}
         />
       )}
-
     </div>
   )
 }

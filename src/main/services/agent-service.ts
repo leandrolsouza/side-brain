@@ -1,17 +1,17 @@
-import {
+import type {
   AgentDefinition,
   AgentExecution,
   AgentExecutionSummary,
-  AgentScope,
   AgentSkill,
-  AgentStep,
   AgentTemplate,
-  AgentTrigger,
   ToolDefinition,
 } from '../../shared/types'
-import { AgentRepository } from '../database/repositories/agent-repository'
-import { AgentRuntime, ExecutionResult } from './agent-runtime'
-import { AgentToolRegistry } from './agent-tool-registry'
+import type { AgentRepository } from '../database/repositories/agent-repository'
+import type { AgentRuntime, ExecutionResult } from './agent-runtime'
+import type { AgentToolRegistry } from './agent-tool-registry'
+import { createScopedLogger } from './logger'
+
+const logger = createScopedLogger('agent')
 
 /**
  * Built-in agent templates for quick setup.
@@ -20,7 +20,8 @@ const AGENT_TEMPLATES: AgentTemplate[] = [
   {
     id: 'template-arq-software',
     name: 'Advisor — Arq. de Software',
-    description: 'Analisa decisões técnicas de código, padrões de design, acoplamento, e qualidade de implementação com base nos seus registros.',
+    description:
+      'Analisa decisões técnicas de código, padrões de design, acoplamento, e qualidade de implementação com base nos seus registros.',
     icon: 'Bot',
     color: 'cyan',
     persona: `Você é um Arquiteto de Software sênior atuando como advisor. O usuário também é arquiteto. Seu papel é analisar o que o usuário registrou no seu segundo cérebro e dar feedback focado em arquitetura de software.
@@ -55,7 +56,8 @@ Regras:
   {
     id: 'template-arq-sistemas',
     name: 'Advisor — Arq. de Sistemas',
-    description: 'Foca em infraestrutura, integração, escalabilidade, disponibilidade e operação dos sistemas registrados.',
+    description:
+      'Foca em infraestrutura, integração, escalabilidade, disponibilidade e operação dos sistemas registrados.',
     icon: 'Bot',
     color: 'green',
     persona: `Você é um Arquiteto de Sistemas sênior atuando como advisor. O usuário também é arquiteto. Seu papel é analisar o que o usuário registrou no seu segundo cérebro e dar feedback focado em arquitetura de sistemas/infraestrutura.
@@ -117,7 +119,15 @@ Regras:
 - Foque em: valor, prioridade, alinhamento, viabilidade.
 - Quando recomendar, conecte com o "por que" de negócio.
 - Se faltar contexto de negócio nos dados, aponte isso.`,
-    skills: ['read_entries', 'read_tasks', 'read_projects', 'read_meetings', 'search_semantic', 'discover_connections', 'generate_summary'],
+    skills: [
+      'read_entries',
+      'read_tasks',
+      'read_projects',
+      'read_meetings',
+      'search_semantic',
+      'discover_connections',
+      'generate_summary',
+    ],
     scope: { projectIds: 'all' },
     triggers: [{ type: 'manual' }],
     maxSteps: 8,
@@ -126,7 +136,8 @@ Regras:
   {
     id: 'template-lider-equipe',
     name: 'Líder de Equipe',
-    description: 'Orquestrador que coordena os 3 advisors de arquitetura. Você fala com ele, e ele distribui o trabalho entre os membros.',
+    description:
+      'Orquestrador que coordena os 3 advisors de arquitetura. Você fala com ele, e ele distribui o trabalho entre os membros.',
     icon: 'Users',
     color: 'blue',
     persona: `Você é o líder de uma equipe de 3 arquitetos de IA que assessoram um arquiteto. Seu papel é COORDENAR, não fazer o trabalho sozinho.
@@ -169,7 +180,7 @@ export class AgentService {
     private agentRepo: AgentRepository,
     private agentRuntime: AgentRuntime,
     private toolRegistry: AgentToolRegistry
-  ) { }
+  ) {}
 
   // ─── Agent CRUD ───────────────────────────────────────────────
 
@@ -187,7 +198,10 @@ export class AgentService {
     return agent
   }
 
-  createFromTemplate(templateId: string, overrides?: Partial<Pick<AgentDefinition, 'name' | 'scope' | 'triggers'>>): AgentDefinition {
+  createFromTemplate(
+    templateId: string,
+    overrides?: Partial<Pick<AgentDefinition, 'name' | 'scope' | 'triggers'>>
+  ): AgentDefinition {
     const template = AGENT_TEMPLATES.find((t) => t.id === templateId)
     if (!template) {
       throw new Error(`Template "${templateId}" not found`)
@@ -349,7 +363,7 @@ export class AgentService {
           const input = `Execução agendada (${trigger.scheduleConfig!.expression}). Analise o estado atual e execute suas responsabilidades.`
           await this.agentRuntime.execute(agent.id, input, { trigger: 'schedule' })
         } catch (error: any) {
-          console.error(`Scheduled agent "${agent.name}" failed:`, error.message)
+          logger.error(`Scheduled agent "${agent.name}" failed:`, error.message)
         }
       }, intervalMs)
 

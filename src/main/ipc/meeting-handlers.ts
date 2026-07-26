@@ -1,12 +1,16 @@
 import { safeHandle } from './safe-handle'
 import { getContainer } from '../services/container'
+import type { EntryType, ActionStatus } from '../../shared/types'
 
 export function registerMeetingHandlers(): void {
   const { meetingService } = getContainer()
 
-  safeHandle('meeting:create', async (_event, data: { projectId: string; title: string; participants?: string[]; meetingDate?: string }) => {
-    return meetingService.create(data)
-  })
+  safeHandle(
+    'meeting:create',
+    async (_event, data: { projectId: string; title: string; participants?: string[]; meetingDate?: string }) => {
+      return meetingService.create(data)
+    }
+  )
 
   safeHandle('meeting:getAll', async (_event, projectId?: string) => {
     return meetingService.getAll(projectId)
@@ -36,9 +40,18 @@ export function registerMeetingHandlers(): void {
     return meetingService.analyze(id)
   })
 
-  safeHandle('meeting:saveSelected', async (_event, meetingId: string, selectedEntries: any[], selectedTasks: any[], resolvedTaskIds?: string[]) => {
-    return meetingService.saveSelected(meetingId, selectedEntries, selectedTasks, resolvedTaskIds)
-  })
+  safeHandle(
+    'meeting:saveSelected',
+    async (
+      _event,
+      meetingId: string,
+      selectedEntries: { text: string; type: EntryType; action: ActionStatus }[],
+      selectedTasks: { title: string; description?: string; assignee?: string }[],
+      resolvedTaskIds?: string[]
+    ) => {
+      return meetingService.saveSelected(meetingId, selectedEntries, selectedTasks, resolvedTaskIds)
+    }
+  )
 
   safeHandle('meeting:delete', async (_event, id: string) => {
     return meetingService.delete(id)

@@ -1,9 +1,10 @@
-import { ipcMain, nativeTheme, shell, app } from 'electron'
-import path from 'path'
+import { nativeTheme, shell, app } from 'electron'
+import path from 'node:path'
 import { safeHandle } from './safe-handle'
 import { getContainer } from '../services/container'
 import { enableTray, disableTray } from '../index'
 import { setLocale } from '../i18n'
+import type { AppSettings } from '../../shared/types'
 
 export function registerSettingsHandlers(): void {
   const { settingsRepo } = getContainer()
@@ -12,10 +13,10 @@ export function registerSettingsHandlers(): void {
     return settingsRepo.get()
   })
 
-  safeHandle('settings:update', async (_event, settings: Record<string, any>) => {
+  safeHandle('settings:update', async (_event, settings: Partial<AppSettings>) => {
     // Sync main process locale if language changed
     if (settings.language) {
-      setLocale(settings.language as string)
+      setLocale(settings.language)
     }
     return settingsRepo.update(settings)
   })
@@ -30,7 +31,7 @@ export function registerSettingsHandlers(): void {
   })
 
   // Theme handler — sincroniza controles nativos (select dropdown) com o tema do app
-  ipcMain.handle('theme:set', async (_event, theme: 'dark' | 'light') => {
+  safeHandle('theme:set', async (_event, theme: 'dark' | 'light') => {
     nativeTheme.themeSource = theme
   })
 

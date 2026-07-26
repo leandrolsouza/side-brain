@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import React from 'react'
 import { CaptureInput } from '../../../src/renderer/components/CaptureInput'
 import { ToastProvider } from '../../../src/renderer/components/ToastContext'
 
@@ -18,21 +17,77 @@ describe('CaptureInput', () => {
   beforeEach(() => {
     // Setup default mocks for custom fields
     window.electronAPI.getCaptureTemplates = vi.fn().mockResolvedValue([
-      { id: '1', label: 'Reunião', prefix: 'Reunião com ', placeholder: '[pessoa]', icon: 'Users', hintType: 'information', isDefault: true, sortOrder: 0 },
-      { id: '2', label: 'Decisão', prefix: 'Decisão sobre ', placeholder: '[assunto]', icon: 'Gavel', hintType: 'decision', isDefault: true, sortOrder: 1 },
+      {
+        id: '1',
+        label: 'Reunião',
+        prefix: 'Reunião com ',
+        placeholder: '[pessoa]',
+        icon: 'Users',
+        hintType: 'information',
+        isDefault: true,
+        sortOrder: 0,
+      },
+      {
+        id: '2',
+        label: 'Decisão',
+        prefix: 'Decisão sobre ',
+        placeholder: '[assunto]',
+        icon: 'Gavel',
+        hintType: 'decision',
+        isDefault: true,
+        sortOrder: 1,
+      },
     ])
     window.electronAPI.getEntryTypes = vi.fn().mockResolvedValue([
-      { id: '1', key: 'information', label: 'Informação', icon: 'Info', color: 'info', isDefault: true, sortOrder: 0, allowsAction: false },
-      { id: '2', key: 'decision', label: 'Decisão', icon: 'Gavel', color: 'warning', isDefault: true, sortOrder: 1, allowsAction: true },
+      {
+        id: '1',
+        key: 'information',
+        label: 'Informação',
+        icon: 'Info',
+        color: 'info',
+        isDefault: true,
+        sortOrder: 0,
+        allowsAction: false,
+      },
+      {
+        id: '2',
+        key: 'decision',
+        label: 'Decisão',
+        icon: 'Gavel',
+        color: 'warning',
+        isDefault: true,
+        sortOrder: 1,
+        allowsAction: true,
+      },
     ])
     window.electronAPI.getActionStatuses = vi.fn().mockResolvedValue([
-      { id: '1', key: 'none', label: 'Sem ação', icon: 'Minus', color: 'neutral', isDefault: true, isFinal: false, sortOrder: 0 },
-      { id: '2', key: 'action_needed', label: 'Ação necessária', icon: 'AlertCircle', color: 'warning', isDefault: true, isFinal: false, sortOrder: 1 },
+      {
+        id: '1',
+        key: 'none',
+        label: 'Sem ação',
+        icon: 'Minus',
+        color: 'neutral',
+        isDefault: true,
+        isFinal: false,
+        sortOrder: 0,
+      },
+      {
+        id: '2',
+        key: 'action_needed',
+        label: 'Ação necessária',
+        icon: 'AlertCircle',
+        color: 'warning',
+        isDefault: true,
+        isFinal: false,
+        sortOrder: 1,
+      },
     ])
     window.electronAPI.getProjects = vi.fn().mockResolvedValue([
       { id: 'p1', name: 'Backend API', isAutoSuggested: false },
       { id: 'p2', name: 'Frontend', isAutoSuggested: false },
     ])
+    window.electronAPI.getStructuredTemplates = vi.fn().mockResolvedValue([])
+    window.electronAPI.getCaptureSnippets = vi.fn().mockResolvedValue([])
   })
 
   describe('renderização', () => {
@@ -177,7 +232,7 @@ describe('CaptureInput', () => {
 
       // Shows improved text in the preview textarea (second textarea, first is the capture input)
       const textareas = screen.getAllByRole('textbox')
-      const previewTextarea = textareas.find(t => (t as HTMLTextAreaElement).value === 'Texto melhorado pela IA')
+      const previewTextarea = textareas.find((t) => (t as HTMLTextAreaElement).value === 'Texto melhorado pela IA')
       expect(previewTextarea).toBeDefined()
 
       // Shows reasoning

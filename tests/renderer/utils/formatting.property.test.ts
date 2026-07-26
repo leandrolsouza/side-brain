@@ -12,70 +12,58 @@ describe('Feature: i18n-multi-language, Property 8: Locale-Aware Number Formatti
 
   it('should use correct decimal separator for en locale', () => {
     fc.assert(
-      fc.property(
-        fc.double({ min: -1e12, max: 1e12, noNaN: true, noDefaultInfinity: true }),
-        (num) => {
-          const result = formatNumber(num, 'en')
-          // en uses . as decimal separator — only check if the formatted result has a decimal part
-          if (result.includes('.')) {
-            // Decimal separator is a dot, not a comma at the end
-            expect(result).not.toMatch(/\d,\d{1,2}$/)
-          }
-          // Thousands separator is comma, never dot used as thousands
-          if (Math.abs(num) >= 1000 && Number.isInteger(num)) {
-            expect(result).toContain(',')
-          }
+      fc.property(fc.double({ min: -1e12, max: 1e12, noNaN: true, noDefaultInfinity: true }), (num) => {
+        const result = formatNumber(num, 'en')
+        // en uses . as decimal separator — only check if the formatted result has a decimal part
+        if (result.includes('.')) {
+          // Decimal separator is a dot, not a comma at the end
+          expect(result).not.toMatch(/\d,\d{1,2}$/)
         }
-      ),
+        // Thousands separator is comma, never dot used as thousands
+        if (Math.abs(num) >= 1000 && Number.isInteger(num)) {
+          expect(result).toContain(',')
+        }
+      }),
       { numRuns: 100 }
     )
   })
 
   it('should use correct decimal separator for pt-BR locale', () => {
     fc.assert(
-      fc.property(
-        fc.double({ min: -1e12, max: 1e12, noNaN: true, noDefaultInfinity: true }),
-        (num) => {
-          const result = formatNumber(num, 'pt-BR')
-          // pt-BR uses , as decimal separator — only check if the formatted result has a decimal part
-          if (result.includes(',')) {
-            // The comma is a decimal separator, digits after comma are fractional
-            expect(result).toMatch(/,\d+$/)
-          }
-          // Thousands separator is dot, never comma used as thousands
-          if (Math.abs(num) >= 1000 && Number.isInteger(num)) {
-            expect(result).toContain('.')
-          }
+      fc.property(fc.double({ min: -1e12, max: 1e12, noNaN: true, noDefaultInfinity: true }), (num) => {
+        const result = formatNumber(num, 'pt-BR')
+        // pt-BR uses , as decimal separator — only check if the formatted result has a decimal part
+        if (result.includes(',')) {
+          // The comma is a decimal separator, digits after comma are fractional
+          expect(result).toMatch(/,\d+$/)
         }
-      ),
+        // Thousands separator is dot, never comma used as thousands
+        if (Math.abs(num) >= 1000 && Number.isInteger(num)) {
+          expect(result).toContain('.')
+        }
+      }),
       { numRuns: 100 }
     )
   })
 
   it('should use correct thousands separator for en locale', () => {
     fc.assert(
-      fc.property(
-        fc.integer({ min: 1000, max: 1e9 }),
-        (num) => {
-          const result = formatNumber(num, 'en')
-          // en uses , as thousands separator
-          expect(result).toContain(',')
-        }
-      ),
+      fc.property(fc.integer({ min: 1000, max: 1e9 }), (num) => {
+        const result = formatNumber(num, 'en')
+        // en uses , as thousands separator
+        expect(result).toContain(',')
+      }),
       { numRuns: 100 }
     )
   })
 
   it('should use correct thousands separator for pt-BR locale', () => {
     fc.assert(
-      fc.property(
-        fc.integer({ min: 1000, max: 1e9 }),
-        (num) => {
-          const result = formatNumber(num, 'pt-BR')
-          // pt-BR uses . as thousands separator
-          expect(result).toContain('.')
-        }
-      ),
+      fc.property(fc.integer({ min: 1000, max: 1e9 }), (num) => {
+        const result = formatNumber(num, 'pt-BR')
+        // pt-BR uses . as thousands separator
+        expect(result).toContain('.')
+      }),
       { numRuns: 100 }
     )
   })
@@ -89,7 +77,7 @@ describe('Feature: i18n-multi-language, Property 9: Explicit Date Format Overrid
    * match the pattern regardless of locale.
    */
 
-  const dateArb = fc.date({ min: new Date(1970, 0, 1), max: new Date(2099, 11, 31) }).filter(d => !isNaN(d.getTime()))
+  const dateArb = fc.date({ min: new Date(1970, 0, 1), max: new Date(2099, 11, 31) }).filter((d) => !isNaN(d.getTime()))
   const formatArb = fc.constantFrom('DD/MM/YYYY' as const, 'MM/DD/YYYY' as const, 'YYYY-MM-DD' as const)
 
   it('should produce strings matching the selected format pattern', () => {
@@ -138,13 +126,13 @@ describe('Feature: i18n-multi-language, Property 10: Invalid Value Passthrough',
    */
 
   // Strings that cannot be parsed as valid dates
-  const nonDateStringArb = fc.string({ minLength: 1, maxLength: 50 }).filter(s => {
+  const nonDateStringArb = fc.string({ minLength: 1, maxLength: 50 }).filter((s) => {
     const d = new Date(s)
     return isNaN(d.getTime())
   })
 
   // Strings that cannot be parsed as valid numbers
-  const nonNumericStringArb = fc.string({ minLength: 1, maxLength: 50 }).filter(s => {
+  const nonNumericStringArb = fc.string({ minLength: 1, maxLength: 50 }).filter((s) => {
     return isNaN(Number(s))
   })
 

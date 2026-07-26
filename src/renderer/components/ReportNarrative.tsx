@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Sparkles, Loader2, RefreshCw, X } from 'lucide-react'
 import { MarkdownViewer } from './MarkdownViewer'
@@ -38,6 +38,7 @@ export function ReportNarrative({ period }: ReportNarrativeProps) {
           <span>{t('narrativeTitle')}</span>
           {narrative && (
             <button
+              type="button"
               className="btn-icon"
               onClick={() => setShowModal(true)}
               title={t('narrativeView')}
@@ -50,11 +51,7 @@ export function ReportNarrative({ period }: ReportNarrativeProps) {
         {!narrative && !loading && !error && (
           <>
             <p className="report-narrative-description">{t('narrativeDescription')}</p>
-            <button
-              className="vscode-button"
-              onClick={generateNarrative}
-              style={{ marginTop: 8 }}
-            >
+            <button type="button" className="vscode-button" onClick={generateNarrative} style={{ marginTop: 8 }}>
               <Sparkles size={14} style={{ marginRight: 6 }} />
               {t('narrativeGenerate')}
             </button>
@@ -70,6 +67,7 @@ export function ReportNarrative({ period }: ReportNarrativeProps) {
           <>
             <p className="report-narrative-error">{t('narrativeError')}</p>
             <button
+              type="button"
               className="vscode-button secondary"
               onClick={generateNarrative}
               style={{ marginTop: 8 }}
@@ -80,13 +78,11 @@ export function ReportNarrative({ period }: ReportNarrativeProps) {
         )}
         {narrative && !loading && !error && (
           <div className="report-narrative-inline-actions">
-            <button
-              className="vscode-button"
-              onClick={() => setShowModal(true)}
-            >
+            <button type="button" className="vscode-button" onClick={() => setShowModal(true)}>
               {t('narrativeView')}
             </button>
             <button
+              type="button"
               className="vscode-button secondary"
               onClick={generateNarrative}
               style={{ marginLeft: 8 }}
@@ -105,7 +101,7 @@ export function ReportNarrative({ period }: ReportNarrativeProps) {
             <div className="summary-modal-header">
               <Sparkles size={16} />
               <span>{t('narrativeTitle')}</span>
-              <button className="icon-button" onClick={() => setShowModal(false)}>
+              <button type="button" className="icon-button" onClick={() => setShowModal(false)}>
                 <X size={16} />
               </button>
             </div>

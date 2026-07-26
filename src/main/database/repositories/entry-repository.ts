@@ -1,6 +1,13 @@
 import { v4 as uuid } from 'uuid'
 import { getDatabase } from '../schema'
-import { Entry, EntryType, ActionStatus, ReviewStatus, PaginatedResult, PaginationParams } from '../../../shared/types'
+import type {
+  Entry,
+  EntryType,
+  ActionStatus,
+  ReviewStatus,
+  PaginatedResult,
+  PaginationParams,
+} from '../../../shared/types'
 
 export class EntryRepository {
   getAll(projectId?: string): Entry[] {
@@ -60,12 +67,14 @@ export class EntryRepository {
 
   getById(id: string): Entry | null {
     const db = getDatabase()
-    const row = db.prepare(`
+    const row = db
+      .prepare(`
       SELECT id, raw_text as rawText, improved_text as improvedText,
              project_id as projectId, type, action, review_status as reviewStatus,
              created_at as createdAt
       FROM entries WHERE id = ?
-    `).get(id) as Entry | undefined
+    `)
+      .get(id) as Entry | undefined
 
     return row || null
   }
@@ -99,7 +108,10 @@ export class EntryRepository {
     }
   }
 
-  update(id: string, updates: Partial<Pick<Entry, 'improvedText' | 'projectId' | 'type' | 'action' | 'reviewStatus'>>): Entry | null {
+  update(
+    id: string,
+    updates: Partial<Pick<Entry, 'improvedText' | 'projectId' | 'type' | 'action' | 'reviewStatus'>>
+  ): Entry | null {
     const db = getDatabase()
     const existing = this.getById(id)
     if (!existing) return null
@@ -131,7 +143,10 @@ export class EntryRepository {
       if (!escapedQuery) return []
 
       // Use FTS5 MATCH with the escaped query (prefix search with *)
-      const ftsMatchExpr = escapedQuery.split(/\s+/).map(term => `"${term}"*`).join(' ')
+      const ftsMatchExpr = escapedQuery
+        .split(/\s+/)
+        .map((term) => `"${term}"*`)
+        .join(' ')
 
       let sql = `
         SELECT e.id, e.raw_text as rawText, e.improved_text as improvedText,
@@ -169,7 +184,10 @@ export class EntryRepository {
     }
   }
 
-  private searchFallback(query: string, filters?: { type?: string; projectId?: string; dateFrom?: string; dateTo?: string }): Entry[] {
+  private searchFallback(
+    query: string,
+    filters?: { type?: string; projectId?: string; dateFrom?: string; dateTo?: string }
+  ): Entry[] {
     const db = getDatabase()
     const conditions: string[] = ['(raw_text LIKE ? OR improved_text LIKE ?)']
     const params: any[] = [`%${query}%`, `%${query}%`]
@@ -207,16 +225,18 @@ export class EntryRepository {
   getActivityHeatmap(weeks: number = 20): { date: string; count: number }[] {
     const db = getDatabase()
     const startDate = new Date()
-    startDate.setDate(startDate.getDate() - (weeks * 7))
+    startDate.setDate(startDate.getDate() - weeks * 7)
     const startStr = startDate.toISOString()
 
-    const rows = db.prepare(`
+    const rows = db
+      .prepare(`
       SELECT SUBSTR(created_at, 1, 10) as date, COUNT(*) as count
       FROM entries
       WHERE created_at >= ?
       GROUP BY SUBSTR(created_at, 1, 10)
       ORDER BY date ASC
-    `).all(startStr) as { date: string; count: number }[]
+    `)
+      .all(startStr) as { date: string; count: number }[]
 
     return rows
   }

@@ -1,29 +1,72 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import React from 'react'
 import { DailyDigest } from '../../../src/renderer/components/DailyDigest'
 
 const mockDigest = {
   greeting: 'Bom dia!',
   tasksNeedingAttention: {
     overdue: [
-      { id: 't1', projectId: 'p1', title: 'Task atrasada 1', status: 'todo', createdAt: '2025-07-01', updatedAt: '2025-07-01' },
-      { id: 't2', projectId: 'p1', title: 'Task atrasada 2', status: 'todo', createdAt: '2025-07-01', updatedAt: '2025-07-01' },
+      {
+        id: 't1',
+        projectId: 'p1',
+        title: 'Task atrasada 1',
+        status: 'todo',
+        createdAt: '2025-07-01',
+        updatedAt: '2025-07-01',
+      },
+      {
+        id: 't2',
+        projectId: 'p1',
+        title: 'Task atrasada 2',
+        status: 'todo',
+        createdAt: '2025-07-01',
+        updatedAt: '2025-07-01',
+      },
     ],
     inProgress: [
-      { id: 't3', projectId: 'p1', title: 'Task em progresso', status: 'in_progress', createdAt: '2025-07-08', updatedAt: '2025-07-08' },
+      {
+        id: 't3',
+        projectId: 'p1',
+        title: 'Task em progresso',
+        status: 'in_progress',
+        createdAt: '2025-07-08',
+        updatedAt: '2025-07-08',
+      },
     ],
     waiting: [
-      { id: 't4', projectId: 'p1', title: 'Task aguardando', status: 'waiting', createdAt: '2025-07-05', updatedAt: '2025-07-05' },
+      {
+        id: 't4',
+        projectId: 'p1',
+        title: 'Task aguardando',
+        status: 'waiting',
+        createdAt: '2025-07-05',
+        updatedAt: '2025-07-05',
+      },
     ],
   },
   yesterdayActivity: {
     entriesCreated: [
-      { id: 'e1', rawText: 'test', improvedText: 'Entry de ontem sobre o projeto alpha', projectId: 'p1', type: 'information', action: 'none', reviewStatus: 'auto_approved', createdAt: '2025-07-10' },
+      {
+        id: 'e1',
+        rawText: 'test',
+        improvedText: 'Entry de ontem sobre o projeto alpha',
+        projectId: 'p1',
+        type: 'information',
+        action: 'none',
+        reviewStatus: 'auto_approved',
+        createdAt: '2025-07-10',
+      },
     ],
     tasksCompleted: [
-      { id: 't5', projectId: 'p1', title: 'Task completada', status: 'done', createdAt: '2025-07-01', updatedAt: '2025-07-10' },
+      {
+        id: 't5',
+        projectId: 'p1',
+        title: 'Task completada',
+        status: 'done',
+        createdAt: '2025-07-01',
+        updatedAt: '2025-07-10',
+      },
     ],
     tasksCreated: [],
   },
@@ -48,7 +91,7 @@ describe('DailyDigest', () => {
 
   describe('estado de loading', () => {
     it('deve exibir spinner e mensagem de preparação enquanto carrega', () => {
-      window.electronAPI.generateDailyDigest = vi.fn().mockReturnValue(new Promise(() => { }))
+      window.electronAPI.generateDailyDigest = vi.fn().mockReturnValue(new Promise(() => {}))
 
       render(<DailyDigest onClose={onClose} />)
 
@@ -80,7 +123,8 @@ describe('DailyDigest', () => {
 
     it('deve chamar generateDailyDigest novamente ao clicar em retry', async () => {
       const user = userEvent.setup()
-      window.electronAPI.generateDailyDigest = vi.fn()
+      window.electronAPI.generateDailyDigest = vi
+        .fn()
         .mockRejectedValueOnce(new Error('Erro'))
         .mockResolvedValueOnce(mockDigest)
 

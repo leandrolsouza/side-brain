@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X, RefreshCw, CheckCircle, Download } from 'lucide-react'
 import logo from '../assets/logo.png'
@@ -26,7 +26,10 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
   const handleCheckUpdates = async () => {
     setUpdateState('checking')
     try {
-      const result = await window.electronAPI.checkForUpdates()
+      // Note: the main process returns an UpdateStatusPayload (with `info`), so
+      // `updateInfo` is always undefined here today. The cast preserves the
+      // legacy access without changing runtime behavior.
+      const result = (await window.electronAPI.checkForUpdates()) as { updateInfo?: { version?: string } } | undefined
       if (result?.updateInfo?.version && result.updateInfo.version !== version) {
         setUpdateVersion(result.updateInfo.version)
         setUpdateState('available')
@@ -45,7 +48,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content about-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="about-close" onClick={onClose} title={t('close')}>
+        <button type="button" className="about-close" onClick={onClose} title={t('close')}>
           <X size={18} />
         </button>
 
@@ -60,7 +63,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
 
           <div className="about-update-section">
             {updateState === 'idle' && (
-              <button className="about-check-update-btn" onClick={handleCheckUpdates}>
+              <button type="button" className="about-check-update-btn" onClick={handleCheckUpdates}>
                 <RefreshCw size={14} />
                 {t('about.checkUpdates')}
               </button>
@@ -84,15 +87,11 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
               </span>
             )}
             {updateState === 'error' && (
-              <span className="about-update-status about-update-error">
-                {t('about.checkError')}
-              </span>
+              <span className="about-update-status about-update-error">{t('about.checkError')}</span>
             )}
           </div>
 
-          <p className="about-description">
-            {t('about.description')}
-          </p>
+          <p className="about-description">{t('about.description')}</p>
 
           <div className="about-features">
             <div className="about-feature-item">
@@ -117,7 +116,9 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
             <p className="about-tech-label">{t('about.builtWith')}</p>
             <div className="about-tech-badges">
               {techItems.map((item) => (
-                <span key={item} className="about-tech-badge">{item}</span>
+                <span key={item} className="about-tech-badge">
+                  {item}
+                </span>
               ))}
             </div>
           </div>

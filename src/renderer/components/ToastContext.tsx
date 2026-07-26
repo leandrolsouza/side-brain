@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react'
+import type React from 'react'
+import { createContext, useContext, useState, useCallback, useRef } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info'
@@ -51,24 +52,23 @@ export function ToastProvider({ children }: ToastProviderProps) {
     }
   }, [])
 
-  const addToast = useCallback((message: string, type: ToastType = 'success', duration: number = 4000) => {
-    const id = uuidv4()
-    const toast: Toast = { id, message, type, exiting: false }
+  const addToast = useCallback(
+    (message: string, type: ToastType = 'success', duration: number = 4000) => {
+      const id = uuidv4()
+      const toast: Toast = { id, message, type, exiting: false }
 
-    setToasts((prev) => [...prev, toast])
+      setToasts((prev) => [...prev, toast])
 
-    // Auto-dismiss
-    const timer = setTimeout(() => {
-      removeToast(id)
-      timersRef.current.delete(id)
-    }, duration)
+      // Auto-dismiss
+      const timer = setTimeout(() => {
+        removeToast(id)
+        timersRef.current.delete(id)
+      }, duration)
 
-    timersRef.current.set(id, timer)
-  }, [removeToast])
-
-  return (
-    <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
-      {children}
-    </ToastContext.Provider>
+      timersRef.current.set(id, timer)
+    },
+    [removeToast]
   )
+
+  return <ToastContext.Provider value={{ toasts, addToast, removeToast }}>{children}</ToastContext.Provider>
 }

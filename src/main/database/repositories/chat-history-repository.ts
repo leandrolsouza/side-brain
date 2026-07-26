@@ -1,26 +1,30 @@
 import { v4 as uuid } from 'uuid'
 import { getDatabase } from '../schema'
-import { ChatConversation, SmartChatMessage, SmartChatSource } from '../../../shared/types'
+import type { ChatConversation, SmartChatMessage, SmartChatSource } from '../../../shared/types'
 
 export class ChatHistoryRepository {
   // === Conversations ===
 
   getConversations(): ChatConversation[] {
     const db = getDatabase()
-    return db.prepare(`
+    return db
+      .prepare(`
       SELECT id, title, created_at as createdAt, updated_at as updatedAt
       FROM chat_conversations
       ORDER BY updated_at DESC
-    `).all() as ChatConversation[]
+    `)
+      .all() as ChatConversation[]
   }
 
   getConversationById(id: string): ChatConversation | null {
     const db = getDatabase()
-    const row = db.prepare(`
+    const row = db
+      .prepare(`
       SELECT id, title, created_at as createdAt, updated_at as updatedAt
       FROM chat_conversations
       WHERE id = ?
-    `).get(id) as ChatConversation | undefined
+    `)
+      .get(id) as ChatConversation | undefined
     return row || null
   }
 
@@ -69,41 +73,47 @@ export class ChatHistoryRepository {
 
   getMessages(conversationId: string): SmartChatMessage[] {
     const db = getDatabase()
-    const rows = db.prepare(`
+    const rows = db
+      .prepare(`
       SELECT id, conversation_id as conversationId, role, content, sources, created_at as createdAt
       FROM chat_messages
       WHERE conversation_id = ?
       ORDER BY created_at ASC
-    `).all(conversationId) as (Omit<SmartChatMessage, 'sources'> & { sources: string | null })[]
+    `)
+      .all(conversationId) as (Omit<SmartChatMessage, 'sources'> & { sources: string | null })[]
 
     return rows.map((row) => ({
       ...row,
-      sources: row.sources ? JSON.parse(row.sources) as SmartChatSource[] : undefined,
+      sources: row.sources ? (JSON.parse(row.sources) as SmartChatSource[]) : undefined,
     }))
   }
 
   getRecentMessages(conversationId: string, limit: number): SmartChatMessage[] {
     const db = getDatabase()
-    const rows = db.prepare(`
+    const rows = db
+      .prepare(`
       SELECT id, conversation_id as conversationId, role, content, sources, created_at as createdAt
       FROM chat_messages
       WHERE conversation_id = ?
       ORDER BY created_at DESC
       LIMIT ?
-    `).all(conversationId, limit) as (Omit<SmartChatMessage, 'sources'> & { sources: string | null })[]
+    `)
+      .all(conversationId, limit) as (Omit<SmartChatMessage, 'sources'> & { sources: string | null })[]
 
     // Reverse to get chronological order
     return rows.reverse().map((row) => ({
       ...row,
-      sources: row.sources ? JSON.parse(row.sources) as SmartChatSource[] : undefined,
+      sources: row.sources ? (JSON.parse(row.sources) as SmartChatSource[]) : undefined,
     }))
   }
 
   getMessageCount(conversationId: string): number {
     const db = getDatabase()
-    const result = db.prepare(`
+    const result = db
+      .prepare(`
       SELECT COUNT(*) as count FROM chat_messages WHERE conversation_id = ?
-    `).get(conversationId) as { count: number }
+    `)
+      .get(conversationId) as { count: number }
     return result.count
   }
 

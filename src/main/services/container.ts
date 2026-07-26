@@ -102,17 +102,50 @@ export function getContainer(): AppContainer {
   const embeddingsService = new EmbeddingsService(embeddingsRepo, entryRepo, taskRepo, settingsRepo, aiUsageRepo)
 
   // Services (receive dependencies via constructor)
-  const entryService = new EntryService(entryRepo, projectRepo, taskRepo, settingsRepo, aiService, embeddingsService, feedbackRepo)
+  const entryService = new EntryService(
+    entryRepo,
+    projectRepo,
+    taskRepo,
+    settingsRepo,
+    aiService,
+    embeddingsService,
+    feedbackRepo
+  )
   const digestService = new DigestService(entryRepo, taskRepo, projectRepo, settingsRepo, aiService)
-  const smartChatService = new SmartChatService(entryRepo, projectRepo, taskRepo, settingsRepo, aiService, chatHistoryRepo, embeddingsService)
+  const smartChatService = new SmartChatService(
+    entryRepo,
+    projectRepo,
+    taskRepo,
+    settingsRepo,
+    aiService,
+    chatHistoryRepo,
+    embeddingsService
+  )
   const insightsService = new InsightsService(entryRepo, projectRepo, taskRepo, settingsRepo, aiService)
-  const meetingService = new MeetingService(meetingRepo, entryRepo, projectRepo, taskRepo, settingsRepo, notificationRepo, aiService)
+  const meetingService = new MeetingService(
+    meetingRepo,
+    entryRepo,
+    projectRepo,
+    taskRepo,
+    settingsRepo,
+    notificationRepo,
+    aiService
+  )
   const reportsService = new ReportsService(settingsRepo, aiService)
   const exportService = new ExportService()
   const backupService = new BackupService()
 
   // Agent Studio layer
-  const agentToolRegistry = new AgentToolRegistry(entryRepo, projectRepo, taskRepo, meetingRepo, notificationRepo, settingsRepo, embeddingsService, aiService)
+  const agentToolRegistry = new AgentToolRegistry(
+    entryRepo,
+    projectRepo,
+    taskRepo,
+    meetingRepo,
+    notificationRepo,
+    settingsRepo,
+    embeddingsService,
+    aiService
+  )
   const mcpManager = new MCPManager(settingsRepo)
   const agentRuntime = new AgentRuntime(aiProvider, agentToolRegistry, agentRepo, settingsRepo, mcpManager)
   const agentService = new AgentService(agentRepo, agentRuntime, agentToolRegistry)

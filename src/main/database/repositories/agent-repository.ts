@@ -1,6 +1,6 @@
 import { v4 as uuid } from 'uuid'
 import { getDatabase } from '../schema'
-import {
+import type {
   AgentDefinition,
   AgentExecution,
   AgentExecutionStatus,
@@ -21,10 +21,10 @@ interface AgentRow {
   persona: string
   icon: string
   color: string
-  skills: string        // JSON array
-  scope: string         // JSON object
-  triggers: string      // JSON array
-  can_delegate: string  // JSON array
+  skills: string // JSON array
+  scope: string // JSON object
+  triggers: string // JSON array
+  can_delegate: string // JSON array
   max_steps: number
   is_active: number
   requires_approval: number
@@ -50,7 +50,7 @@ interface StepRow {
   execution_id: string
   step_number: number
   skill: string
-  input: string         // JSON
+  input: string // JSON
   output: string | null // JSON
   reasoning: string
   delegated_to_agent_id: string | null
@@ -153,7 +153,12 @@ export class AgentRepository {
 
   // ─── Execution CRUD ───────────────────────────────────────────
 
-  createExecution(agentId: string, input: string, trigger: AgentTriggerType = 'manual', delegatedBy?: string): AgentExecution {
+  createExecution(
+    agentId: string,
+    input: string,
+    trigger: AgentTriggerType = 'manual',
+    delegatedBy?: string
+  ): AgentExecution {
     const db = getDatabase()
     const id = uuid()
     const now = new Date().toISOString()
@@ -186,7 +191,8 @@ export class AgentRepository {
 
   getExecutionsForAgent(agentId: string, limit = 20): AgentExecutionSummary[] {
     const db = getDatabase()
-    const rows = db.prepare(`
+    const rows = db
+      .prepare(`
       SELECT ae.*, a.name as agent_name,
              (SELECT COUNT(*) FROM agent_steps WHERE execution_id = ae.id) as step_count
       FROM agent_executions ae
@@ -194,7 +200,8 @@ export class AgentRepository {
       WHERE ae.agent_id = ?
       ORDER BY ae.created_at DESC
       LIMIT ?
-    `).all(agentId, limit) as (ExecutionRow & { agent_name: string; step_count: number })[]
+    `)
+      .all(agentId, limit) as (ExecutionRow & { agent_name: string; step_count: number })[]
 
     return rows.map((row) => ({
       id: row.id,
@@ -212,14 +219,16 @@ export class AgentRepository {
 
   getRecentExecutions(limit = 50): AgentExecutionSummary[] {
     const db = getDatabase()
-    const rows = db.prepare(`
+    const rows = db
+      .prepare(`
       SELECT ae.*, a.name as agent_name,
              (SELECT COUNT(*) FROM agent_steps WHERE execution_id = ae.id) as step_count
       FROM agent_executions ae
       JOIN agents a ON a.id = ae.agent_id
       ORDER BY ae.created_at DESC
       LIMIT ?
-    `).all(limit) as (ExecutionRow & { agent_name: string; step_count: number })[]
+    `)
+      .all(limit) as (ExecutionRow & { agent_name: string; step_count: number })[]
 
     return rows.map((row) => ({
       id: row.id,
@@ -237,9 +246,8 @@ export class AgentRepository {
 
   updateExecutionStatus(id: string, status: AgentExecutionStatus, result?: string, error?: string): void {
     const db = getDatabase()
-    const completedAt = (status === 'completed' || status === 'failed' || status === 'cancelled')
-      ? new Date().toISOString()
-      : null
+    const completedAt =
+      status === 'completed' || status === 'failed' || status === 'cancelled' ? new Date().toISOString() : null
 
     db.prepare(`
       UPDATE agent_executions SET status = ?, result = ?, error = ?, completed_at = ?
@@ -249,26 +257,38 @@ export class AgentRepository {
 
   // ─── Steps CRUD ───────────────────────────────────────────────
 
-  addStep(executionId: string, data: {
-    skill: AgentSkill
-    input: Record<string, any>
-    reasoning: string
-    delegatedToAgentId?: string
-  }): AgentStep {
+  addStep(
+    executionId: string,
+    data: {
+      skill: AgentSkill
+      input: Record<string, any>
+      reasoning: string
+      delegatedToAgentId?: string
+    }
+  ): AgentStep {
     const db = getDatabase()
     const id = uuid()
     const now = new Date().toISOString()
 
     // Get next step number
-    const last = db.prepare(
-      'SELECT MAX(step_number) as max FROM agent_steps WHERE execution_id = ?'
-    ).get(executionId) as { max: number | null }
+    const last = db
+      .prepare('SELECT MAX(step_number) as max FROM agent_steps WHERE execution_id = ?')
+      .get(executionId) as { max: number | null }
     const stepNumber = (last.max ?? 0) + 1
 
     db.prepare(`
       INSERT INTO agent_steps (id, execution_id, step_number, skill, input, reasoning, delegated_to_agent_id, status, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, 'running', ?)
-    `).run(id, executionId, stepNumber, data.skill, JSON.stringify(data.input), data.reasoning, data.delegatedToAgentId || null, now)
+    `).run(
+      id,
+      executionId,
+      stepNumber,
+      data.skill,
+      JSON.stringify(data.input),
+      data.reasoning,
+      data.delegatedToAgentId || null,
+      now
+    )
 
     return {
       id,
@@ -301,9 +321,9 @@ export class AgentRepository {
 
   getStepsForExecution(executionId: string): AgentStep[] {
     const db = getDatabase()
-    const rows = db.prepare(
-      'SELECT * FROM agent_steps WHERE execution_id = ? ORDER BY step_number ASC'
-    ).all(executionId) as StepRow[]
+    const rows = db
+      .prepare('SELECT * FROM agent_steps WHERE execution_id = ? ORDER BY step_number ASC')
+      .all(executionId) as StepRow[]
 
     return rows.map(this.mapStepRow)
   }
@@ -320,9 +340,9 @@ export class AgentRepository {
     const cutoff = new Date()
     cutoff.setDate(cutoff.getDate() - olderThanDays)
 
-    const result = db.prepare(
-      'DELETE FROM agent_executions WHERE created_at < ? AND status IN (?, ?, ?)'
-    ).run(cutoff.toISOString(), 'completed', 'failed', 'cancelled')
+    const result = db
+      .prepare('DELETE FROM agent_executions WHERE created_at < ? AND status IN (?, ?, ?)')
+      .run(cutoff.toISOString(), 'completed', 'failed', 'cancelled')
 
     return result.changes
   }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { ArrowLeft, List, LayoutGrid, Sparkles, X, Download, Video, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { MarkdownViewer } from './MarkdownViewer'
@@ -68,6 +68,7 @@ export function ProjectView({ projectId, projectName, initialTab, onBack, onNavi
       <div className="project-view-header">
         <div className="flex-row">
           <button
+            type="button"
             className="icon-button"
             onClick={onBack}
             title={t('backToProjects')}
@@ -77,6 +78,7 @@ export function ProjectView({ projectId, projectName, initialTab, onBack, onNavi
           </button>
           <span className="panel-title">{projectName}</span>
           <button
+            type="button"
             className="vscode-button"
             onClick={handleGenerateSummary}
             disabled={isLoadingSummary}
@@ -87,6 +89,7 @@ export function ProjectView({ projectId, projectName, initialTab, onBack, onNavi
           </button>
           <div ref={exportMenuRef} style={{ position: 'relative', marginLeft: 8 }}>
             <button
+              type="button"
               className="vscode-button"
               onClick={() => setShowExportMenu(!showExportMenu)}
               disabled={isExporting}
@@ -96,10 +99,10 @@ export function ProjectView({ projectId, projectName, initialTab, onBack, onNavi
             </button>
             {showExportMenu && (
               <div className="export-dropdown">
-                <button className="export-dropdown-item" onClick={() => handleExport('markdown')}>
+                <button type="button" className="export-dropdown-item" onClick={() => handleExport('markdown')}>
                   {t('exportMarkdown')}
                 </button>
-                <button className="export-dropdown-item" onClick={() => handleExport('pdf')}>
+                <button type="button" className="export-dropdown-item" onClick={() => handleExport('pdf')}>
                   {t('exportPdf')}
                 </button>
               </div>
@@ -109,6 +112,7 @@ export function ProjectView({ projectId, projectName, initialTab, onBack, onNavi
 
         <div className="project-view-tabs">
           <button
+            type="button"
             className={`project-tab ${activeTab === 'entries' ? 'active' : ''}`}
             onClick={() => setActiveTab('entries')}
           >
@@ -116,6 +120,7 @@ export function ProjectView({ projectId, projectName, initialTab, onBack, onNavi
             {t('tabEntries')}
           </button>
           <button
+            type="button"
             className={`project-tab ${activeTab === 'kanban' ? 'active' : ''}`}
             onClick={() => setActiveTab('kanban')}
           >
@@ -123,6 +128,7 @@ export function ProjectView({ projectId, projectName, initialTab, onBack, onNavi
             {t('tabKanban')}
           </button>
           <button
+            type="button"
             className={`project-tab ${activeTab === 'meetings' ? 'active' : ''}`}
             onClick={() => setActiveTab('meetings')}
           >
@@ -139,7 +145,7 @@ export function ProjectView({ projectId, projectName, initialTab, onBack, onNavi
             <div className="summary-modal-header">
               <Sparkles size={16} />
               <span>{t('projectSummary')}</span>
-              <button className="icon-button" onClick={() => setSummary(null)}>
+              <button type="button" className="icon-button" onClick={() => setSummary(null)}>
                 <X size={16} />
               </button>
             </div>
@@ -152,19 +158,12 @@ export function ProjectView({ projectId, projectName, initialTab, onBack, onNavi
 
       {/* Tab content */}
       <div className="project-view-content">
-        {activeTab === 'entries' && (
-          <EntryList projectId={projectId} />
-        )}
-        {activeTab === 'kanban' && (
-          <KanbanBoard projectId={projectId} />
-        )}
+        {activeTab === 'entries' && <EntryList projectId={projectId} />}
+        {activeTab === 'kanban' && <KanbanBoard projectId={projectId} />}
         {activeTab === 'meetings' && (
           <div className="flex-col" style={{ gap: 16, flex: 1, minHeight: 0, overflow: 'auto', padding: '16px 0' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-              <button
-                className="vscode-button"
-                onClick={() => onNavigateToMeeting(projectId)}
-              >
+              <button type="button" className="vscode-button" onClick={() => onNavigateToMeeting(projectId)}>
                 <Plus size={14} />
                 {t('newMeeting')}
               </button>

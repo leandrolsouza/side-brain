@@ -1,5 +1,5 @@
-import { autoUpdater, UpdateInfo, ProgressInfo } from 'electron-updater'
-import { BrowserWindow } from 'electron'
+import { autoUpdater, type UpdateInfo, type ProgressInfo } from 'electron-updater'
+import type { BrowserWindow } from 'electron'
 import { getErrorService } from './error-service'
 
 export interface UpdateStatus {
@@ -50,7 +50,11 @@ export class UpdaterService {
       const errorMessage = err.message || 'Erro desconhecido ao atualizar'
 
       // 404 is expected when no release is published yet or repo is private - silently ignore
-      if (errorMessage.includes('404') || errorMessage.includes('Not Found') || errorMessage.includes('releases.atom')) {
+      if (
+        errorMessage.includes('404') ||
+        errorMessage.includes('Not Found') ||
+        errorMessage.includes('releases.atom')
+      ) {
         this.updateStatus({ status: 'not-available' })
         return
       }
@@ -96,7 +100,12 @@ export class UpdaterService {
       const message = err?.message || ''
 
       // 404 / network errors are non-critical — treat as "no update available"
-      if (message.includes('404') || message.includes('Not Found') || message.includes('net::ERR_') || message.includes('ENOTFOUND')) {
+      if (
+        message.includes('404') ||
+        message.includes('Not Found') ||
+        message.includes('net::ERR_') ||
+        message.includes('ENOTFOUND')
+      ) {
         this.updateStatus({ status: 'not-available' })
       } else {
         this.updateStatus({ status: 'error', error: message })

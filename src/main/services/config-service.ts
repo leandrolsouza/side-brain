@@ -1,9 +1,12 @@
 import { app, dialog, BrowserWindow } from 'electron'
-import fs from 'fs'
-import path from 'path'
+import fs from 'node:fs'
+import path from 'node:path'
 import { v4 as uuidv4 } from 'uuid'
 import { closeDatabase } from '../database/schema'
+import { createScopedLogger } from './logger'
 import type { Workspace, WorkspaceConfig } from '../../shared/types'
+
+const logger = createScopedLogger('config')
 
 const CONFIG_FILENAME = 'config.json'
 const DB_FILENAME = 'work-organizer.db'
@@ -77,9 +80,7 @@ export class ConfigService {
       id: uuidv4(),
       name: data.name,
       emoji: data.emoji,
-      databasePath: data.databasePath.endsWith('.db')
-        ? data.databasePath
-        : path.join(data.databasePath, DB_FILENAME),
+      databasePath: data.databasePath.endsWith('.db') ? data.databasePath : path.join(data.databasePath, DB_FILENAME),
       createdAt: new Date().toISOString(),
     }
 
@@ -185,7 +186,7 @@ export class ConfigService {
 
       return { success: true }
     } catch (error) {
-      console.error('[ConfigService] Erro ao trocar workspace:', error)
+      logger.error('[ConfigService] Erro ao trocar workspace:', error)
       return { success: false, error: 'Erro ao trocar de workspace.' }
     }
   }
@@ -270,8 +271,8 @@ export class ConfigService {
         fs.copyFileSync(currentDbPath, newDbPath)
         fs.unlinkSync(currentDbPath)
 
-        const walPath = currentDbPath + '-wal'
-        const shmPath = currentDbPath + '-shm'
+        const walPath = `${currentDbPath}-wal`
+        const shmPath = `${currentDbPath}-shm`
         if (fs.existsSync(walPath)) fs.unlinkSync(walPath)
         if (fs.existsSync(shmPath)) fs.unlinkSync(shmPath)
       } else if (mode === 'new') {
@@ -303,7 +304,7 @@ export class ConfigService {
 
       return { success: true }
     } catch (error) {
-      console.error('[ConfigService] Erro ao mudar caminho da database:', error)
+      logger.error('[ConfigService] Erro ao mudar caminho da database:', error)
       return { success: false, error: 'Erro ao mudar o caminho da database.' }
     }
   }
@@ -378,7 +379,7 @@ export class ConfigService {
   private writeLockFile(): void {
     if (!this.lockFilePath) return
     const lockData = {
-      machine: require('os').hostname(),
+      machine: require('node:os').hostname(),
       pid: process.pid,
       timestamp: new Date().toISOString(),
     }
@@ -399,7 +400,7 @@ export class ConfigService {
         return { ...DEFAULT_CONFIG, ...parsed }
       }
     } catch (error) {
-      console.error('[ConfigService] Erro ao ler config.json:', error)
+      logger.error('[ConfigService] Erro ao ler config.json:', error)
     }
     return { ...DEFAULT_CONFIG }
   }
@@ -408,7 +409,7 @@ export class ConfigService {
     try {
       fs.writeFileSync(this.configPath, JSON.stringify(config, null, 2), 'utf-8')
     } catch (error) {
-      console.error('[ConfigService] Erro ao escrever config.json:', error)
+      logger.error('[ConfigService] Erro ao escrever config.json:', error)
     }
   }
 
@@ -442,9 +443,9 @@ export class ConfigService {
       }
 
       this.writeConfig(migratedConfig)
-      console.log('[ConfigService] Config migrado para formato de workspaces.')
+      logger.info('[ConfigService] Config migrado para formato de workspaces.')
     } catch (error) {
-      console.error('[ConfigService] Erro na migração do config:', error)
+      logger.error('[ConfigService] Erro na migração do config:', error)
     }
   }
 
@@ -465,7 +466,7 @@ export class ConfigService {
     }
 
     try {
-      const testFile = path.join(dir, '.write-test-' + Date.now())
+      const testFile = path.join(dir, `.write-test-${Date.now()}`)
       fs.writeFileSync(testFile, 'test')
       fs.unlinkSync(testFile)
     } catch {

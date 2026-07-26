@@ -1,4 +1,3 @@
-import React from 'react'
 import { Brain, Download } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -16,18 +15,16 @@ export function OnboardingWelcome({ onNewUser, onImport }: Props) {
         <Brain size={64} strokeWidth={1.5} />
       </div>
       <h1 className="onboarding-title">{t('onboarding.welcomeTitle')}</h1>
-      <p className="onboarding-description">
-        {t('onboarding.welcomeDescription')}
-      </p>
+      <p className="onboarding-description">{t('onboarding.welcomeDescription')}</p>
 
       <div className="onboarding-paths">
-        <button className="onboarding-path-card" onClick={onNewUser}>
+        <button type="button" className="onboarding-path-card" onClick={onNewUser}>
           <span className="onboarding-path-emoji">🚀</span>
           <h3>{t('onboarding.startFromScratch')}</h3>
           <p>{t('onboarding.startFromScratchDesc')}</p>
         </button>
 
-        <button className="onboarding-path-card" onClick={onImport}>
+        <button type="button" className="onboarding-path-card" onClick={onImport}>
           <span className="onboarding-path-icon">
             <Download size={24} strokeWidth={1.5} />
           </span>

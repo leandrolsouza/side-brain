@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { RefreshCw, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 
@@ -84,10 +84,7 @@ export function EmbeddingsStatus() {
     <div className="embeddings-status">
       <div className="embeddings-progress">
         <div className="embeddings-progress-bar">
-          <div
-            className="embeddings-progress-fill"
-            style={{ width: `${percentage}%` }}
-          />
+          <div className="embeddings-progress-fill" style={{ width: `${percentage}%` }} />
         </div>
         <div className="embeddings-progress-label">
           {isFullyIndexed ? (
@@ -100,13 +97,16 @@ export function EmbeddingsStatus() {
           )}
         </div>
         <div className="embeddings-detail">
-          <span>{t('avancado.embeddings_entries', { indexed: status.indexedEntries, total: status.totalEntries })}</span>
+          <span>
+            {t('avancado.embeddings_entries', { indexed: status.indexedEntries, total: status.totalEntries })}
+          </span>
           <span>{t('avancado.embeddings_tasks', { indexed: status.indexedTasks, total: status.totalTasks })}</span>
         </div>
       </div>
 
       <div className="embeddings-actions" style={{ marginTop: 12 }}>
         <button
+          type="button"
           className="vscode-button secondary"
           onClick={handleIndexAll}
           disabled={isIndexing || isFullyIndexed}
@@ -124,6 +124,7 @@ export function EmbeddingsStatus() {
           )}
         </button>
         <button
+          type="button"
           className="vscode-button secondary"
           onClick={handleReindexAll}
           disabled={isIndexing}
@@ -135,9 +136,7 @@ export function EmbeddingsStatus() {
 
       {result && (
         <div className="embeddings-result" style={{ marginTop: 8 }}>
-          <span>
-            {t('avancado.embeddings_result', { indexed: result.indexed, failed: result.failed })}
-          </span>
+          <span>{t('avancado.embeddings_result', { indexed: result.indexed, failed: result.failed })}</span>
         </div>
       )}
     </div>

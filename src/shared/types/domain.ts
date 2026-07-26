@@ -54,10 +54,7 @@ export type EntryType = string
 
 export type ActionStatus = string
 
-export type ReviewStatus =
-  | 'auto_approved'
-  | 'approved'
-  | 'corrected'
+export type ReviewStatus = 'auto_approved' | 'approved' | 'corrected'
 
 // === Task Types ===
 

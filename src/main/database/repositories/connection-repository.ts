@@ -1,6 +1,6 @@
 import { v4 as uuid } from 'uuid'
 import { getDatabase } from '../schema'
-import { EntryConnection, ConnectedEntry, ConnectionType, Entry } from '../../../shared/types'
+import type { EntryConnection, ConnectedEntry, ConnectionType, Entry } from '../../../shared/types'
 
 export class ConnectionRepository {
   create(data: {
@@ -42,7 +42,8 @@ export class ConnectionRepository {
     const db = getDatabase()
 
     // Get connections where entry is the source
-    const asSource = db.prepare(`
+    const asSource = db
+      .prepare(`
       SELECT
         c.id, c.source_entry_id as sourceEntryId, c.target_entry_id as targetEntryId,
         c.connection_type as connectionType, c.description, c.is_ai_suggested as isAiSuggested,
@@ -54,10 +55,12 @@ export class ConnectionRepository {
       JOIN entries e ON e.id = c.target_entry_id
       WHERE c.source_entry_id = ?
       ORDER BY c.created_at DESC
-    `).all(entryId) as any[]
+    `)
+      .all(entryId) as any[]
 
     // Get connections where entry is the target
-    const asTarget = db.prepare(`
+    const asTarget = db
+      .prepare(`
       SELECT
         c.id, c.source_entry_id as sourceEntryId, c.target_entry_id as targetEntryId,
         c.connection_type as connectionType, c.description, c.is_ai_suggested as isAiSuggested,
@@ -69,7 +72,8 @@ export class ConnectionRepository {
       JOIN entries e ON e.id = c.source_entry_id
       WHERE c.target_entry_id = ?
       ORDER BY c.created_at DESC
-    `).all(entryId) as any[]
+    `)
+      .all(entryId) as any[]
 
     const mapRow = (row: any): ConnectedEntry => ({
       connection: {
@@ -103,28 +107,33 @@ export class ConnectionRepository {
 
   exists(sourceEntryId: string, targetEntryId: string): boolean {
     const db = getDatabase()
-    const row = db.prepare(`
+    const row = db
+      .prepare(`
       SELECT id FROM entry_connections
       WHERE (source_entry_id = ? AND target_entry_id = ?)
          OR (source_entry_id = ? AND target_entry_id = ?)
-    `).get(sourceEntryId, targetEntryId, targetEntryId, sourceEntryId)
+    `)
+      .get(sourceEntryId, targetEntryId, targetEntryId, sourceEntryId)
 
     return !!row
   }
 
   getConnectionCount(entryId: string): number {
     const db = getDatabase()
-    const result = db.prepare(`
+    const result = db
+      .prepare(`
       SELECT COUNT(*) as count FROM entry_connections
       WHERE source_entry_id = ? OR target_entry_id = ?
-    `).get(entryId, entryId) as { count: number }
+    `)
+      .get(entryId, entryId) as { count: number }
 
     return result.count
   }
 
   searchEntries(query: string, excludeEntryId: string, limit: number = 20): Entry[] {
     const db = getDatabase()
-    return db.prepare(`
+    return db
+      .prepare(`
       SELECT id, raw_text as rawText, improved_text as improvedText,
              project_id as projectId, type, action, review_status as reviewStatus,
              created_at as createdAt
@@ -133,7 +142,8 @@ export class ConnectionRepository {
         AND (raw_text LIKE ? OR improved_text LIKE ?)
       ORDER BY created_at DESC
       LIMIT ?
-    `).all(excludeEntryId, `%${query}%`, `%${query}%`, limit) as Entry[]
+    `)
+      .all(excludeEntryId, `%${query}%`, `%${query}%`, limit) as Entry[]
   }
 
   getAllForGraph(filters?: {
@@ -155,9 +165,7 @@ export class ConnectionRepository {
       connParams.push(filters.connectionType)
     }
 
-    const connWhereClause = connConditions.length > 0
-      ? 'WHERE ' + connConditions.join(' AND ')
-      : ''
+    const connWhereClause = connConditions.length > 0 ? `WHERE ${connConditions.join(' AND ')}` : ''
 
     // If filtering by project or date, first find the entries that match,
     // then find ALL connections involving those entries (including cross-project)
@@ -177,18 +185,21 @@ export class ConnectionRepository {
       const entryWhereClause = entryConditions.join(' AND ')
 
       // Get matching entry IDs
-      const matchingEntries = db.prepare(`
+      const matchingEntries = db
+        .prepare(`
         SELECT e.id FROM entries e WHERE ${entryWhereClause}
-      `).all(...entryParams) as { id: string }[]
+      `)
+        .all(...entryParams) as { id: string }[]
 
-      const matchingIds = new Set(matchingEntries.map(e => e.id))
+      const matchingIds = new Set(matchingEntries.map((e) => e.id))
 
       if (matchingIds.size === 0) {
         return { entries: [], connections: [], truncated: false }
       }
 
       // Get all connections where AT LEAST ONE side is in the matching set
-      const allConnections = db.prepare(`
+      const allConnections = db
+        .prepare(`
         SELECT c.id, c.source_entry_id as sourceEntryId, c.target_entry_id as targetEntryId,
                c.connection_type as connectionType, c.description, c.is_ai_suggested as isAiSuggested,
                c.created_at as createdAt
@@ -196,15 +207,17 @@ export class ConnectionRepository {
         ${connWhereClause}
         ORDER BY c.created_at DESC
         LIMIT ?
-      `).all(...connParams, maxConnections).map((row: any) => ({
-        ...row,
-        isAiSuggested: Boolean(row.isAiSuggested),
-        description: row.description || undefined,
-      })) as EntryConnection[]
+      `)
+        .all(...connParams, maxConnections)
+        .map((row: any) => ({
+          ...row,
+          isAiSuggested: Boolean(row.isAiSuggested),
+          description: row.description || undefined,
+        })) as EntryConnection[]
 
       // Filter: at least one side must be in the matching entries
-      const filteredConnections = allConnections.filter(c =>
-        matchingIds.has(c.sourceEntryId) || matchingIds.has(c.targetEntryId)
+      const filteredConnections = allConnections.filter(
+        (c) => matchingIds.has(c.sourceEntryId) || matchingIds.has(c.targetEntryId)
       )
 
       // Collect all entry IDs we need (both sides of filtered connections)
@@ -219,26 +232,36 @@ export class ConnectionRepository {
       }
 
       // Fetch all needed entries
-      const placeholders = Array.from(neededIds).map(() => '?').join(',')
-      const entries = db.prepare(`
+      const placeholders = Array.from(neededIds)
+        .map(() => '?')
+        .join(',')
+      const entries = db
+        .prepare(`
         SELECT DISTINCT e.id, e.raw_text as rawText, e.improved_text as improvedText,
                e.project_id as projectId, e.type, e.action, e.review_status as reviewStatus,
                e.created_at as createdAt
         FROM entries e
         WHERE e.id IN (${placeholders})
         ORDER BY e.created_at DESC
-      `).all(...Array.from(neededIds)) as Entry[]
+      `)
+        .all(...Array.from(neededIds)) as Entry[]
 
       // Apply minConnections filter
       if (filters?.minConnections && filters.minConnections > 1) {
-        return this.applyMinConnections(entries, filteredConnections, filters.minConnections, allConnections.length >= maxConnections)
+        return this.applyMinConnections(
+          entries,
+          filteredConnections,
+          filters.minConnections,
+          allConnections.length >= maxConnections
+        )
       }
 
       return { entries, connections: filteredConnections, truncated: allConnections.length >= maxConnections }
     }
 
     // No project/date filter — get all connections (capped)
-    const connections = db.prepare(`
+    const connections = db
+      .prepare(`
       SELECT c.id, c.source_entry_id as sourceEntryId, c.target_entry_id as targetEntryId,
              c.connection_type as connectionType, c.description, c.is_ai_suggested as isAiSuggested,
              c.created_at as createdAt
@@ -246,11 +269,13 @@ export class ConnectionRepository {
       ${connWhereClause}
       ORDER BY c.created_at DESC
       LIMIT ?
-    `).all(...connParams, maxConnections).map((row: any) => ({
-      ...row,
-      isAiSuggested: Boolean(row.isAiSuggested),
-      description: row.description || undefined,
-    })) as EntryConnection[]
+    `)
+      .all(...connParams, maxConnections)
+      .map((row: any) => ({
+        ...row,
+        isAiSuggested: Boolean(row.isAiSuggested),
+        description: row.description || undefined,
+      })) as EntryConnection[]
 
     // Collect all entry IDs from connections
     const entryIdsInConnections = new Set<string>()
@@ -264,19 +289,28 @@ export class ConnectionRepository {
     }
 
     // Get all entries that participate in connections
-    const placeholders = Array.from(entryIdsInConnections).map(() => '?').join(',')
-    const entries = db.prepare(`
+    const placeholders = Array.from(entryIdsInConnections)
+      .map(() => '?')
+      .join(',')
+    const entries = db
+      .prepare(`
       SELECT DISTINCT e.id, e.raw_text as rawText, e.improved_text as improvedText,
              e.project_id as projectId, e.type, e.action, e.review_status as reviewStatus,
              e.created_at as createdAt
       FROM entries e
       WHERE e.id IN (${placeholders})
       ORDER BY e.created_at DESC
-    `).all(...Array.from(entryIdsInConnections)) as Entry[]
+    `)
+      .all(...Array.from(entryIdsInConnections)) as Entry[]
 
     // Apply minConnections filter
     if (filters?.minConnections && filters.minConnections > 1) {
-      return this.applyMinConnections(entries, connections, filters.minConnections, connections.length >= maxConnections)
+      return this.applyMinConnections(
+        entries,
+        connections,
+        filters.minConnections,
+        connections.length >= maxConnections
+      )
     }
 
     return { entries, connections, truncated: connections.length >= maxConnections }
@@ -294,10 +328,10 @@ export class ConnectionRepository {
       degreeMap.set(conn.targetEntryId, (degreeMap.get(conn.targetEntryId) || 0) + 1)
     }
 
-    const filteredEntries = entries.filter(e => (degreeMap.get(e.id) || 0) >= minConnections)
-    const validIds = new Set(filteredEntries.map(e => e.id))
-    const filteredConnections = connections.filter(c =>
-      validIds.has(c.sourceEntryId) && validIds.has(c.targetEntryId)
+    const filteredEntries = entries.filter((e) => (degreeMap.get(e.id) || 0) >= minConnections)
+    const validIds = new Set(filteredEntries.map((e) => e.id))
+    const filteredConnections = connections.filter(
+      (c) => validIds.has(c.sourceEntryId) && validIds.has(c.targetEntryId)
     )
 
     return { entries: filteredEntries, connections: filteredConnections, truncated }

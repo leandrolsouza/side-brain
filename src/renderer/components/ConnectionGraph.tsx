@@ -1,8 +1,15 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import ForceGraph2D from 'react-force-graph-2d'
 import { RefreshCw, Info, X, Sparkles, Search, Filter, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react'
-import { Entry, EntryConnection, ConnectionType, CONNECTION_TYPE_LABELS, Project, CustomEntryType } from '../../shared/types'
+import {
+  type Entry,
+  type EntryConnection,
+  type ConnectionType,
+  CONNECTION_TYPE_LABELS,
+  type Project,
+  type CustomEntryType,
+} from '../../shared/types'
 import { useApp } from './AppContext'
 
 interface GraphNode {
@@ -62,9 +69,18 @@ type ColorMode = 'type' | 'project'
 
 // Distinct color palette for projects (up to 12, then cycles)
 const PROJECT_PALETTE = [
-  '#4ec9b0', '#569cd6', '#ce9178', '#c586c0', '#dcdcaa',
-  '#d7ba7d', '#9cdcfe', '#b5cea8', '#f44747', '#608b4e',
-  '#d16969', '#6a9955',
+  '#4ec9b0',
+  '#569cd6',
+  '#ce9178',
+  '#c586c0',
+  '#dcdcaa',
+  '#d7ba7d',
+  '#9cdcfe',
+  '#b5cea8',
+  '#f44747',
+  '#608b4e',
+  '#d16969',
+  '#6a9955',
 ]
 
 function getProjectColor(index: number): string {
@@ -84,17 +100,20 @@ export function ConnectionGraph() {
   const isLight = state.theme === 'light'
 
   // Theme-aware colors for canvas rendering
-  const canvasColors = useMemo(() => ({
-    background: isLight ? '#ffffff' : '#1e1e1e',
-    labelText: isLight ? '#333333' : '#cccccc',
-    selectedStroke: isLight ? '#000000' : '#ffffff',
-    tooltipBg: isLight ? '#f3f3f3' : '#252526',
-    tooltipBorder: isLight ? '#cecece' : '#474747',
-    tooltipText: isLight ? '#333333' : '#cccccc',
-    tooltipSecondary: isLight ? '#717171' : '#969696',
-    tooltipShadow: isLight ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.5)',
-    dimmedLink: isLight ? 'rgba(86, 156, 214, 0.12)' : 'rgba(86, 156, 214, 0.08)',
-  }), [isLight])
+  const canvasColors = useMemo(
+    () => ({
+      background: isLight ? '#ffffff' : '#1e1e1e',
+      labelText: isLight ? '#333333' : '#cccccc',
+      selectedStroke: isLight ? '#000000' : '#ffffff',
+      tooltipBg: isLight ? '#f3f3f3' : '#252526',
+      tooltipBorder: isLight ? '#cecece' : '#474747',
+      tooltipText: isLight ? '#333333' : '#cccccc',
+      tooltipSecondary: isLight ? '#717171' : '#969696',
+      tooltipShadow: isLight ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.5)',
+      dimmedLink: isLight ? 'rgba(86, 156, 214, 0.12)' : 'rgba(86, 156, 214, 0.08)',
+    }),
+    [isLight]
+  )
 
   const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] })
   const [isLoading, setIsLoading] = useState(true)
@@ -109,18 +128,15 @@ export function ConnectionGraph() {
   const [colorMode, setColorMode] = useState<ColorMode>('type')
 
   // Maps: key -> label, key -> hex color
-  const typeLabels = useMemo(() =>
-    Object.fromEntries(entryTypes.map(t => [t.key, t.label])),
-    [entryTypes]
-  )
-  const typeColors = useMemo(() =>
-    Object.fromEntries(entryTypes.map(t => [t.key, getNodeColor(t.color)])),
+  const typeLabels = useMemo(() => Object.fromEntries(entryTypes.map((t) => [t.key, t.label])), [entryTypes])
+  const typeColors = useMemo(
+    () => Object.fromEntries(entryTypes.map((t) => [t.key, getNodeColor(t.color)])),
     [entryTypes]
   )
 
   // Project color map: projectId -> hex color
-  const projectColors = useMemo(() =>
-    Object.fromEntries(projects.map((p, i) => [p.id, getProjectColor(i)])),
+  const projectColors = useMemo(
+    () => Object.fromEntries(projects.map((p, i) => [p.id, getProjectColor(i)])),
     [projects]
   )
   // Filters
@@ -198,7 +214,7 @@ export function ConnectionGraph() {
     // Center on first match
     if (matchedNodeIds.size > 0 && graphRef.current) {
       const firstMatchId = Array.from(matchedNodeIds)[0]
-      const node = graphData.nodes.find(n => n.id === firstMatchId)
+      const node = graphData.nodes.find((n) => n.id === firstMatchId)
       if (node && (node as any).x !== undefined) {
         graphRef.current.centerAt((node as any).x, (node as any).y, 400)
         graphRef.current.zoom(2, 400)
@@ -225,7 +241,7 @@ export function ConnectionGraph() {
       hasFilter = true
     }
     if (filterPeriod) {
-      const days = parseInt(filterPeriod)
+      const days = parseInt(filterPeriod, 10)
       const date = new Date()
       date.setDate(date.getDate() - days)
       filters.dateFrom = date.toISOString()
@@ -259,21 +275,18 @@ export function ConnectionGraph() {
       }
 
       // Map project names
-      const projectMap = new Map(projects.map(p => [p.id, p.name]))
+      const projectMap = new Map(projects.map((p) => [p.id, p.name]))
 
       const nodes: GraphNode[] = data.entries.map((entry: Entry) => ({
         id: entry.id,
-        label: entry.improvedText.length > 40
-          ? entry.improvedText.slice(0, 40) + '...'
-          : entry.improvedText,
+        label: entry.improvedText.length > 40 ? `${entry.improvedText.slice(0, 40)}...` : entry.improvedText,
         type: entry.type,
         projectId: entry.projectId,
         projectName: projectMap.get(entry.projectId) || '',
         createdAt: entry.createdAt,
         fullText: entry.improvedText,
-        color: colorMode === 'project'
-          ? (projectColors[entry.projectId] || '#888888')
-          : (typeColors[entry.type] || '#888888'),
+        color:
+          colorMode === 'project' ? projectColors[entry.projectId] || '#888888' : typeColors[entry.type] || '#888888',
         degree: degreeMap.get(entry.id) || 0,
       }))
 
@@ -332,42 +345,45 @@ export function ConnectionGraph() {
     }
   }, [])
 
-  const nodeCanvasObject = useCallback((node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
-    const label = node.label as string
-    const fontSize = Math.max(10 / globalScale, 3)
-    const degree = node.degree || 1
-    // Node size scales with degree (min 4, max 16)
-    const nodeRadius = Math.min(4 + degree * 2, 16)
+  const nodeCanvasObject = useCallback(
+    (node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+      const label = node.label as string
+      const fontSize = Math.max(10 / globalScale, 3)
+      const degree = node.degree || 1
+      // Node size scales with degree (min 4, max 16)
+      const nodeRadius = Math.min(4 + degree * 2, 16)
 
-    const isHighlighted = highlightNodes.size === 0 || highlightNodes.has(node.id)
-    const opacity = isHighlighted ? 1 : 0.15
+      const isHighlighted = highlightNodes.size === 0 || highlightNodes.has(node.id)
+      const opacity = isHighlighted ? 1 : 0.15
 
-    // Draw node circle
-    ctx.beginPath()
-    ctx.arc(node.x, node.y, nodeRadius, 0, 2 * Math.PI)
-    ctx.globalAlpha = opacity
-    ctx.fillStyle = node.color || '#cccccc'
-    ctx.fill()
-
-    // Draw border for selected node
-    if (selectedNode && selectedNode.id === node.id) {
-      ctx.strokeStyle = canvasColors.selectedStroke
-      ctx.lineWidth = 2 / globalScale
-      ctx.stroke()
-    }
-
-    // Draw label if zoomed enough and node is highlighted
-    if (globalScale > 0.8 && isHighlighted) {
-      ctx.font = `${fontSize}px -apple-system, BlinkMacSystemFont, sans-serif`
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'top'
-      ctx.fillStyle = canvasColors.labelText
+      // Draw node circle
+      ctx.beginPath()
+      ctx.arc(node.x, node.y, nodeRadius, 0, 2 * Math.PI)
       ctx.globalAlpha = opacity
-      ctx.fillText(label, node.x, node.y + nodeRadius + 2)
-    }
+      ctx.fillStyle = node.color || '#cccccc'
+      ctx.fill()
 
-    ctx.globalAlpha = 1
-  }, [selectedNode, highlightNodes, canvasColors])
+      // Draw border for selected node
+      if (selectedNode && selectedNode.id === node.id) {
+        ctx.strokeStyle = canvasColors.selectedStroke
+        ctx.lineWidth = 2 / globalScale
+        ctx.stroke()
+      }
+
+      // Draw label if zoomed enough and node is highlighted
+      if (globalScale > 0.8 && isHighlighted) {
+        ctx.font = `${fontSize}px -apple-system, BlinkMacSystemFont, sans-serif`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'top'
+        ctx.fillStyle = canvasColors.labelText
+        ctx.globalAlpha = opacity
+        ctx.fillText(label, node.x, node.y + nodeRadius + 2)
+      }
+
+      ctx.globalAlpha = 1
+    },
+    [selectedNode, highlightNodes, canvasColors]
+  )
 
   const nodePointerAreaPaint = useCallback((node: any, color: string, ctx: CanvasRenderingContext2D) => {
     const degree = node.degree || 1
@@ -378,17 +394,23 @@ export function ConnectionGraph() {
     ctx.fill()
   }, [])
 
-  const linkColor = useCallback((link: any) => {
-    const baseColor = CONNECTION_COLORS[link.connectionType as ConnectionType] || '#569cd6'
-    if (highlightLinks.size === 0) return baseColor
-    if (highlightLinks.has(link.id)) return baseColor
-    return canvasColors.dimmedLink
-  }, [highlightLinks, canvasColors])
+  const linkColor = useCallback(
+    (link: any) => {
+      const baseColor = CONNECTION_COLORS[link.connectionType as ConnectionType] || '#569cd6'
+      if (highlightLinks.size === 0) return baseColor
+      if (highlightLinks.has(link.id)) return baseColor
+      return canvasColors.dimmedLink
+    },
+    [highlightLinks, canvasColors]
+  )
 
-  const linkWidth = useCallback((link: any) => {
-    if (highlightLinks.size > 0 && highlightLinks.has(link.id)) return 2.5
-    return 1
-  }, [highlightLinks])
+  const linkWidth = useCallback(
+    (link: any) => {
+      if (highlightLinks.size > 0 && highlightLinks.has(link.id)) return 2.5
+      return 1
+    },
+    [highlightLinks]
+  )
 
   const linkLabel = useCallback((link: any) => {
     const typeLabel = CONNECTION_TYPE_LABELS[link.connectionType as ConnectionType] || link.connectionType
@@ -396,25 +418,30 @@ export function ConnectionGraph() {
   }, [])
 
   // Legend data
-  const legend = useMemo(() => ({
-    nodeTypes: colorMode === 'type'
-      ? entryTypes.map(t => ({ key: t.key, label: t.label, color: getNodeColor(t.color) }))
-      : projects.map((p, i) => ({ key: p.id, label: p.name, color: getProjectColor(i) })),
-    linkTypes: Object.entries(CONNECTION_COLORS).map(([key, color]) => ({
-      key: key as ConnectionType,
-      color,
-      label: CONNECTION_TYPE_LABELS[key as ConnectionType],
-    })),
-  }), [entryTypes, projects, colorMode])
+  const legend = useMemo(
+    () => ({
+      nodeTypes:
+        colorMode === 'type'
+          ? entryTypes.map((t) => ({ key: t.key, label: t.label, color: getNodeColor(t.color) }))
+          : projects.map((p, i) => ({ key: p.id, label: p.name, color: getProjectColor(i) })),
+      linkTypes: Object.entries(CONNECTION_COLORS).map(([key, color]) => ({
+        key: key as ConnectionType,
+        color,
+        label: CONNECTION_TYPE_LABELS[key as ConnectionType],
+      })),
+    }),
+    [entryTypes, projects, colorMode]
+  )
 
   // Stats
-  const stats = useMemo(() => ({
-    nodes: graphData.nodes.length,
-    links: graphData.links.length,
-    avgDegree: graphData.nodes.length > 0
-      ? (graphData.links.length * 2 / graphData.nodes.length).toFixed(1)
-      : '0',
-  }), [graphData])
+  const stats = useMemo(
+    () => ({
+      nodes: graphData.nodes.length,
+      links: graphData.links.length,
+      avgDegree: graphData.nodes.length > 0 ? ((graphData.links.length * 2) / graphData.nodes.length).toFixed(1) : '0',
+    }),
+    [graphData]
+  )
 
   const hasActiveFilters = filterProjectId || filterPeriod || filterMinConnections > 1 || filterConnectionType
 
@@ -426,12 +453,14 @@ export function ConnectionGraph() {
           <span className="panel-title">{t('connectionGraph.title')}</span>
           {stats.nodes > 0 && (
             <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>
-              {stats.nodes} {t('connectionGraph.nodes')} · {stats.links} {t('connectionGraph.connections')} · {t('connectionGraph.avgDegree')} {stats.avgDegree}
+              {stats.nodes} {t('connectionGraph.nodes')} · {stats.links} {t('connectionGraph.connections')} ·{' '}
+              {t('connectionGraph.avgDegree')} {stats.avgDegree}
             </span>
           )}
         </div>
         <div className="flex-row">
           <button
+            type="button"
             className={`vscode-button secondary ${showFilters ? 'active' : ''}`}
             onClick={() => setShowFilters(!showFilters)}
             title={t('filters')}
@@ -440,6 +469,7 @@ export function ConnectionGraph() {
             {hasActiveFilters && <span className="filter-badge" />}
           </button>
           <button
+            type="button"
             className="vscode-button"
             onClick={handleDiscover}
             disabled={isDiscovering || isLoading}
@@ -449,6 +479,7 @@ export function ConnectionGraph() {
             {isDiscovering ? t('connectionGraph.analyzing') : t('connectionGraph.discover')}
           </button>
           <button
+            type="button"
             className="vscode-button secondary"
             onClick={loadGraphData}
             disabled={isLoading}
@@ -471,21 +502,21 @@ export function ConnectionGraph() {
                 onChange={(e) => setFilterProjectId(e.target.value)}
               >
                 <option value="">{t('all')}</option>
-                {projects.map(p => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
                 ))}
               </select>
             </div>
 
             <div className="graph-filter-item">
               <label>{t('connectionGraph.filterPeriod')}</label>
-              <select
-                className="vscode-select"
-                value={filterPeriod}
-                onChange={(e) => setFilterPeriod(e.target.value)}
-              >
-                {PERIOD_OPTIONS.map(opt => (
-                  <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>
+              <select className="vscode-select" value={filterPeriod} onChange={(e) => setFilterPeriod(e.target.value)}>
+                {PERIOD_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {t(opt.labelKey)}
+                  </option>
                 ))}
               </select>
             </div>
@@ -499,7 +530,9 @@ export function ConnectionGraph() {
               >
                 <option value="">{t('all')}</option>
                 {Object.entries(CONNECTION_TYPE_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>{label}</option>
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -510,7 +543,7 @@ export function ConnectionGraph() {
                 type="number"
                 className="vscode-input"
                 value={filterMinConnections}
-                onChange={(e) => setFilterMinConnections(Math.max(1, parseInt(e.target.value) || 1))}
+                onChange={(e) => setFilterMinConnections(Math.max(1, parseInt(e.target.value, 10) || 1))}
                 min={1}
                 max={20}
                 style={{ width: 60 }}
@@ -518,9 +551,13 @@ export function ConnectionGraph() {
             </div>
 
             <div className="graph-filter-actions">
-              <button className="vscode-button" onClick={handleApplyFilters}>{t('apply')}</button>
+              <button type="button" className="vscode-button" onClick={handleApplyFilters}>
+                {t('apply')}
+              </button>
               {hasActiveFilters && (
-                <button className="vscode-button secondary" onClick={handleClearFilters}>{t('clear')}</button>
+                <button type="button" className="vscode-button secondary" onClick={handleClearFilters}>
+                  {t('clear')}
+                </button>
               )}
             </div>
           </div>
@@ -529,19 +566,26 @@ export function ConnectionGraph() {
 
       {/* Discovery result toast */}
       {discoveryResult && (
-        <div style={{
-          padding: '8px 12px',
-          fontSize: 12,
-          background: 'var(--vscode-inputValidation-infoBackground, #063b49)',
-          border: '1px solid var(--vscode-inputValidation-infoBorder, #007acc)',
-          borderRadius: 4,
-          margin: '0 8px 8px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
+        <div
+          style={{
+            padding: '8px 12px',
+            fontSize: 12,
+            background: 'var(--vscode-inputValidation-infoBackground, #063b49)',
+            border: '1px solid var(--vscode-inputValidation-infoBorder, #007acc)',
+            borderRadius: 4,
+            margin: '0 8px 8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
           <span>{discoveryResult}</span>
-          <button className="icon-button" onClick={() => setDiscoveryResult(null)} style={{ marginLeft: 8 }}>
+          <button
+            type="button"
+            className="icon-button"
+            onClick={() => setDiscoveryResult(null)}
+            style={{ marginLeft: 8 }}
+          >
             <X size={12} />
           </button>
         </div>
@@ -549,17 +593,19 @@ export function ConnectionGraph() {
 
       {/* Truncation warning */}
       {isTruncated && !isLoading && (
-        <div style={{
-          padding: '6px 12px',
-          fontSize: 11,
-          background: 'var(--vscode-inputValidation-warningBackground, #352a05)',
-          border: '1px solid var(--vscode-inputValidation-warningBorder, #cca700)',
-          borderRadius: 4,
-          margin: '0 8px 8px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-        }}>
+        <div
+          style={{
+            padding: '6px 12px',
+            fontSize: 11,
+            background: 'var(--vscode-inputValidation-warningBackground, #352a05)',
+            border: '1px solid var(--vscode-inputValidation-warningBorder, #cca700)',
+            borderRadius: 4,
+            margin: '0 8px 8px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
           <Info size={13} style={{ flexShrink: 0, color: 'var(--vscode-inputValidation-warningBorder, #cca700)' }} />
           <span>{t('connectionGraph.truncatedWarning')}</span>
         </div>
@@ -568,7 +614,10 @@ export function ConnectionGraph() {
       {/* Graph area */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
         {graphData.nodes.length === 0 && !isLoading ? (
-          <div className="empty-state" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div
+            className="empty-state"
+            style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
             <div style={{ textAlign: 'center' }}>
               <Info size={32} style={{ opacity: 0.4, marginBottom: 8 }} />
               <span className="empty-state-text">
@@ -577,9 +626,7 @@ export function ConnectionGraph() {
                   : t('connectionGraph.noConnectionsEmpty')}
               </span>
               <p style={{ fontSize: 12, color: 'var(--vscode-descriptionForeground)', marginTop: 4 }}>
-                {hasActiveFilters
-                  ? t('connectionGraph.hintFiltered')
-                  : t('connectionGraph.hintEmpty')}
+                {hasActiveFilters ? t('connectionGraph.hintFiltered') : t('connectionGraph.hintEmpty')}
               </p>
             </div>
           </div>
@@ -630,7 +677,7 @@ export function ConnectionGraph() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
           {searchQuery && (
-            <button className="icon-button" onClick={() => setSearchQuery('')} style={{ padding: 2 }}>
+            <button type="button" className="icon-button" onClick={() => setSearchQuery('')} style={{ padding: 2 }}>
               <X size={12} />
             </button>
           )}
@@ -644,6 +691,7 @@ export function ConnectionGraph() {
         {/* Color mode toggle */}
         <div className="graph-color-toggle">
           <button
+            type="button"
             className={`graph-toggle-btn ${colorMode === 'type' ? 'active' : ''}`}
             onClick={() => setColorMode('type')}
             title={t('connectionGraph.colorByType')}
@@ -651,6 +699,7 @@ export function ConnectionGraph() {
             {t('connectionGraph.colorByType')}
           </button>
           <button
+            type="button"
             className={`graph-toggle-btn ${colorMode === 'project' ? 'active' : ''}`}
             onClick={() => setColorMode('project')}
             title={t('connectionGraph.colorByProject')}
@@ -662,6 +711,7 @@ export function ConnectionGraph() {
         {/* Zoom controls */}
         <div className="graph-zoom-controls">
           <button
+            type="button"
             className="graph-zoom-btn"
             onClick={() => graphRef.current?.zoom(graphRef.current.zoom() * 1.5, 300)}
             title={t('connectionGraph.zoomIn')}
@@ -669,6 +719,7 @@ export function ConnectionGraph() {
             <ZoomIn size={16} />
           </button>
           <button
+            type="button"
             className="graph-zoom-btn"
             onClick={() => graphRef.current?.zoom(graphRef.current.zoom() / 1.5, 300)}
             title={t('connectionGraph.zoomOut')}
@@ -676,6 +727,7 @@ export function ConnectionGraph() {
             <ZoomOut size={16} />
           </button>
           <button
+            type="button"
             className="graph-zoom-btn"
             onClick={() => graphRef.current?.zoomToFit(400, 40)}
             title={t('connectionGraph.fitToScreen')}
@@ -721,7 +773,7 @@ export function ConnectionGraph() {
           <div className="graph-detail-panel">
             <div className="graph-detail-header">
               <span style={{ fontWeight: 500 }}>{t('connectionGraph.entryDetails')}</span>
-              <button className="icon-button" onClick={() => setSelectedNode(null)}>
+              <button type="button" className="icon-button" onClick={() => setSelectedNode(null)}>
                 <X size={14} />
               </button>
             </div>
@@ -739,9 +791,7 @@ export function ConnectionGraph() {
                   {new Date(selectedNode.createdAt).toLocaleDateString('pt-BR')}
                 </span>
               </div>
-              <p style={{ fontSize: 12, lineHeight: 1.4 }}>
-                {selectedNode.fullText}
-              </p>
+              <p style={{ fontSize: 12, lineHeight: 1.4 }}>{selectedNode.fullText}</p>
               <div style={{ marginTop: 8, fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>
                 {t('connectionGraph.connectionCount', { count: selectedNode.degree })}
               </div>

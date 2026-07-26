@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { AlertCircle, CheckCircle2 } from 'lucide-react'
 
 interface StatusBarErrorIndicatorProps {
@@ -9,7 +9,10 @@ export function StatusBarErrorIndicator({ onClick }: StatusBarErrorIndicatorProp
   const [count, setCount] = useState(0)
 
   useEffect(() => {
-    window.electronAPI.getUnresolvedErrorCount().then(setCount).catch(() => {})
+    window.electronAPI
+      .getUnresolvedErrorCount()
+      .then(setCount)
+      .catch(() => {})
     window.electronAPI.onErrorCountChanged((c) => setCount(c))
   }, [])
 
@@ -17,7 +20,11 @@ export function StatusBarErrorIndicator({ onClick }: StatusBarErrorIndicatorProp
     <div
       className={`status-bar-item clickable error-indicator ${count > 0 ? 'has-errors' : ''}`}
       onClick={onClick}
-      title={count > 0 ? `${count} erro${count > 1 ? 's' : ''} não resolvido${count > 1 ? 's' : ''} — clique para abrir` : 'Sistema sem erros'}
+      title={
+        count > 0
+          ? `${count} erro${count > 1 ? 's' : ''} não resolvido${count > 1 ? 's' : ''} — clique para abrir`
+          : 'Sistema sem erros'
+      }
     >
       {count > 0 ? (
         <>

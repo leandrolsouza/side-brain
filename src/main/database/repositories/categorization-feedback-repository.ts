@@ -48,7 +48,8 @@ export class CategorizationFeedbackRepository {
    */
   getRecentExamples(limit = 5): CategorizationFeedback[] {
     const db = getDatabase()
-    return db.prepare(`
+    return db
+      .prepare(`
       SELECT id, raw_text as rawText, ai_type as aiType, ai_action as aiAction,
              ai_project_id as aiProjectId, corrected_type as correctedType,
              corrected_action as correctedAction, corrected_project_id as correctedProjectId,
@@ -56,7 +57,8 @@ export class CategorizationFeedbackRepository {
       FROM categorization_feedback
       ORDER BY created_at DESC
       LIMIT ?
-    `).all(limit) as CategorizationFeedback[]
+    `)
+      .all(limit) as CategorizationFeedback[]
   }
 
   /**

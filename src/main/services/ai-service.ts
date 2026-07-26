@@ -1,22 +1,35 @@
-import { AICategorizationResult, AIOperationType, AppSettings, MeetingProcessResult, Project, CustomEntryType, CustomActionStatus } from '../../shared/types'
-import { CustomFieldsRepository } from '../database/repositories/custom-fields-repository'
-import { CategorizationFeedbackRepository } from '../database/repositories/categorization-feedback-repository'
-import { EntryRepository } from '../database/repositories/entry-repository'
-import { AIProvider } from './ai-provider'
+import type {
+  AICategorizationResult,
+  AIOperationType,
+  AppSettings,
+  MeetingProcessResult,
+  Project,
+  CustomEntryType,
+  CustomActionStatus,
+} from '../../shared/types'
+import type { CustomFieldsRepository } from '../database/repositories/custom-fields-repository'
+import type { CategorizationFeedbackRepository } from '../database/repositories/categorization-feedback-repository'
+import type { EntryRepository } from '../database/repositories/entry-repository'
+import type { AIProvider } from './ai-provider'
 import { t, getLocale } from '../i18n'
 
 function buildCategorizationPrompt(entryTypes: CustomEntryType[], actionStatuses: CustomActionStatus[]): string {
-  const typeKeys = entryTypes.map(t => t.key).join(', ')
-  const actionKeys = actionStatuses.filter(s => s.key !== 'done').map(s => s.key).join(', ')
-  const noActionTypes = entryTypes.filter(t => !t.allowsAction).map(t => t.key)
-  const actionTypes = entryTypes.filter(t => t.allowsAction).map(t => t.key)
+  const typeKeys = entryTypes.map((t) => t.key).join(', ')
+  const actionKeys = actionStatuses
+    .filter((s) => s.key !== 'done')
+    .map((s) => s.key)
+    .join(', ')
+  const noActionTypes = entryTypes.filter((t) => !t.allowsAction).map((t) => t.key)
+  const actionTypes = entryTypes.filter((t) => t.allowsAction).map((t) => t.key)
 
-  const noActionRules = noActionTypes.length > 0
-    ? noActionTypes.map(type => t('prompts.categorization.no_action_rule', { type })).join('\n')
-    : ''
-  const actionRules = actionTypes.length > 0
-    ? t('prompts.categorization.action_rule', { types: actionTypes.map(type => `"${type}"`).join(', ') })
-    : ''
+  const noActionRules =
+    noActionTypes.length > 0
+      ? noActionTypes.map((type) => t('prompts.categorization.no_action_rule', { type })).join('\n')
+      : ''
+  const actionRules =
+    actionTypes.length > 0
+      ? t('prompts.categorization.action_rule', { types: actionTypes.map((type) => `"${type}"`).join(', ') })
+      : ''
 
   return t('prompts.categorization.system', { typeKeys, actionKeys, noActionRules, actionRules })
 }
@@ -27,13 +40,9 @@ export class AIService {
     private customFieldsRepo: CustomFieldsRepository,
     private feedbackRepo?: CategorizationFeedbackRepository,
     private entryRepo?: EntryRepository
-  ) { }
+  ) {}
 
-  async categorize(
-    rawText: string,
-    projects: Project[],
-    settings: AppSettings
-  ): Promise<AICategorizationResult> {
+  async categorize(rawText: string, projects: Project[], settings: AppSettings): Promise<AICategorizationResult> {
     const projectList = projects
       .map((p) => `- ${p.id}: ${p.name}${p.description ? ` (${p.description})` : ''}`)
       .join('\n')
@@ -50,11 +59,11 @@ export class AIService {
     let userMessage = ''
 
     if (fewShotSection) {
-      userMessage += fewShotSection + '\n\n'
+      userMessage += `${fewShotSection}\n\n`
     }
 
     if (temporalSection) {
-      userMessage += temporalSection + '\n\n'
+      userMessage += `${temporalSection}\n\n`
     }
 
     userMessage += t('prompts.categorization.user_message', {
@@ -62,12 +71,7 @@ export class AIService {
       rawText,
     })
 
-    const responseText = await this.provider.invoke(
-      categorizationPrompt,
-      userMessage,
-      settings,
-      'categorization'
-    )
+    const responseText = await this.provider.invoke(categorizationPrompt, userMessage, settings, 'categorization')
 
     // Extract JSON from response (handle possible markdown code blocks)
     const jsonMatch = responseText.match(/\{[\s\S]*\}/)
@@ -145,16 +149,13 @@ export class AIService {
     // Build batch prompt
     const numberedTexts = paragraphs.map((p, i) => `[${i + 1}] "${p}"`).join('\n\n')
 
-    const batchSystemPrompt = categorizationPrompt + `\n\nIMPORTANTE: Você receberá MÚLTIPLOS textos numerados. Retorne um ARRAY JSON com um objeto para cada texto, na mesma ordem. O formato de cada objeto é o mesmo descrito acima.`
+    const batchSystemPrompt =
+      categorizationPrompt +
+      `\n\nIMPORTANTE: Você receberá MÚLTIPLOS textos numerados. Retorne um ARRAY JSON com um objeto para cada texto, na mesma ordem. O formato de cada objeto é o mesmo descrito acima.`
 
     const userMessage = `Projetos existentes:\n${projectList || '(nenhum projeto cadastrado)'}\n\nTextos para categorizar:\n${numberedTexts}`
 
-    const responseText = await this.provider.invoke(
-      batchSystemPrompt,
-      userMessage,
-      settings,
-      'categorization'
-    )
+    const responseText = await this.provider.invoke(batchSystemPrompt, userMessage, settings, 'categorization')
 
     // Extract JSON array from response
     const jsonMatch = responseText.match(/\[[\s\S]*\]/)
@@ -164,7 +165,9 @@ export class AIService {
         if (Array.isArray(results) && results.length > 0) {
           return results
         }
-      } catch { /* fallback below */ }
+      } catch {
+        /* fallback below */
+      }
     }
 
     // Fallback: try to find individual JSON objects
@@ -174,7 +177,9 @@ export class AIService {
       for (const match of objectMatches) {
         try {
           results.push(JSON.parse(match) as AICategorizationResult)
-        } catch { /* skip malformed */ }
+        } catch {
+          /* skip malformed */
+        }
       }
       if (results.length > 0) return results
     }
@@ -194,13 +199,13 @@ export class AIService {
     tasks: { title: string; status: string; description?: string }[],
     settings: AppSettings
   ): Promise<string> {
-    const entriesText = entries
-      .map((e) => `[${e.type}][${e.action}] ${e.improvedText} (${e.createdAt})`)
-      .join('\n')
+    const entriesText = entries.map((e) => `[${e.type}][${e.action}] ${e.improvedText} (${e.createdAt})`).join('\n')
 
-    const tasksText = tasks.length > 0
-      ? '\n\nTasks no Kanban:\n' + tasks.map((t) => `[${t.status}] ${t.title}${t.description ? ` - ${t.description}` : ''}`).join('\n')
-      : ''
+    const tasksText =
+      tasks.length > 0
+        ? '\n\nTasks no Kanban:\n' +
+          tasks.map((t) => `[${t.status}] ${t.title}${t.description ? ` - ${t.description}` : ''}`).join('\n')
+        : ''
 
     const systemPrompt = t('prompts.summary.system')
     const userMessage = t('prompts.summary.user_message', { projectName, entriesText, tasksText })
@@ -218,9 +223,7 @@ export class AIService {
   ): Promise<MeetingProcessResult> {
     const hasExistingTasks = existingTasks && existingTasks.length > 0
 
-    const similarityInstructions = hasExistingTasks
-      ? t('prompts.meeting_processing.similarity_instructions')
-      : ''
+    const similarityInstructions = hasExistingTasks ? t('prompts.meeting_processing.similarity_instructions') : ''
 
     const assigneeInstructions = t('prompts.meeting_processing.assignee_instructions')
 
@@ -229,18 +232,17 @@ export class AIService {
       similarityInstructions,
     })
 
-    const participantsText = participants.length > 0
-      ? t('prompts.meeting_processing.participants_text', { participants: participants.join(', ') })
-      : ''
+    const participantsText =
+      participants.length > 0
+        ? t('prompts.meeting_processing.participants_text', { participants: participants.join(', ') })
+        : ''
 
-    const userNameText = userName
-      ? t('prompts.meeting_processing.user_name_text', { userName })
-      : ''
+    const userNameText = userName ? t('prompts.meeting_processing.user_name_text', { userName }) : ''
 
     const existingTasksText = hasExistingTasks
       ? t('prompts.meeting_processing.existing_tasks_text', {
-        tasksList: existingTasks!.map((task) => `- [${task.id}] "${task.title}" (status: ${task.status})`).join('\n'),
-      })
+          tasksList: existingTasks!.map((task) => `- [${task.id}] "${task.title}" (status: ${task.status})`).join('\n'),
+        })
       : ''
 
     const userMessage = t('prompts.meeting_processing.user_header', {
@@ -280,7 +282,12 @@ export class AIService {
     const fixPrompt = t('prompts.meeting_processing.json_fix')
 
     try {
-      const fixedText = await this.provider.invoke(fixPrompt, malformedJson.slice(0, 8000), settings, 'meeting_processing')
+      const fixedText = await this.provider.invoke(
+        fixPrompt,
+        malformedJson.slice(0, 8000),
+        settings,
+        'meeting_processing'
+      )
       const fixedMatch = fixedText.match(/\{[\s\S]*\}/)
       if (!fixedMatch) return null
       return this.parseJsonSafe(fixedMatch[0])
@@ -293,13 +300,17 @@ export class AIService {
     // Attempt 1: direct parse
     try {
       return JSON.parse(raw)
-    } catch { /* continue */ }
+    } catch {
+      /* continue */
+    }
 
     // Attempt 2: remove trailing commas
     let sanitized = raw.replace(/,\s*([\]}])/g, '$1')
     try {
       return JSON.parse(sanitized)
-    } catch { /* continue */ }
+    } catch {
+      /* continue */
+    }
 
     // Attempt 3: fix unescaped newlines inside string values
     sanitized = sanitized.replace(/"([^"\\]*(\\.[^"\\]*)*)"/g, (match) => {
@@ -307,14 +318,18 @@ export class AIService {
     })
     try {
       return JSON.parse(sanitized)
-    } catch { /* continue */ }
+    } catch {
+      /* continue */
+    }
 
     // Attempt 4: more aggressive — try to find valid JSON by trimming from the end
     for (let i = sanitized.length; i > 100; i--) {
       if (sanitized[i - 1] === '}') {
         try {
           return JSON.parse(sanitized.substring(0, i))
-        } catch { /* continue */ }
+        } catch {
+          /* continue */
+        }
       }
     }
 
@@ -322,21 +337,27 @@ export class AIService {
   }
 
   async generateGlobalSummary(
-    projectsData: { name: string; entries: { improvedText: string; type: string; action: string; createdAt: string }[]; tasks: { title: string; status: string }[] }[],
+    projectsData: {
+      name: string
+      entries: { improvedText: string; type: string; action: string; createdAt: string }[]
+      tasks: { title: string; status: string }[]
+    }[],
     settings: AppSettings
   ): Promise<string> {
     const systemPrompt = t('prompts.global_summary.system')
 
-    const projectsSummaryText = projectsData.map((p) => {
-      const entriesText = p.entries.slice(0, 5)
-        .map((e) => `  [${e.type}][${e.action}] ${e.improvedText}`)
-        .join('\n')
-      const pendingTasks = p.tasks.filter((task) => task.status !== 'done')
-      const tasksText = pendingTasks.length > 0
-        ? '\n  Tasks pendentes: ' + pendingTasks.map((task) => task.title).join(', ')
-        : ''
-      return `### ${p.name}\n${entriesText}${tasksText}`
-    }).join('\n\n')
+    const projectsSummaryText = projectsData
+      .map((p) => {
+        const entriesText = p.entries
+          .slice(0, 5)
+          .map((e) => `  [${e.type}][${e.action}] ${e.improvedText}`)
+          .join('\n')
+        const pendingTasks = p.tasks.filter((task) => task.status !== 'done')
+        const tasksText =
+          pendingTasks.length > 0 ? `\n  Tasks pendentes: ${pendingTasks.map((task) => task.title).join(', ')}` : ''
+        return `### ${p.name}\n${entriesText}${tasksText}`
+      })
+      .join('\n\n')
 
     const userMessage = t('prompts.global_summary.user_message', { projectsSummaryText })
 
@@ -346,11 +367,7 @@ export class AIService {
   /**
    * Public wrapper for invokeConverse, used by other services (e.g. DigestService).
    */
-  async invokeConversePublic(
-    systemPrompt: string,
-    userMessage: string,
-    settings: AppSettings
-  ): Promise<string> {
+  async invokeConversePublic(systemPrompt: string, userMessage: string, settings: AppSettings): Promise<string> {
     return this.provider.invoke(systemPrompt, userMessage, settings, 'digest')
   }
 
@@ -379,9 +396,9 @@ export class AIService {
     const locale = getLocale()
     const systemPrompt = t('prompts.connections.system')
 
-    const entriesText = entries.map((e) =>
-      `[${e.id}] (${e.type}, ${new Date(e.createdAt).toLocaleDateString(locale)}): ${e.improvedText}`
-    ).join('\n')
+    const entriesText = entries
+      .map((e) => `[${e.id}] (${e.type}, ${new Date(e.createdAt).toLocaleDateString(locale)}): ${e.improvedText}`)
+      .join('\n')
 
     const userMessage = t('prompts.connections.user_message', { entriesText })
 
@@ -395,11 +412,16 @@ export class AIService {
       if (!parsed.connections || !Array.isArray(parsed.connections)) return []
 
       // Validate that IDs exist in the input
-      const validIds = new Set(entries.map(e => e.id))
-      return parsed.connections.filter((c: any) =>
-        c.sourceId && c.targetId && c.connectionType && c.reason &&
-        validIds.has(c.sourceId) && validIds.has(c.targetId) &&
-        c.sourceId !== c.targetId
+      const validIds = new Set(entries.map((e) => e.id))
+      return parsed.connections.filter(
+        (c: any) =>
+          c.sourceId &&
+          c.targetId &&
+          c.connectionType &&
+          c.reason &&
+          validIds.has(c.sourceId) &&
+          validIds.has(c.targetId) &&
+          c.sourceId !== c.targetId
       )
     } catch {
       return []
@@ -414,24 +436,24 @@ export class AIService {
     templateId: string,
     filledFields: Record<string, string>
   ): Promise<Record<string, string>> {
-    const template = this.customFieldsRepo.getStructuredTemplates().find(t => t.id === templateId)
+    const template = this.customFieldsRepo.getStructuredTemplates().find((t) => t.id === templateId)
     if (!template) return {}
 
     const { settingsRepo } = require('./container').getContainer()
     const settings = settingsRepo.get()
 
-    const autoFillFields = template.fields.filter(f => f.aiAutoFill && !filledFields[f.key])
+    const autoFillFields = template.fields.filter((f) => f.aiAutoFill && !filledFields[f.key])
     if (autoFillFields.length === 0) return {}
 
     const filledContext = Object.entries(filledFields)
       .filter(([_, v]) => v.trim())
       .map(([key, value]) => {
-        const field = template.fields.find(f => f.key === key)
+        const field = template.fields.find((f) => f.key === key)
         return `${field?.label || key}: ${value}`
       })
       .join('\n')
 
-    const fieldsToFill = autoFillFields.map(f => `- ${f.key} (${f.label}): ${f.placeholder || 'sem dica'}`).join('\n')
+    const fieldsToFill = autoFillFields.map((f) => `- ${f.key} (${f.label}): ${f.placeholder || 'sem dica'}`).join('\n')
 
     const systemPrompt = `Você é um assistente de produtividade que ajuda a preencher campos de formulários com base no contexto fornecido.
 Responda APENAS com um JSON válido contendo os campos preenchidos, sem explicações adicionais.

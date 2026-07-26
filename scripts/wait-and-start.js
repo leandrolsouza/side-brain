@@ -2,9 +2,9 @@
  * Waits for the TypeScript compilation to produce the main entry file,
  * then launches Electron in development mode.
  */
-const { spawn } = require('child_process')
-const fs = require('fs')
-const path = require('path')
+const { spawn } = require('node:child_process')
+const fs = require('node:fs')
+const path = require('node:path')
 
 const ENTRY = path.join(__dirname, '..', 'dist', 'main', 'main', 'index.js')
 const MAX_WAIT = 30000

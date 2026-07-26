@@ -1,5 +1,6 @@
 import { safeHandle } from './safe-handle'
 import { getContainer } from '../services/container'
+import type { TeamCreateData, TeamUpdateData } from '../../shared/types'
 
 export function registerTeamHandlers(): void {
   const { teamExecutionService } = getContainer()
@@ -14,11 +15,11 @@ export function registerTeamHandlers(): void {
     return teamExecutionService.getTeamById(id)
   })
 
-  safeHandle('team:create', async (_event, data: any) => {
+  safeHandle('team:create', async (_event, data: TeamCreateData) => {
     return teamExecutionService.createTeam(data)
   })
 
-  safeHandle('team:update', async (_event, id: string, data: any) => {
+  safeHandle('team:update', async (_event, id: string, data: TeamUpdateData) => {
     return teamExecutionService.updateTeam(id, data)
   })
 

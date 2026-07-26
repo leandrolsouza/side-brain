@@ -51,8 +51,24 @@ describe('CustomFieldsRepository', () => {
 
     describe('getEntryTypes', () => {
       it('deve retornar tipos ordenados por sortOrder', () => {
-        repo.createEntryType({ key: 'b_type', label: 'B', icon: 'X', color: 'info', isDefault: false, sortOrder: 2, allowsAction: true })
-        repo.createEntryType({ key: 'a_type', label: 'A', icon: 'X', color: 'info', isDefault: false, sortOrder: 1, allowsAction: true })
+        repo.createEntryType({
+          key: 'b_type',
+          label: 'B',
+          icon: 'X',
+          color: 'info',
+          isDefault: false,
+          sortOrder: 2,
+          allowsAction: true,
+        })
+        repo.createEntryType({
+          key: 'a_type',
+          label: 'A',
+          icon: 'X',
+          color: 'info',
+          isDefault: false,
+          sortOrder: 1,
+          allowsAction: true,
+        })
 
         const types = repo.getEntryTypes()
         expect(types[0].key).toBe('a_type')
@@ -66,7 +82,15 @@ describe('CustomFieldsRepository', () => {
 
     describe('getEntryTypeByKey', () => {
       it('deve retornar tipo pela key', () => {
-        repo.createEntryType({ key: 'feedback', label: 'Feedback', icon: 'X', color: 'info', isDefault: false, sortOrder: 0, allowsAction: true })
+        repo.createEntryType({
+          key: 'feedback',
+          label: 'Feedback',
+          icon: 'X',
+          color: 'info',
+          isDefault: false,
+          sortOrder: 0,
+          allowsAction: true,
+        })
 
         const found = repo.getEntryTypeByKey('feedback')
         expect(found).not.toBeNull()
@@ -80,7 +104,15 @@ describe('CustomFieldsRepository', () => {
 
     describe('updateEntryType', () => {
       it('deve atualizar campos do entry type', () => {
-        const type = repo.createEntryType({ key: 'feedback', label: 'Feedback', icon: 'X', color: 'info', isDefault: false, sortOrder: 0, allowsAction: true })
+        const type = repo.createEntryType({
+          key: 'feedback',
+          label: 'Feedback',
+          icon: 'X',
+          color: 'info',
+          isDefault: false,
+          sortOrder: 0,
+          allowsAction: true,
+        })
 
         const updated = repo.updateEntryType(type.id, { label: 'Feedback do Cliente', color: 'warning' })
         expect(updated).not.toBeNull()
@@ -94,7 +126,15 @@ describe('CustomFieldsRepository', () => {
       })
 
       it('deve retornar tipo inalterado quando updates está vazio', () => {
-        const type = repo.createEntryType({ key: 'test', label: 'Test', icon: 'X', color: 'info', isDefault: false, sortOrder: 0, allowsAction: true })
+        const type = repo.createEntryType({
+          key: 'test',
+          label: 'Test',
+          icon: 'X',
+          color: 'info',
+          isDefault: false,
+          sortOrder: 0,
+          allowsAction: true,
+        })
 
         const result = repo.updateEntryType(type.id, {})
         expect(result!.label).toBe('Test')
@@ -103,7 +143,15 @@ describe('CustomFieldsRepository', () => {
 
     describe('deleteEntryType', () => {
       it('deve excluir tipo não-default', () => {
-        const type = repo.createEntryType({ key: 'custom', label: 'Custom', icon: 'X', color: 'info', isDefault: false, sortOrder: 0, allowsAction: true })
+        const type = repo.createEntryType({
+          key: 'custom',
+          label: 'Custom',
+          icon: 'X',
+          color: 'info',
+          isDefault: false,
+          sortOrder: 0,
+          allowsAction: true,
+        })
 
         const deleted = repo.deleteEntryType(type.id)
         expect(deleted).toBe(true)
@@ -111,7 +159,15 @@ describe('CustomFieldsRepository', () => {
       })
 
       it('não deve excluir tipo default', () => {
-        const type = repo.createEntryType({ key: 'builtin', label: 'Built-in', icon: 'X', color: 'info', isDefault: true, sortOrder: 0, allowsAction: true })
+        const type = repo.createEntryType({
+          key: 'builtin',
+          label: 'Built-in',
+          icon: 'X',
+          color: 'info',
+          isDefault: true,
+          sortOrder: 0,
+          allowsAction: true,
+        })
 
         const deleted = repo.deleteEntryType(type.id)
         expect(deleted).toBe(false)
@@ -125,9 +181,33 @@ describe('CustomFieldsRepository', () => {
 
     describe('reorderEntryTypes', () => {
       it('deve reordenar tipos por IDs', () => {
-        const t1 = repo.createEntryType({ key: 'first', label: 'First', icon: 'X', color: 'info', isDefault: false, sortOrder: 0, allowsAction: true })
-        const t2 = repo.createEntryType({ key: 'second', label: 'Second', icon: 'X', color: 'info', isDefault: false, sortOrder: 1, allowsAction: true })
-        const t3 = repo.createEntryType({ key: 'third', label: 'Third', icon: 'X', color: 'info', isDefault: false, sortOrder: 2, allowsAction: true })
+        const t1 = repo.createEntryType({
+          key: 'first',
+          label: 'First',
+          icon: 'X',
+          color: 'info',
+          isDefault: false,
+          sortOrder: 0,
+          allowsAction: true,
+        })
+        const t2 = repo.createEntryType({
+          key: 'second',
+          label: 'Second',
+          icon: 'X',
+          color: 'info',
+          isDefault: false,
+          sortOrder: 1,
+          allowsAction: true,
+        })
+        const t3 = repo.createEntryType({
+          key: 'third',
+          label: 'Third',
+          icon: 'X',
+          color: 'info',
+          isDefault: false,
+          sortOrder: 2,
+          allowsAction: true,
+        })
 
         // Inverte a ordem
         repo.reorderEntryTypes([t3.id, t1.id, t2.id])
@@ -164,8 +244,24 @@ describe('CustomFieldsRepository', () => {
 
     describe('getActionStatuses', () => {
       it('deve retornar statuses ordenados por sortOrder', () => {
-        repo.createActionStatus({ key: 'z', label: 'Z', icon: 'X', color: 'info', isDefault: false, isFinal: false, sortOrder: 2 })
-        repo.createActionStatus({ key: 'a', label: 'A', icon: 'X', color: 'info', isDefault: false, isFinal: false, sortOrder: 1 })
+        repo.createActionStatus({
+          key: 'z',
+          label: 'Z',
+          icon: 'X',
+          color: 'info',
+          isDefault: false,
+          isFinal: false,
+          sortOrder: 2,
+        })
+        repo.createActionStatus({
+          key: 'a',
+          label: 'A',
+          icon: 'X',
+          color: 'info',
+          isDefault: false,
+          isFinal: false,
+          sortOrder: 1,
+        })
 
         const statuses = repo.getActionStatuses()
         expect(statuses[0].key).toBe('a')
@@ -175,7 +271,15 @@ describe('CustomFieldsRepository', () => {
 
     describe('getActionStatusByKey', () => {
       it('deve retornar status pela key', () => {
-        repo.createActionStatus({ key: 'blocked', label: 'Bloqueado', icon: 'X', color: 'error', isDefault: false, isFinal: false, sortOrder: 0 })
+        repo.createActionStatus({
+          key: 'blocked',
+          label: 'Bloqueado',
+          icon: 'X',
+          color: 'error',
+          isDefault: false,
+          isFinal: false,
+          sortOrder: 0,
+        })
 
         const found = repo.getActionStatusByKey('blocked')
         expect(found).not.toBeNull()
@@ -189,7 +293,15 @@ describe('CustomFieldsRepository', () => {
 
     describe('updateActionStatus', () => {
       it('deve atualizar campos do action status', () => {
-        const status = repo.createActionStatus({ key: 'blocked', label: 'Bloqueado', icon: 'Ban', color: 'error', isDefault: false, isFinal: false, sortOrder: 0 })
+        const status = repo.createActionStatus({
+          key: 'blocked',
+          label: 'Bloqueado',
+          icon: 'Ban',
+          color: 'error',
+          isDefault: false,
+          isFinal: false,
+          sortOrder: 0,
+        })
 
         const updated = repo.updateActionStatus(status.id, { label: 'Impedido', isFinal: true })
         expect(updated).not.toBeNull()
@@ -204,14 +316,30 @@ describe('CustomFieldsRepository', () => {
 
     describe('deleteActionStatus', () => {
       it('deve excluir status não-default', () => {
-        const status = repo.createActionStatus({ key: 'custom', label: 'Custom', icon: 'X', color: 'info', isDefault: false, isFinal: false, sortOrder: 0 })
+        const status = repo.createActionStatus({
+          key: 'custom',
+          label: 'Custom',
+          icon: 'X',
+          color: 'info',
+          isDefault: false,
+          isFinal: false,
+          sortOrder: 0,
+        })
 
         expect(repo.deleteActionStatus(status.id)).toBe(true)
         expect(repo.getActionStatusByKey('custom')).toBeNull()
       })
 
       it('não deve excluir status default', () => {
-        const status = repo.createActionStatus({ key: 'builtin', label: 'Built-in', icon: 'X', color: 'info', isDefault: true, isFinal: false, sortOrder: 0 })
+        const status = repo.createActionStatus({
+          key: 'builtin',
+          label: 'Built-in',
+          icon: 'X',
+          color: 'info',
+          isDefault: true,
+          isFinal: false,
+          sortOrder: 0,
+        })
 
         expect(repo.deleteActionStatus(status.id)).toBe(false)
       })
@@ -219,8 +347,24 @@ describe('CustomFieldsRepository', () => {
 
     describe('reorderActionStatuses', () => {
       it('deve reordenar statuses por IDs', () => {
-        const s1 = repo.createActionStatus({ key: 'first', label: 'First', icon: 'X', color: 'info', isDefault: false, isFinal: false, sortOrder: 0 })
-        const s2 = repo.createActionStatus({ key: 'second', label: 'Second', icon: 'X', color: 'info', isDefault: false, isFinal: false, sortOrder: 1 })
+        const s1 = repo.createActionStatus({
+          key: 'first',
+          label: 'First',
+          icon: 'X',
+          color: 'info',
+          isDefault: false,
+          isFinal: false,
+          sortOrder: 0,
+        })
+        const s2 = repo.createActionStatus({
+          key: 'second',
+          label: 'Second',
+          icon: 'X',
+          color: 'info',
+          isDefault: false,
+          isFinal: false,
+          sortOrder: 1,
+        })
 
         repo.reorderActionStatuses([s2.id, s1.id])
 
@@ -259,8 +403,24 @@ describe('CustomFieldsRepository', () => {
 
     describe('getCaptureTemplates', () => {
       it('deve retornar templates ordenados por sortOrder', () => {
-        repo.createCaptureTemplate({ label: 'B', prefix: '', placeholder: '', icon: 'X', hintType: 'info', isDefault: false, sortOrder: 2 })
-        repo.createCaptureTemplate({ label: 'A', prefix: '', placeholder: '', icon: 'X', hintType: 'info', isDefault: false, sortOrder: 1 })
+        repo.createCaptureTemplate({
+          label: 'B',
+          prefix: '',
+          placeholder: '',
+          icon: 'X',
+          hintType: 'info',
+          isDefault: false,
+          sortOrder: 2,
+        })
+        repo.createCaptureTemplate({
+          label: 'A',
+          prefix: '',
+          placeholder: '',
+          icon: 'X',
+          hintType: 'info',
+          isDefault: false,
+          sortOrder: 1,
+        })
 
         const templates = repo.getCaptureTemplates()
         expect(templates[0].label).toBe('A')
@@ -270,7 +430,15 @@ describe('CustomFieldsRepository', () => {
 
     describe('updateCaptureTemplate', () => {
       it('deve atualizar campos do template', () => {
-        const template = repo.createCaptureTemplate({ label: 'Original', prefix: 'P: ', placeholder: 'ph', icon: 'X', hintType: 'info', isDefault: false, sortOrder: 0 })
+        const template = repo.createCaptureTemplate({
+          label: 'Original',
+          prefix: 'P: ',
+          placeholder: 'ph',
+          icon: 'X',
+          hintType: 'info',
+          isDefault: false,
+          sortOrder: 0,
+        })
 
         const updated = repo.updateCaptureTemplate(template.id, { label: 'Atualizado', prefix: 'Novo: ' })
         expect(updated).not.toBeNull()
@@ -286,13 +454,29 @@ describe('CustomFieldsRepository', () => {
 
     describe('deleteCaptureTemplate', () => {
       it('deve excluir template não-default', () => {
-        const template = repo.createCaptureTemplate({ label: 'Custom', prefix: '', placeholder: '', icon: 'X', hintType: 'info', isDefault: false, sortOrder: 0 })
+        const template = repo.createCaptureTemplate({
+          label: 'Custom',
+          prefix: '',
+          placeholder: '',
+          icon: 'X',
+          hintType: 'info',
+          isDefault: false,
+          sortOrder: 0,
+        })
 
         expect(repo.deleteCaptureTemplate(template.id)).toBe(true)
       })
 
       it('não deve excluir template default', () => {
-        const template = repo.createCaptureTemplate({ label: 'Built-in', prefix: '', placeholder: '', icon: 'X', hintType: 'info', isDefault: true, sortOrder: 0 })
+        const template = repo.createCaptureTemplate({
+          label: 'Built-in',
+          prefix: '',
+          placeholder: '',
+          icon: 'X',
+          hintType: 'info',
+          isDefault: true,
+          sortOrder: 0,
+        })
 
         expect(repo.deleteCaptureTemplate(template.id)).toBe(false)
       })
@@ -300,8 +484,24 @@ describe('CustomFieldsRepository', () => {
 
     describe('reorderCaptureTemplates', () => {
       it('deve reordenar templates por IDs', () => {
-        const t1 = repo.createCaptureTemplate({ label: 'First', prefix: '', placeholder: '', icon: 'X', hintType: 'info', isDefault: false, sortOrder: 0 })
-        const t2 = repo.createCaptureTemplate({ label: 'Second', prefix: '', placeholder: '', icon: 'X', hintType: 'info', isDefault: false, sortOrder: 1 })
+        const t1 = repo.createCaptureTemplate({
+          label: 'First',
+          prefix: '',
+          placeholder: '',
+          icon: 'X',
+          hintType: 'info',
+          isDefault: false,
+          sortOrder: 0,
+        })
+        const t2 = repo.createCaptureTemplate({
+          label: 'Second',
+          prefix: '',
+          placeholder: '',
+          icon: 'X',
+          hintType: 'info',
+          isDefault: false,
+          sortOrder: 1,
+        })
 
         repo.reorderCaptureTemplates([t2.id, t1.id])
 

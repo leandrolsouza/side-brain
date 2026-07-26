@@ -44,12 +44,14 @@ export class ErrorLogRepository {
     const db = getDatabase()
 
     // Tenta agrupar com erro existente não resolvido (mesma mensagem + categoria)
-    const existing = db.prepare(`
+    const existing = db
+      .prepare(`
       SELECT * FROM error_logs
       WHERE message = ? AND category = ? AND resolved = 0
       ORDER BY timestamp DESC
       LIMIT 1
-    `).get(data.message, data.category) as ErrorLogRow | undefined
+    `)
+      .get(data.message, data.category) as ErrorLogRow | undefined
 
     if (existing) {
       db.prepare(`
@@ -94,11 +96,13 @@ export class ErrorLogRepository {
     }
 
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
-    const rows = db.prepare(`
+    const rows = db
+      .prepare(`
       SELECT * FROM error_logs ${where}
       ORDER BY last_occurrence DESC
       LIMIT 500
-    `).all(...params) as ErrorLogRow[]
+    `)
+      .all(...params) as ErrorLogRow[]
 
     return rows.map((row) => this.mapRow(row))
   }
@@ -134,10 +138,12 @@ export class ErrorLogRepository {
    */
   cleanOld(daysToKeep: number = 30): number {
     const db = getDatabase()
-    const result = db.prepare(`
+    const result = db
+      .prepare(`
       DELETE FROM error_logs
       WHERE resolved = 1 AND timestamp < datetime('now', '-' || ? || ' days')
-    `).run(daysToKeep)
+    `)
+      .run(daysToKeep)
     return result.changes
   }
 }

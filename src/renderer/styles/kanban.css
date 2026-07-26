@@ -1,0 +1,253 @@
+/* === Kanban Board === */
+.kanban-board {
+  display: flex;
+  gap: 12px;
+  height: 100%;
+  min-height: 400px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.kanban-column {
+  flex: 1;
+  min-width: 200px;
+  max-width: 300px;
+  display: flex;
+  flex-direction: column;
+  background: var(--vscode-sideBar-background, #252526);
+  border-radius: 6px;
+  border: 1px solid var(--vscode-panel-border, #2d2d2d);
+}
+
+.kanban-column.drag-active {
+  border-color: var(--vscode-focusBorder, #007fd4);
+}
+
+.kanban-column-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--vscode-panel-border, #2d2d2d);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.kanban-column-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.kanban-column-title {
+  flex: 1;
+}
+
+.kanban-column-count {
+  background: var(--vscode-badge-background, #4d4d4d);
+  color: var(--vscode-badge-foreground, #fff);
+  border-radius: 10px;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.kanban-column-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.kanban-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--density-gap-sm);
+  padding: var(--density-padding-sm) 10px;
+  background: var(--vscode-editor-background, #1e1e1e);
+  border: 1px solid var(--vscode-panel-border, #2d2d2d);
+  border-radius: 6px;
+  cursor: grab;
+  transition: border-color 0.15s, opacity 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+
+.kanban-card:hover {
+  border-color: var(--vscode-focusBorder, #007fd4);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.kanban-card.dragging {
+  opacity: 0.4;
+}
+
+.kanban-card-new {
+  cursor: default;
+  border-color: var(--vscode-focusBorder, #007fd4);
+}
+
+.kanban-card-grip {
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.4;
+  margin-top: 2px;
+  cursor: grab;
+}
+
+.kanban-card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.kanban-card-title {
+  font-size: 12px;
+  line-height: 1.4;
+  word-break: break-word;
+  cursor: default;
+}
+
+.kanban-card-description {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.kanban-card-due {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  cursor: pointer;
+  margin-top: 2px;
+  width: fit-content;
+  color: var(--vscode-descriptionForeground);
+  background: var(--vscode-badge-background, #4d4d4d);
+  transition: background 0.15s;
+}
+
+.kanban-card-due:hover {
+  background: var(--vscode-input-background);
+}
+
+.kanban-card-due.due-overdue {
+  color: #f48771;
+  background: rgba(244, 135, 113, 0.12);
+}
+
+.kanban-card-due.due-today {
+  color: #f9c74f;
+  background: rgba(249, 199, 79, 0.12);
+}
+
+.kanban-card-due.due-tomorrow {
+  color: #fca311;
+  background: rgba(252, 163, 17, 0.1);
+}
+
+.kanban-card-due.due-soon {
+  color: #4fc1ff;
+  background: rgba(79, 193, 255, 0.1);
+}
+
+.kanban-due-input {
+  font-size: 11px !important;
+  padding: 2px 4px !important;
+  margin-top: 2px;
+  width: fit-content;
+}
+
+.kanban-card-assignee {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 3px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 500;
+  background: rgba(117, 190, 255, 0.1);
+  color: var(--vscode-notificationsInfoIcon-foreground, #75beff);
+  width: fit-content;
+}
+
+.kanban-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.kanban-card:hover .kanban-card-actions {
+  opacity: 1;
+}
+
+.kanban-empty {
+  text-align: center;
+  padding: 24px 8px;
+  color: var(--vscode-descriptionForeground);
+  font-size: 11px;
+  font-style: italic;
+  border: 1px dashed var(--vscode-panel-border, #2d2d2d);
+  border-radius: 6px;
+  margin: 4px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.01) 0%, rgba(117, 190, 255, 0.02) 100%);
+}
+
+/* === Project View Tabs === */
+.project-view-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--vscode-panel-border, #2d2d2d);
+}
+
+.project-view-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.project-tab {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: none;
+  background: transparent;
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.project-tab:hover {
+  background: var(--vscode-toolbar-hoverBackground, rgba(255, 255, 255, 0.1));
+  color: var(--vscode-foreground);
+}
+
+.project-tab.active {
+  background: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #fff);
+}
+
+.project-view-content {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+

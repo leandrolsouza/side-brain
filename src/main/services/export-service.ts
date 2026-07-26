@@ -1,6 +1,6 @@
 import { dialog } from 'electron'
-import fs from 'fs'
-import { Entry, EntryType, ActionStatus, Task, TaskStatus } from '../../shared/types'
+import fs from 'node:fs'
+import type { Entry, Task, TaskStatus } from '../../shared/types'
 import { EntryRepository } from '../database/repositories/entry-repository'
 import { ProjectRepository } from '../database/repositories/project-repository'
 import { TaskRepository } from '../database/repositories/task-repository'
@@ -41,11 +41,16 @@ export class ExportService {
 
   private getTaskStatusLabel(status: TaskStatus): string {
     switch (status) {
-      case 'todo': return t('export.report.status_todo')
-      case 'in_progress': return t('export.report.status_in_progress')
-      case 'waiting': return t('export.report.status_waiting')
-      case 'done': return t('export.report.status_done')
-      default: return status
+      case 'todo':
+        return t('export.report.status_todo')
+      case 'in_progress':
+        return t('export.report.status_in_progress')
+      case 'waiting':
+        return t('export.report.status_waiting')
+      case 'done':
+        return t('export.report.status_done')
+      default:
+        return status
     }
   }
 
@@ -219,7 +224,7 @@ export class ExportService {
 
   private markdownToHtml(markdown: string, title: string): string {
     // Simple markdown to HTML conversion for PDF
-    let html = markdown
+    const html = markdown
       // Headers
       .replace(/^### (.+)$/gm, '<h3>$1</h3>')
       .replace(/^## (.+)$/gm, '<h2>$1</h2>')
@@ -233,7 +238,7 @@ export class ExportService {
       .replace(/- \[ \] /g, '☐ ')
       // List items
       .replace(/^- (.+)$/gm, '<li>$1</li>')
-      .replace(/^  (.+)$/gm, '<p class="indent">$1</p>')
+      .replace(/^ {2}(.+)$/gm, '<p class="indent">$1</p>')
       // Horizontal rules
       .replace(/^---$/gm, '<hr>')
       // Line breaks
@@ -262,18 +267,24 @@ export class ExportService {
   }
 
   private groupTasksByStatus(tasks: Task[]): Record<string, Task[]> {
-    return tasks.reduce((acc, task) => {
-      if (!acc[task.status]) acc[task.status] = []
-      acc[task.status].push(task)
-      return acc
-    }, {} as Record<string, Task[]>)
+    return tasks.reduce(
+      (acc, task) => {
+        if (!acc[task.status]) acc[task.status] = []
+        acc[task.status].push(task)
+        return acc
+      },
+      {} as Record<string, Task[]>
+    )
   }
 
   private groupEntriesByType(entries: Entry[]): Record<string, Entry[]> {
-    return entries.reduce((acc, entry) => {
-      if (!acc[entry.type]) acc[entry.type] = []
-      acc[entry.type].push(entry)
-      return acc
-    }, {} as Record<string, Entry[]>)
+    return entries.reduce(
+      (acc, entry) => {
+        if (!acc[entry.type]) acc[entry.type] = []
+        acc[entry.type].push(entry)
+        return acc
+      },
+      {} as Record<string, Entry[]>
+    )
   }
 }

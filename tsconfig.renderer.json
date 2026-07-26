@@ -3,6 +3,7 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "strict": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
@@ -10,12 +11,10 @@
     "outDir": "dist/renderer",
     "rootDir": "src",
     "sourceMap": true,
-    "types": [
-      "node"
-    ]
+    "paths": {
+      "@shared/*": ["./src/shared/*"]
+    },
+    "types": ["node", "vite/client"]
   },
-  "include": [
-    "src/renderer/**/*",
-    "src/shared/**/*"
-  ]
+  "include": ["src/renderer/**/*", "src/shared/**/*"]
 }

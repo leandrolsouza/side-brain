@@ -55,8 +55,22 @@ describe('ReportsRepository', () => {
     })
 
     it('deve contar entries e tasks corretamente', () => {
-      entryRepo.create({ rawText: 'E1', improvedText: 'E1', projectId, type: 'information', action: 'none', reviewStatus: 'auto_approved' })
-      entryRepo.create({ rawText: 'E2', improvedText: 'E2', projectId, type: 'decision', action: 'action_needed', reviewStatus: 'auto_approved' })
+      entryRepo.create({
+        rawText: 'E1',
+        improvedText: 'E1',
+        projectId,
+        type: 'information',
+        action: 'none',
+        reviewStatus: 'auto_approved',
+      })
+      entryRepo.create({
+        rawText: 'E2',
+        improvedText: 'E2',
+        projectId,
+        type: 'decision',
+        action: 'action_needed',
+        reviewStatus: 'auto_approved',
+      })
 
       taskRepo.create({ projectId, title: 'T1', status: 'todo' })
       taskRepo.create({ projectId, title: 'T2', status: 'done' })
@@ -115,15 +129,29 @@ describe('ReportsRepository', () => {
     })
 
     it('deve agregar entries e tasks por dia', () => {
-      entryRepo.create({ rawText: 'E1', improvedText: 'E1', projectId, type: 'information', action: 'none', reviewStatus: 'auto_approved' })
-      entryRepo.create({ rawText: 'E2', improvedText: 'E2', projectId, type: 'decision', action: 'none', reviewStatus: 'auto_approved' })
+      entryRepo.create({
+        rawText: 'E1',
+        improvedText: 'E1',
+        projectId,
+        type: 'information',
+        action: 'none',
+        reviewStatus: 'auto_approved',
+      })
+      entryRepo.create({
+        rawText: 'E2',
+        improvedText: 'E2',
+        projectId,
+        type: 'decision',
+        action: 'none',
+        reviewStatus: 'auto_approved',
+      })
       taskRepo.create({ projectId, title: 'T1' })
 
       const timeline = repo.getActivityTimeline()
 
       expect(timeline.length).toBeGreaterThanOrEqual(1)
       const today = new Date().toISOString().split('T')[0]
-      const todayPoint = timeline.find(p => p.date === today)
+      const todayPoint = timeline.find((p) => p.date === today)
       expect(todayPoint).toBeDefined()
       expect(todayPoint!.entries).toBe(2)
       expect(todayPoint!.tasksCreated).toBe(1)
@@ -135,7 +163,7 @@ describe('ReportsRepository', () => {
 
       const timeline = repo.getActivityTimeline()
       const today = new Date().toISOString().split('T')[0]
-      const todayPoint = timeline.find(p => p.date === today)
+      const todayPoint = timeline.find((p) => p.date === today)
       expect(todayPoint).toBeDefined()
       expect(todayPoint!.tasksCompleted).toBe(1)
     })
@@ -150,7 +178,14 @@ describe('ReportsRepository', () => {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `).run(uuidv4(), 'Old', 'Old', projectId, 'information', 'none', 'auto_approved', twoDaysAgo)
 
-      entryRepo.create({ rawText: 'Today', improvedText: 'Today', projectId, type: 'information', action: 'none', reviewStatus: 'auto_approved' })
+      entryRepo.create({
+        rawText: 'Today',
+        improvedText: 'Today',
+        projectId,
+        type: 'information',
+        action: 'none',
+        reviewStatus: 'auto_approved',
+      })
 
       const timeline = repo.getActivityTimeline()
       expect(timeline.length).toBe(2)
@@ -165,10 +200,38 @@ describe('ReportsRepository', () => {
     })
 
     it('deve calcular distribuição por tipo', () => {
-      entryRepo.create({ rawText: 'E1', improvedText: 'E1', projectId, type: 'information', action: 'none', reviewStatus: 'auto_approved' })
-      entryRepo.create({ rawText: 'E2', improvedText: 'E2', projectId, type: 'information', action: 'none', reviewStatus: 'auto_approved' })
-      entryRepo.create({ rawText: 'E3', improvedText: 'E3', projectId, type: 'decision', action: 'none', reviewStatus: 'auto_approved' })
-      entryRepo.create({ rawText: 'E4', improvedText: 'E4', projectId, type: 'blocker', action: 'none', reviewStatus: 'auto_approved' })
+      entryRepo.create({
+        rawText: 'E1',
+        improvedText: 'E1',
+        projectId,
+        type: 'information',
+        action: 'none',
+        reviewStatus: 'auto_approved',
+      })
+      entryRepo.create({
+        rawText: 'E2',
+        improvedText: 'E2',
+        projectId,
+        type: 'information',
+        action: 'none',
+        reviewStatus: 'auto_approved',
+      })
+      entryRepo.create({
+        rawText: 'E3',
+        improvedText: 'E3',
+        projectId,
+        type: 'decision',
+        action: 'none',
+        reviewStatus: 'auto_approved',
+      })
+      entryRepo.create({
+        rawText: 'E4',
+        improvedText: 'E4',
+        projectId,
+        type: 'blocker',
+        action: 'none',
+        reviewStatus: 'auto_approved',
+      })
 
       const dist = repo.getEntryTypeDistribution()
 
@@ -186,12 +249,33 @@ describe('ReportsRepository', () => {
     it('deve retornar ranking de projetos ativos', () => {
       const p2 = projectRepo.create('Projeto 2')
 
-      entryRepo.create({ rawText: 'E1', improvedText: 'E1', projectId, type: 'information', action: 'none', reviewStatus: 'auto_approved' })
-      entryRepo.create({ rawText: 'E2', improvedText: 'E2', projectId, type: 'blocker', action: 'none', reviewStatus: 'auto_approved' })
+      entryRepo.create({
+        rawText: 'E1',
+        improvedText: 'E1',
+        projectId,
+        type: 'information',
+        action: 'none',
+        reviewStatus: 'auto_approved',
+      })
+      entryRepo.create({
+        rawText: 'E2',
+        improvedText: 'E2',
+        projectId,
+        type: 'blocker',
+        action: 'none',
+        reviewStatus: 'auto_approved',
+      })
       taskRepo.create({ projectId, title: 'T1' })
       taskRepo.create({ projectId, title: 'T2', status: 'done' })
 
-      entryRepo.create({ rawText: 'E3', improvedText: 'E3', projectId: p2.id, type: 'information', action: 'none', reviewStatus: 'auto_approved' })
+      entryRepo.create({
+        rawText: 'E3',
+        improvedText: 'E3',
+        projectId: p2.id,
+        type: 'information',
+        action: 'none',
+        reviewStatus: 'auto_approved',
+      })
 
       const ranking = repo.getProjectRanking()
 
@@ -209,7 +293,7 @@ describe('ReportsRepository', () => {
       projectRepo.setActive(inactive.id, false)
 
       const ranking = repo.getProjectRanking()
-      const names = ranking.map(r => r.projectName)
+      const names = ranking.map((r) => r.projectName)
       expect(names).not.toContain('Inativo')
     })
   })
@@ -273,7 +357,14 @@ describe('ReportsRepository', () => {
     })
 
     it('deve contar entries no dia da semana correto', () => {
-      entryRepo.create({ rawText: 'E1', improvedText: 'E1', projectId, type: 'information', action: 'none', reviewStatus: 'auto_approved' })
+      entryRepo.create({
+        rawText: 'E1',
+        improvedText: 'E1',
+        projectId,
+        type: 'information',
+        action: 'none',
+        reviewStatus: 'auto_approved',
+      })
 
       const weekday = repo.getWeekdayActivity()
       const todayDow = new Date().getDay()

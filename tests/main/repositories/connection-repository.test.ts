@@ -207,7 +207,7 @@ describe('ConnectionRepository', () => {
       const results = connRepo.searchEntries('entrada', entry1Id)
 
       // Deve encontrar entry2 e entry3 mas não entry1
-      const ids = results.map(r => r.id)
+      const ids = results.map((r) => r.id)
       expect(ids).not.toContain(entry1Id)
     })
 

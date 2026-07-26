@@ -1,10 +1,13 @@
 import { app, dialog, BrowserWindow } from 'electron'
-import fs from 'fs'
-import path from 'path'
-import { BackupInfo } from '../../shared/types'
+import fs from 'node:fs'
+import path from 'node:path'
+import type { BackupInfo } from '../../shared/types'
 import { closeDatabase, getDatabase, getDatabasePath } from '../database/schema'
 import { getErrorService } from './error-service'
+import { createScopedLogger } from './logger'
 import { SettingsRepository } from '../database/repositories/settings-repository'
+
+const logger = createScopedLogger('backup')
 
 const BACKUPS_DIR = 'backups'
 
@@ -102,7 +105,7 @@ export class BackupService {
         stack: error?.stack,
         context: { operation: 'autoBackup', dbPath, backupPath },
       })
-      console.error('[BackupService] Erro ao criar backup automático:', error)
+      logger.error('[BackupService] Erro ao criar backup automático:', error)
     }
   }
 
@@ -127,7 +130,7 @@ export class BackupService {
             stack: error?.stack,
             context: { operation: 'rotateBackups', filePath: backup.filePath },
           })
-          console.error('[BackupService] Erro ao deletar backup antigo:', error)
+          logger.error('[BackupService] Erro ao deletar backup antigo:', error)
         }
       }
     }
@@ -144,10 +147,9 @@ export class BackupService {
   private listBackupsInternal(backupsDir: string): BackupInfo[] {
     if (!fs.existsSync(backupsDir)) return []
 
-    const files = fs.readdirSync(backupsDir)
-      .filter(f => f.startsWith('backup_') && f.endsWith('.db'))
+    const files = fs.readdirSync(backupsDir).filter((f) => f.startsWith('backup_') && f.endsWith('.db'))
 
-    const backups: BackupInfo[] = files.map(filename => {
+    const backups: BackupInfo[] = files.map((filename) => {
       const filePath = path.join(backupsDir, filename)
       const stats = fs.statSync(filePath)
       return {
@@ -172,11 +174,13 @@ export class BackupService {
       return { success: false }
     }
 
-    const timestamp = new Date().toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    }).replace(/\//g, '-')
+    const timestamp = new Date()
+      .toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      })
+      .replace(/\//g, '-')
 
     const result = await dialog.showSaveDialog({
       title: 'Exportar Backup',
@@ -205,7 +209,7 @@ export class BackupService {
         stack: error?.stack,
         context: { operation: 'manualBackup', targetPath: result.filePath },
       })
-      console.error('[BackupService] Erro ao exportar backup:', error)
+      logger.error('[BackupService] Erro ao exportar backup:', error)
       return { success: false }
     }
   }
@@ -244,7 +248,10 @@ export class BackupService {
   /**
    * Executa a restauração: fecha DB, cria backup de segurança, substitui, reinicia.
    */
-  private async performRestore(sourceFilePath: string, options?: { markOnboardingComplete?: boolean }): Promise<{ success: boolean; error?: string }> {
+  private async performRestore(
+    sourceFilePath: string,
+    options?: { markOnboardingComplete?: boolean }
+  ): Promise<{ success: boolean; error?: string }> {
     const dbPath = this.getDbPath()
 
     try {
@@ -272,8 +279,8 @@ export class BackupService {
       fs.copyFileSync(sourceFilePath, dbPath)
 
       // Remove WAL e SHM orphans se existirem
-      const walPath = dbPath + '-wal'
-      const shmPath = dbPath + '-shm'
+      const walPath = `${dbPath}-wal`
+      const shmPath = `${dbPath}-shm`
       if (fs.existsSync(walPath)) fs.unlinkSync(walPath)
       if (fs.existsSync(shmPath)) fs.unlinkSync(shmPath)
 
@@ -285,7 +292,9 @@ export class BackupService {
             INSERT INTO settings (key, value) VALUES ('onboardingCompleted', 'true')
             ON CONFLICT(key) DO UPDATE SET value = 'true'
           `).run()
-        } catch { /* base pode não ter tabela settings — segue sem erro */ }
+        } catch {
+          /* base pode não ter tabela settings — segue sem erro */
+        }
       }
 
       // Reinicia a janela pra recarregar tudo com a nova DB
@@ -303,7 +312,7 @@ export class BackupService {
         stack: error?.stack,
         context: { operation: 'restore', sourceFilePath },
       })
-      console.error('[BackupService] Erro ao restaurar backup:', error)
+      logger.error('[BackupService] Erro ao restaurar backup:', error)
       return { success: false, error: 'Erro ao restaurar backup. Verifique o arquivo.' }
     }
   }
@@ -352,8 +361,8 @@ export class BackupService {
         fs.renameSync(dbPath, archivedPath)
 
         // Remove WAL e SHM orphans se existirem
-        const walPath = dbPath + '-wal'
-        const shmPath = dbPath + '-shm'
+        const walPath = `${dbPath}-wal`
+        const shmPath = `${dbPath}-shm`
         if (fs.existsSync(walPath)) fs.unlinkSync(walPath)
         if (fs.existsSync(shmPath)) fs.unlinkSync(shmPath)
       }
@@ -373,7 +382,7 @@ export class BackupService {
         stack: error?.stack,
         context: { operation: 'resetDatabase', dbPath },
       })
-      console.error('[BackupService] Erro ao resetar database:', error)
+      logger.error('[BackupService] Erro ao resetar database:', error)
       return { success: false, error: 'Erro ao resetar database.' }
     }
   }

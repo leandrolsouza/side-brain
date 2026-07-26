@@ -1,6 +1,19 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Bell, X, Check, CheckCheck, Trash2, AlertTriangle, Clock, Calendar, Brain, MessageSquare, Sparkles, Zap } from 'lucide-react'
+import {
+  Bell,
+  X,
+  Check,
+  CheckCheck,
+  Trash2,
+  AlertTriangle,
+  Clock,
+  Calendar,
+  Brain,
+  MessageSquare,
+  Sparkles,
+  Zap,
+} from 'lucide-react'
 import type { AppNotification, NotificationType } from '../../shared/types'
 
 interface ToastNotification {
@@ -70,9 +83,7 @@ export function NotificationCenter() {
 
     // Auto-dismiss after 5 seconds
     setTimeout(() => {
-      setToasts((prev) =>
-        prev.map((t) => (t.id === toastId ? { ...t, exiting: true } : t))
-      )
+      setToasts((prev) => prev.map((t) => (t.id === toastId ? { ...t, exiting: true } : t)))
       setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== toastId))
       }, 300)
@@ -80,9 +91,7 @@ export function NotificationCenter() {
   }
 
   const dismissToast = (toastId: string) => {
-    setToasts((prev) =>
-      prev.map((t) => (t.id === toastId ? { ...t, exiting: true } : t))
-    )
+    setToasts((prev) => prev.map((t) => (t.id === toastId ? { ...t, exiting: true } : t)))
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== toastId))
     }, 300)
@@ -94,9 +103,7 @@ export function NotificationCenter() {
 
   const handleMarkRead = async (id: string) => {
     await window.electronAPI.markNotificationRead(id)
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    )
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)))
     setUnreadCount((prev) => Math.max(0, prev - 1))
   }
 
@@ -163,11 +170,13 @@ export function NotificationCenter() {
   return (
     <>
       {/* Bell Button (status bar item) */}
-      <div className="status-bar-item clickable notification-bell" onClick={handleTogglePanel} title={t('notifications.title')}>
+      <div
+        className="status-bar-item clickable notification-bell"
+        onClick={handleTogglePanel}
+        title={t('notifications.title')}
+      >
         <Bell size={14} />
-        {unreadCount > 0 && (
-          <span className="notification-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
-        )}
+        {unreadCount > 0 && <span className="notification-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
       </div>
 
       {/* Notification Panel */}
@@ -178,6 +187,7 @@ export function NotificationCenter() {
             <div className="notification-panel-actions">
               {unreadCount > 0 && (
                 <button
+                  type="button"
                   className="notification-action-btn"
                   onClick={handleMarkAllRead}
                   title={t('notifications.markAllRead')}
@@ -187,6 +197,7 @@ export function NotificationCenter() {
               )}
               {notifications.length > 0 && (
                 <button
+                  type="button"
                   className="notification-action-btn"
                   onClick={handleDismissAll}
                   title={t('notifications.clearAll')}
@@ -209,9 +220,7 @@ export function NotificationCenter() {
                   key={notification.id}
                   className={`notification-item ${!notification.read ? 'notification-item--unread' : ''}`}
                 >
-                  <div className="notification-item-icon">
-                    {getNotificationIcon(notification.type)}
-                  </div>
+                  <div className="notification-item-icon">{getNotificationIcon(notification.type)}</div>
                   <div className="notification-item-content">
                     <div className="notification-item-title">{notification.title}</div>
                     <div className="notification-item-body">{notification.body}</div>
@@ -220,6 +229,7 @@ export function NotificationCenter() {
                   <div className="notification-item-actions">
                     {!notification.read && (
                       <button
+                        type="button"
                         className="notification-item-btn"
                         onClick={() => handleMarkRead(notification.id)}
                         title={t('notifications.markRead')}
@@ -228,6 +238,7 @@ export function NotificationCenter() {
                       </button>
                     )}
                     <button
+                      type="button"
                       className="notification-item-btn"
                       onClick={() => handleDismiss(notification.id)}
                       title={t('notifications.dismiss')}
@@ -245,21 +256,13 @@ export function NotificationCenter() {
       {/* Toast notifications */}
       <div className="notification-toast-container">
         {toasts.map((toast) => (
-          <div
-            key={toast.id}
-            className={`notification-toast ${toast.exiting ? 'notification-toast--exit' : ''}`}
-          >
-            <div className="notification-toast-icon">
-              {getNotificationIcon(toast.notification.type)}
-            </div>
+          <div key={toast.id} className={`notification-toast ${toast.exiting ? 'notification-toast--exit' : ''}`}>
+            <div className="notification-toast-icon">{getNotificationIcon(toast.notification.type)}</div>
             <div className="notification-toast-content">
               <div className="notification-toast-title">{toast.notification.title}</div>
               <div className="notification-toast-body">{toast.notification.body}</div>
             </div>
-            <button
-              className="notification-toast-close"
-              onClick={() => dismissToast(toast.id)}
-            >
+            <button type="button" className="notification-toast-close" onClick={() => dismissToast(toast.id)}>
               <X size={14} />
             </button>
           </div>

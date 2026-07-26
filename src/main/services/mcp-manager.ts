@@ -1,48 +1,41 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
-import { ToolDefinition, ToolCall, ToolCallResult } from '../../shared/types'
-import { SettingsRepository } from '../database/repositories/settings-repository'
+import type {
+  ToolDefinition,
+  ToolCallResult,
+  ToolParameterSchema,
+  MCPServerConfig,
+  MCPServerStatus,
+  MCPToolInfo,
+} from '../../shared/types'
+import type { SettingsRepository } from '../database/repositories/settings-repository'
 import { getErrorService } from './error-service'
 import { BrowserWindow } from 'electron'
-import path from 'path'
+import path from 'node:path'
 import { v4 as uuid } from 'uuid'
-import fs from 'fs'
+import fs from 'node:fs'
 import { app } from 'electron'
+import { createScopedLogger } from './logger'
 
-// === MCP Server Configuration ===
+const logger = createScopedLogger('mcp')
 
-export interface MCPServerConfig {
-  /** Unique identifier */
-  id: string
-  /** Display name */
-  name: string
-  /** Command to run the server */
-  command: string
-  /** Arguments to pass */
-  args: string[]
-  /** Environment variables */
-  env?: Record<string, string>
-  /** Whether this server is enabled */
-  enabled: boolean
+// Re-export shared MCP types for backwards compatibility with existing imports
+export type { MCPServerConfig, MCPServerStatus, MCPToolInfo }
+
+/**
+ * Minimal structural view of an MCP tool input schema (JSON Schema subset).
+ */
+interface MCPInputSchema {
+  properties?: Record<string, { type?: string; description?: string; enum?: string[] }>
+  required?: string[]
 }
 
-export interface MCPServerStatus {
-  id: string
-  name: string
-  status: 'connected' | 'disconnected' | 'connecting' | 'error'
-  toolCount: number
-  error?: string
-}
-
-export interface MCPToolInfo {
-  /** Server this tool belongs to */
-  serverId: string
-  serverName: string
-  /** Tool name (as registered in MCP) */
-  name: string
-  description: string
-  /** JSON schema for input parameters */
-  inputSchema: any
+/**
+ * Minimal structural view of MCP tool result content blocks.
+ */
+interface MCPContentBlock {
+  type?: string
+  text?: string
 }
 
 // === MCP Manager ===
@@ -72,7 +65,7 @@ export class MCPManager {
         return JSON.parse(data) as MCPServerConfig[]
       }
     } catch (error) {
-      console.error('Failed to load MCP configs:', error)
+      logger.error('Failed to load MCP configs:', error)
     }
     return []
   }
@@ -86,7 +79,7 @@ export class MCPManager {
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
       fs.writeFileSync(this.configPath, JSON.stringify(configs, null, 2), 'utf-8')
     } catch (error) {
-      console.error('Failed to save MCP configs:', error)
+      logger.error('Failed to save MCP configs:', error)
     }
   }
 
@@ -150,10 +143,7 @@ export class MCPManager {
     this.emitStatus(id, config.name, 'connecting')
 
     try {
-      const client = new Client(
-        { name: 'sidebrain', version: '1.0.0' },
-        { capabilities: {} }
-      )
+      const client = new Client({ name: 'sidebrain', version: '1.0.0' }, { capabilities: {} })
 
       const env = { ...process.env, ...(config.env || {}) } as Record<string, string>
 
@@ -172,15 +162,16 @@ export class MCPManager {
 
       const tools = this.toolCache.get(id) || []
       this.emitStatus(id, config.name, 'connected', tools.length)
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as { message?: string; stack?: string }
       this.toolCache.delete(id)
-      this.emitStatus(id, config.name, 'error', 0, error.message)
+      this.emitStatus(id, config.name, 'error', 0, err.message)
 
       getErrorService().logError({
         category: 'ai',
         severity: 'error',
-        message: `MCP server "${config.name}" failed to connect: ${error.message}`,
-        stack: error.stack,
+        message: `MCP server "${config.name}" failed to connect: ${err.message}`,
+        stack: err.stack,
         context: { serverId: id, command: config.command },
       })
 
@@ -281,18 +272,21 @@ export class MCPManager {
    * Get tools as ToolDefinition format (for the agent system).
    */
   getToolDefinitions(): ToolDefinition[] {
-    return this.getAllTools().map((tool) => ({
-      name: `mcp_${tool.serverId.slice(0, 8)}_${tool.name}`,
-      description: `[${tool.serverName}] ${tool.description}`,
-      parameters: this.convertInputSchema(tool.inputSchema),
-      requiredParams: tool.inputSchema?.required || [],
-    }))
+    return this.getAllTools().map((tool) => {
+      const schema = tool.inputSchema as MCPInputSchema | undefined
+      return {
+        name: `mcp_${tool.serverId.slice(0, 8)}_${tool.name}`,
+        description: `[${tool.serverName}] ${tool.description}`,
+        parameters: this.convertInputSchema(schema),
+        requiredParams: schema?.required || [],
+      }
+    })
   }
 
   /**
    * Call a tool on a connected MCP server.
    */
-  async callTool(serverId: string, toolName: string, args: Record<string, any>): Promise<ToolCallResult> {
+  async callTool(serverId: string, toolName: string, args: Record<string, unknown>): Promise<ToolCallResult> {
     const entry = this.clients.get(serverId)
     if (!entry) {
       return { toolCallId: '', success: false, result: null, error: `Server "${serverId}" not connected` }
@@ -302,13 +296,13 @@ export class MCPManager {
       const result = await entry.client.callTool({ name: toolName, arguments: args })
 
       if (result.isError) {
-        const content = result.content as any[]
+        const content = result.content as MCPContentBlock[]
         const errorText = content?.map((c) => c.text || '').join('\n') || 'Unknown error'
         return { toolCallId: '', success: false, result: null, error: errorText }
       }
 
       // Extract content
-      const content = result.content as any[]
+      const content = result.content as MCPContentBlock[]
       const textContent = content
         ?.filter((c) => c.type === 'text')
         .map((c) => c.text)
@@ -319,8 +313,9 @@ export class MCPManager {
         success: true,
         result: result.structuredContent || textContent || '',
       }
-    } catch (error: any) {
-      return { toolCallId: '', success: false, result: null, error: error.message }
+    } catch (error) {
+      const err = error as { message?: string }
+      return { toolCallId: '', success: false, result: null, error: err.message }
     }
   }
 
@@ -338,7 +333,7 @@ export class MCPManager {
       return {
         id: config.id,
         name: config.name,
-        status: entry ? 'connected' : (config.enabled ? 'disconnected' : 'disconnected'),
+        status: entry ? 'connected' : config.enabled ? 'disconnected' : 'disconnected',
         toolCount: tools.length,
       }
     })
@@ -349,13 +344,13 @@ export class MCPManager {
   /**
    * Convert MCP JSON Schema to our ToolParameterSchema format.
    */
-  private convertInputSchema(schema: any): Record<string, any> {
-    if (!schema || !schema.properties) return {}
+  private convertInputSchema(schema: MCPInputSchema | undefined): Record<string, ToolParameterSchema> {
+    if (!schema?.properties) return {}
 
-    const result: Record<string, any> = {}
-    for (const [key, prop] of Object.entries(schema.properties as Record<string, any>)) {
+    const result: Record<string, ToolParameterSchema> = {}
+    for (const [key, prop] of Object.entries(schema.properties)) {
       result[key] = {
-        type: prop.type || 'string',
+        type: (prop.type || 'string') as ToolParameterSchema['type'],
         description: prop.description || '',
         required: (schema.required || []).includes(key),
         ...(prop.enum ? { enum: prop.enum } : {}),
@@ -364,7 +359,7 @@ export class MCPManager {
     return result
   }
 
-  private emitStatus(id: string, name: string, status: string, toolCount = 0, error?: string): void {
+  private emitStatus(id: string, name: string, status: MCPServerStatus['status'], toolCount = 0, error?: string): void {
     try {
       const windows = BrowserWindow.getAllWindows()
       for (const win of windows) {

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { createTestDatabase, closeTestDatabase, getTestDatabase } from '../setup'
+import { createTestDatabase, closeTestDatabase } from '../setup'
 import { TaskRepository } from '../../../src/main/database/repositories/task-repository'
 import { ProjectRepository } from '../../../src/main/database/repositories/project-repository'
 import { EntryRepository } from '../../../src/main/database/repositories/entry-repository'
@@ -176,7 +176,7 @@ describe('TaskRepository', () => {
       const task = taskRepo.create({ projectId, title: 'Mover para in_progress' })
 
       // Aguarda 1ms para garantir que updatedAt será diferente
-      await new Promise(resolve => setTimeout(resolve, 5))
+      await new Promise((resolve) => setTimeout(resolve, 5))
 
       const updated = taskRepo.update(task.id, { status: 'in_progress' })
       expect(updated).not.toBeNull()
@@ -304,8 +304,8 @@ describe('TaskRepository', () => {
 
       const dueThisWeek = taskRepo.getDueThisWeek()
       expect(dueThisWeek.length).toBeGreaterThanOrEqual(1)
-      expect(dueThisWeek.some(t => t.title === 'Task para esta semana')).toBe(true)
-      expect(dueThisWeek.some(t => t.title === 'Task longínqua')).toBe(false)
+      expect(dueThisWeek.some((t) => t.title === 'Task para esta semana')).toBe(true)
+      expect(dueThisWeek.some((t) => t.title === 'Task longínqua')).toBe(false)
     })
   })
 

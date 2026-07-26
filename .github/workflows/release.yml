@@ -76,12 +76,28 @@ jobs:
 
             core.setOutput('release_id', String(release.id));
 
-  build-windows:
+  build:
     needs: create-release
-    runs-on: windows-latest
+    runs-on: ${{ matrix.os }}
     permissions:
       contents: write
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            builder-args: --win
+            asset-extensions: ".exe,.msi,.blockmap"
+            asset-manifest: latest.yml
+          - os: macos-latest
+            builder-args: --mac
+            asset-extensions: ".dmg,.zip,.blockmap"
+            asset-manifest: latest-mac.yml
+          - os: ubuntu-latest
+            builder-args: --linux
+            asset-extensions: ".AppImage,.deb,.blockmap"
+            asset-manifest: latest-linux.yml
 
     steps:
       - name: Checkout code
@@ -96,135 +112,31 @@ jobs:
       - name: Install dependencies
         run: npm ci --ignore-scripts
 
-      - name: Build and publish
+      # NOTE: builds are currently unsigned. To enable code signing, provide
+      # certificates via secrets (CSC_LINK / CSC_KEY_PASSWORD for Windows,
+      # APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / CSC_* for macOS notarization)
+      # and pass them as env vars to the electron-builder step below.
+      - name: Build and package
         run: |
           npm run build
-          npx electron-builder --win --publish never
+          npx electron-builder ${{ matrix.builder-args }} --publish never
 
       - name: Upload assets to release
         uses: actions/github-script@v7
         env:
           RELEASE_ID: ${{ needs.create-release.outputs.release_id }}
+          ASSET_EXTENSIONS: ${{ matrix.asset-extensions }}
+          ASSET_MANIFEST: ${{ matrix.asset-manifest }}
         with:
           script: |
             const fs = require('fs');
             const path = require('path');
             const releaseId = parseInt(process.env.RELEASE_ID);
+            const extensions = process.env.ASSET_EXTENSIONS.split(',');
+            const manifest = process.env.ASSET_MANIFEST;
             const releaseDir = path.join(process.env.GITHUB_WORKSPACE, 'release');
             const files = fs.readdirSync(releaseDir).filter(f => {
-              return f.endsWith('.exe') || f.endsWith('.msi') || f.endsWith('.blockmap') || f === 'latest.yml';
-            });
-            for (const file of files) {
-              const filePath = path.join(releaseDir, file);
-              const stat = fs.statSync(filePath);
-              if (!stat.isFile()) continue;
-              console.log(`Uploading ${file} (${stat.size} bytes)`);
-              await github.rest.repos.uploadReleaseAsset({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                release_id: releaseId,
-                name: file,
-                data: fs.readFileSync(filePath),
-                headers: {
-                  'content-type': 'application/octet-stream',
-                  'content-length': stat.size,
-                },
-              });
-            }
-
-  build-macos:
-    needs: create-release
-    runs-on: macos-latest
-    permissions:
-      contents: write
-    timeout-minutes: 60
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci --ignore-scripts
-
-      - name: Build and publish
-        run: |
-          npm run build
-          npx electron-builder --mac --publish never
-
-      - name: Upload assets to release
-        uses: actions/github-script@v7
-        env:
-          RELEASE_ID: ${{ needs.create-release.outputs.release_id }}
-        with:
-          script: |
-            const fs = require('fs');
-            const path = require('path');
-            const releaseId = parseInt(process.env.RELEASE_ID);
-            const releaseDir = path.join(process.env.GITHUB_WORKSPACE, 'release');
-            const files = fs.readdirSync(releaseDir).filter(f => {
-              return f.endsWith('.dmg') || f.endsWith('.zip') || f.endsWith('.blockmap') || f === 'latest-mac.yml';
-            });
-            for (const file of files) {
-              const filePath = path.join(releaseDir, file);
-              const stat = fs.statSync(filePath);
-              if (!stat.isFile()) continue;
-              console.log(`Uploading ${file} (${stat.size} bytes)`);
-              await github.rest.repos.uploadReleaseAsset({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                release_id: releaseId,
-                name: file,
-                data: fs.readFileSync(filePath),
-                headers: {
-                  'content-type': 'application/octet-stream',
-                  'content-length': stat.size,
-                },
-              });
-            }
-
-  build-linux:
-    needs: create-release
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    timeout-minutes: 60
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci --ignore-scripts
-
-      - name: Build and publish
-        run: |
-          npm run build
-          npx electron-builder --linux --publish never
-
-      - name: Upload assets to release
-        uses: actions/github-script@v7
-        env:
-          RELEASE_ID: ${{ needs.create-release.outputs.release_id }}
-        with:
-          script: |
-            const fs = require('fs');
-            const path = require('path');
-            const releaseId = parseInt(process.env.RELEASE_ID);
-            const releaseDir = path.join(process.env.GITHUB_WORKSPACE, 'release');
-            const files = fs.readdirSync(releaseDir).filter(f => {
-              return f.endsWith('.AppImage') || f.endsWith('.deb') || f.endsWith('.blockmap') || f === 'latest-linux.yml';
+              return extensions.some(ext => f.endsWith(ext)) || f === manifest;
             });
             for (const file of files) {
               const filePath = path.join(releaseDir, file);
@@ -245,7 +157,7 @@ jobs:
             }
 
   publish-release:
-    needs: [create-release, build-windows, build-macos, build-linux]
+    needs: [create-release, build]
     runs-on: ubuntu-latest
     permissions:
       contents: write

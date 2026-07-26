@@ -1,5 +1,6 @@
 import { safeHandle } from './safe-handle'
 import { getContainer } from '../services/container'
+import type { Project } from '../../shared/types'
 
 export function registerProjectHandlers(): void {
   const { projectRepo } = getContainer()
@@ -12,9 +13,16 @@ export function registerProjectHandlers(): void {
     return projectRepo.create(name, description)
   })
 
-  safeHandle('project:update', async (_event, id: string, updates: Record<string, any>) => {
-    return projectRepo.update(id, updates)
-  })
+  safeHandle(
+    'project:update',
+    async (
+      _event,
+      id: string,
+      updates: Partial<Pick<Project, 'name' | 'description' | 'isAutoSuggested' | 'active'>>
+    ) => {
+      return projectRepo.update(id, updates)
+    }
+  )
 
   safeHandle('project:setActive', async (_event, id: string, active: boolean) => {
     return projectRepo.setActive(id, active)

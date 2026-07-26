@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react'
+import type React from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { ChevronDown, Check } from 'lucide-react'
 
 export interface SelectOption {
@@ -87,10 +88,7 @@ export function CustomSelect({ options, value, onChange, placeholder, disabled, 
       tabIndex={disabled ? -1 : 0}
       onKeyDown={handleKeyDown}
     >
-      <div
-        className="custom-select-trigger"
-        onClick={() => !disabled && setIsOpen(!isOpen)}
-      >
+      <div className="custom-select-trigger" onClick={() => !disabled && setIsOpen(!isOpen)}>
         <span className="custom-select-value">
           {selectedOption?.icon && <span className="custom-select-icon">{selectedOption.icon}</span>}
           {displayLabel}

@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import React from 'react'
 import { KanbanBoard } from '../../../src/renderer/components/KanbanBoard'
 
 describe('KanbanBoard', () => {
@@ -10,8 +9,22 @@ describe('KanbanBoard', () => {
   beforeEach(() => {
     window.electronAPI.getTasksByProject = vi.fn().mockResolvedValue([
       { id: 't1', projectId, title: 'Task Todo', status: 'todo', createdAt: '2025-01-01', updatedAt: '2025-01-01' },
-      { id: 't2', projectId, title: 'Task In Progress', status: 'in_progress', createdAt: '2025-01-01', updatedAt: '2025-01-01' },
-      { id: 't3', projectId, title: 'Task Waiting', status: 'waiting', createdAt: '2025-01-01', updatedAt: '2025-01-01' },
+      {
+        id: 't2',
+        projectId,
+        title: 'Task In Progress',
+        status: 'in_progress',
+        createdAt: '2025-01-01',
+        updatedAt: '2025-01-01',
+      },
+      {
+        id: 't3',
+        projectId,
+        title: 'Task Waiting',
+        status: 'waiting',
+        createdAt: '2025-01-01',
+        updatedAt: '2025-01-01',
+      },
       { id: 't4', projectId, title: 'Task Done', status: 'done', createdAt: '2025-01-01', updatedAt: '2025-01-01' },
     ])
   })
@@ -71,7 +84,12 @@ describe('KanbanBoard', () => {
     it('deve criar task ao pressionar Enter no input', async () => {
       const user = userEvent.setup()
       window.electronAPI.createTask = vi.fn().mockResolvedValue({
-        id: 'new-task', projectId, title: 'Nova task', status: 'todo', createdAt: '2025-01-01', updatedAt: '2025-01-01',
+        id: 'new-task',
+        projectId,
+        title: 'Nova task',
+        status: 'todo',
+        createdAt: '2025-01-01',
+        updatedAt: '2025-01-01',
       })
 
       render(<KanbanBoard projectId={projectId} />)
@@ -114,7 +132,12 @@ describe('KanbanBoard', () => {
     it('deve chamar updateTask ao mover task para próxima coluna', async () => {
       const user = userEvent.setup()
       window.electronAPI.updateTask = vi.fn().mockResolvedValue({
-        id: 't1', projectId, title: 'Task Todo', status: 'in_progress', createdAt: '2025-01-01', updatedAt: '2025-01-02',
+        id: 't1',
+        projectId,
+        title: 'Task Todo',
+        status: 'in_progress',
+        createdAt: '2025-01-01',
+        updatedAt: '2025-01-02',
       })
 
       render(<KanbanBoard projectId={projectId} />)
