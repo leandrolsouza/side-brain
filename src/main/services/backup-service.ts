@@ -6,6 +6,8 @@ import { closeDatabase, getDatabase, getDatabasePath } from '../database/schema'
 import { getErrorService } from './error-service'
 import { createScopedLogger } from './logger'
 import { SettingsRepository } from '../database/repositories/settings-repository'
+import Database from 'better-sqlite3'
+import { v4 as uuid } from 'uuid'
 
 const logger = createScopedLogger('backup')
 
@@ -13,6 +15,63 @@ const BACKUPS_DIR = 'backups'
 
 export class BackupService {
   private periodicInterval: ReturnType<typeof setInterval> | null = null
+  private pendingBackup: Promise<void> | null = null
+  private pauseCount = 0
+
+  pausePeriodicBackup(): void {
+    this.pauseCount++
+    this.stopPeriodicBackup()
+  }
+
+  resumePeriodicBackup(): void {
+    this.pauseCount = Math.max(0, this.pauseCount - 1)
+    if (this.pauseCount === 0) this.startPeriodicBackup()
+  }
+
+  async waitForBackup(): Promise<void> {
+    await this.pendingBackup
+  }
+
+  async createStartupBackup(): Promise<void> {
+    const dbPath = this.getDbPath()
+    if (!fs.existsSync(dbPath)) return
+    let completed = false
+    const operation = (async () => {
+      let source: Database.Database | undefined
+      let backupPath: string | undefined
+      try {
+        source = new Database(dbPath, { readonly: true, fileMustExist: true })
+        const hasSettings = source
+          .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'settings'")
+          .get()
+        if (hasSettings) {
+          const setting = source.prepare("SELECT value FROM settings WHERE key = 'backupFrequency'").get() as
+            | { value: string }
+            | undefined
+          if (setting?.value === 'disabled') return
+        }
+        backupPath = path.join(this.getBackupsDir(), `backup_${this.formatTimestamp(new Date())}.db`)
+        await source.backup(backupPath)
+        completed = true
+      } catch (error) {
+        try {
+          if (backupPath && fs.existsSync(backupPath)) fs.unlinkSync(backupPath)
+        } catch {
+          // Preserve the original error.
+        }
+        logger.error('[BackupService] Erro ao criar backup de inicialização:', error)
+      } finally {
+        source?.close()
+      }
+    })()
+    this.pendingBackup = operation
+    try {
+      await operation
+      if (completed) this.rotateBackups()
+    } finally {
+      this.pendingBackup = null
+    }
+  }
 
   private getBackupsDir(): string {
     const dir = path.join(app.getPath('userData'), BACKUPS_DIR)
@@ -46,6 +105,7 @@ export class BackupService {
    */
   startPeriodicBackup(): void {
     this.stopPeriodicBackup()
+    if (this.pauseCount > 0) return
 
     try {
       const settings = new SettingsRepository().get()
@@ -58,7 +118,7 @@ export class BackupService {
 
       const ms = hours * 60 * 60 * 1000
       this.periodicInterval = setInterval(() => {
-        this.createAutoBackup()
+        void this.createAutoBackup()
       }, ms)
     } catch {
       // If settings can't be read, don't schedule
@@ -76,7 +136,18 @@ export class BackupService {
    * Cria backup automático no startup do app (se frequência não estiver desativada).
    * Mantém no máximo o limite configurado, removendo os mais antigos.
    */
-  createAutoBackup(): void {
+  async createAutoBackup(): Promise<void> {
+    if (this.pendingBackup) return this.pendingBackup
+    const operation = this.performAutoBackup()
+    this.pendingBackup = operation
+    try {
+      await operation
+    } finally {
+      this.pendingBackup = null
+    }
+  }
+
+  private async performAutoBackup(): Promise<void> {
     try {
       const settings = new SettingsRepository().get()
       if (settings.backupFrequency === 'disabled') return
@@ -87,17 +158,22 @@ export class BackupService {
     const dbPath = this.getDbPath()
     if (!fs.existsSync(dbPath)) return
 
-    // Garante que o database está fechado para copiar com integridade
-    // Na prática, chamamos antes de abrir a DB no startup
     const backupsDir = this.getBackupsDir()
     const timestamp = this.formatTimestamp(new Date())
     const backupFilename = `backup_${timestamp}.db`
     const backupPath = path.join(backupsDir, backupFilename)
 
+    let completed = false
     try {
-      fs.copyFileSync(dbPath, backupPath)
+      await getDatabase().backup(backupPath)
+      completed = true
       this.rotateBackups()
     } catch (error: any) {
+      try {
+        if (!completed && fs.existsSync(backupPath)) fs.unlinkSync(backupPath)
+      } catch {
+        // Preserve the original error.
+      }
       getErrorService().logError({
         category: 'database',
         severity: 'warning',
@@ -196,10 +272,8 @@ export class BackupService {
     }
 
     try {
-      // Faz checkpoint do WAL antes de copiar
-      const db = getDatabase()
-      db.pragma('wal_checkpoint(TRUNCATE)')
-      fs.copyFileSync(dbPath, result.filePath)
+      await this.waitForBackup()
+      await getDatabase().backup(result.filePath)
       return { success: true, filePath: result.filePath }
     } catch (error: any) {
       getErrorService().logError({
@@ -253,36 +327,38 @@ export class BackupService {
     options?: { markOnboardingComplete?: boolean }
   ): Promise<{ success: boolean; error?: string }> {
     const dbPath = this.getDbPath()
+    const stagedPath = `${dbPath}.restore-${uuid()}`
 
     try {
+      await this.waitForBackup()
+      // Validate a standalone copy before touching the current database.
+      fs.copyFileSync(sourceFilePath, stagedPath, fs.constants.COPYFILE_EXCL)
+      const staged = new Database(stagedPath, { readonly: true, fileMustExist: true })
+      try {
+        const integrity = staged.pragma('quick_check', { simple: true })
+        const settings = staged
+          .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'settings'")
+          .get()
+        if (integrity !== 'ok' || !settings) throw new Error('Backup inválido ou corrompido')
+      } finally {
+        staged.close()
+      }
       // Cria backup de segurança antes de restaurar
       const backupsDir = this.getBackupsDir()
       const safetyBackup = path.join(backupsDir, `pre_restore_${this.formatTimestamp(new Date())}.db`)
 
       if (fs.existsSync(dbPath)) {
-        // Checkpoint WAL antes de fechar
-        try {
-          const db = getDatabase()
-          db.pragma('wal_checkpoint(TRUNCATE)')
-        } catch {
-          // Se não conseguir, segue em frente
-        }
-
-        // Fecha a database
+        await getDatabase().backup(safetyBackup)
         closeDatabase()
-
-        // Backup de segurança
-        fs.copyFileSync(dbPath, safetyBackup)
       }
 
       // Substitui a database
-      fs.copyFileSync(sourceFilePath, dbPath)
-
       // Remove WAL e SHM orphans se existirem
       const walPath = `${dbPath}-wal`
       const shmPath = `${dbPath}-shm`
       if (fs.existsSync(walPath)) fs.unlinkSync(walPath)
       if (fs.existsSync(shmPath)) fs.unlinkSync(shmPath)
+      fs.renameSync(stagedPath, dbPath)
 
       // Se veio do onboarding, marca como completo na base restaurada
       if (options?.markOnboardingComplete) {
@@ -314,6 +390,12 @@ export class BackupService {
       })
       logger.error('[BackupService] Erro ao restaurar backup:', error)
       return { success: false, error: 'Erro ao restaurar backup. Verifique o arquivo.' }
+    } finally {
+      try {
+        if (fs.existsSync(stagedPath)) fs.unlinkSync(stagedPath)
+      } catch (error) {
+        logger.warn('Não foi possível remover o arquivo temporário da restauração:', error)
+      }
     }
   }
 
@@ -340,25 +422,16 @@ export class BackupService {
     const dbPath = this.getDbPath()
 
     try {
+      await this.waitForBackup()
       const backupsDir = this.getBackupsDir()
       const timestamp = this.formatTimestamp(new Date())
       const archivedFilename = `archived_${timestamp}.db`
       const archivedPath = path.join(backupsDir, archivedFilename)
 
       if (fs.existsSync(dbPath)) {
-        // Checkpoint WAL antes de fechar
-        try {
-          const db = getDatabase()
-          db.pragma('wal_checkpoint(TRUNCATE)')
-        } catch {
-          // Se não conseguir, segue em frente
-        }
-
-        // Fecha a database
+        await getDatabase().backup(archivedPath)
         closeDatabase()
-
-        // Arquiva a database atual
-        fs.renameSync(dbPath, archivedPath)
+        fs.unlinkSync(dbPath)
 
         // Remove WAL e SHM orphans se existirem
         const walPath = `${dbPath}-wal`

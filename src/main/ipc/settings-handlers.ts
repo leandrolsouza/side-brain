@@ -7,7 +7,7 @@ import { setLocale } from '../i18n'
 import type { AppSettings } from '../../shared/types'
 
 export function registerSettingsHandlers(): void {
-  const { settingsRepo } = getContainer()
+  const { settingsRepo, backupService } = getContainer()
 
   safeHandle('settings:get', async () => {
     return settingsRepo.get()
@@ -18,7 +18,9 @@ export function registerSettingsHandlers(): void {
     if (settings.language) {
       setLocale(settings.language)
     }
-    return settingsRepo.update(settings)
+    const result = settingsRepo.update(settings)
+    if (settings.backupFrequency !== undefined) backupService.startPeriodicBackup()
+    return result
   })
 
   // Tray toggle — cria ou destrói o tray icon

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import path from 'node:path'
 import fs from 'node:fs'
 import { dialog } from 'electron'
-import { createTestDatabase, closeTestDatabase } from '../setup'
+import { createTestDatabase, closeTestDatabase, getTestDatabase } from '../setup'
 import { BackupService } from '../../../src/main/services/backup-service'
 import { SettingsRepository } from '../../../src/main/database/repositories/settings-repository'
 
@@ -19,6 +19,7 @@ vi.mock('../../../src/main/database/schema', async () => {
 
 vi.mock('node:fs', () => ({
   default: {
+    constants: { COPYFILE_EXCL: 1 },
     existsSync: vi.fn(),
     mkdirSync: vi.fn(),
     copyFileSync: vi.fn(),
@@ -45,12 +46,14 @@ function mockBackupFiles(files: { name: string; mtime: Date; size?: number }[]):
 
 describe('BackupService', () => {
   let service: BackupService
+  let backup: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
     createTestDatabase()
     vi.resetAllMocks()
     fsMock.existsSync.mockReturnValue(true)
     fsMock.readdirSync.mockReturnValue([] as any)
+    backup = vi.spyOn(getTestDatabase(), 'backup').mockResolvedValue({ totalPages: 1, remainingPages: 0 })
     service = new BackupService()
   })
 
@@ -88,40 +91,39 @@ describe('BackupService', () => {
   })
 
   describe('createAutoBackup', () => {
-    it('deve copiar o arquivo da database para a pasta de backups', () => {
-      service.createAutoBackup()
+    it('deve criar um snapshot SQLite na pasta de backups', async () => {
+      await service.createAutoBackup()
 
-      expect(fsMock.copyFileSync).toHaveBeenCalledTimes(1)
-      const [source, dest] = fsMock.copyFileSync.mock.calls[0]
-      expect(source).toBe(FAKE_DB_PATH)
+      expect(backup).toHaveBeenCalledTimes(1)
+      const [dest] = backup.mock.calls[0]
       expect(String(dest)).toContain(path.join(BACKUPS_DIR, 'backup_'))
       expect(String(dest).endsWith('.db')).toBe(true)
     })
 
-    it('não deve criar backup quando a frequência está desativada', () => {
+    it('não deve criar backup quando a frequência está desativada', async () => {
       new SettingsRepository().update({ backupFrequency: 'disabled' })
 
-      service.createAutoBackup()
+      await service.createAutoBackup()
 
-      expect(fsMock.copyFileSync).not.toHaveBeenCalled()
+      expect(backup).not.toHaveBeenCalled()
     })
 
-    it('não deve copiar quando o arquivo da database não existe', () => {
+    it('não deve copiar quando o arquivo da database não existe', async () => {
       fsMock.existsSync.mockImplementation((p: any) => p !== FAKE_DB_PATH)
 
-      service.createAutoBackup()
+      await service.createAutoBackup()
 
-      expect(fsMock.copyFileSync).not.toHaveBeenCalled()
+      expect(backup).not.toHaveBeenCalled()
     })
 
-    it('deve rotacionar backups além do limite configurado (padrão 7)', () => {
+    it('deve rotacionar backups além do limite configurado (padrão 7)', async () => {
       const files = Array.from({ length: 9 }, (_, i) => ({
         name: `backup_${i}.db`,
         mtime: new Date(2026, 0, 10 - i), // índice menor = mais recente
       }))
       mockBackupFiles(files)
 
-      service.createAutoBackup()
+      await service.createAutoBackup()
 
       // 9 backups listados, limite 7 → remove os 2 mais antigos
       expect(fsMock.unlinkSync).toHaveBeenCalledTimes(2)
@@ -129,6 +131,23 @@ describe('BackupService', () => {
       expect(deleted).toContain(path.join(BACKUPS_DIR, 'backup_7.db'))
       expect(deleted).toContain(path.join(BACKUPS_DIR, 'backup_8.db'))
     })
+  })
+
+  it('suspende e retoma o agendamento periódico', async () => {
+    vi.useFakeTimers()
+    try {
+      new SettingsRepository().update({ backupFrequency: '4h' })
+      service.startPeriodicBackup()
+      service.pausePeriodicBackup()
+      service.startPeriodicBackup()
+      await vi.advanceTimersByTimeAsync(4 * 60 * 60 * 1000)
+      expect(backup).not.toHaveBeenCalled()
+      service.resumePeriodicBackup()
+      await vi.advanceTimersByTimeAsync(4 * 60 * 60 * 1000)
+      expect(backup).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   describe('createManualBackup', () => {
@@ -148,7 +167,7 @@ describe('BackupService', () => {
       const result = await service.createManualBackup()
 
       expect(result).toEqual({ success: true, filePath: target })
-      expect(fsMock.copyFileSync).toHaveBeenCalledWith(FAKE_DB_PATH, target)
+      expect(backup).toHaveBeenCalledWith(target)
     })
 
     it('deve retornar success false quando a database não existe', async () => {
@@ -162,9 +181,7 @@ describe('BackupService', () => {
 
     it('deve retornar success false quando a cópia falha', async () => {
       dialogMock.showSaveDialog.mockResolvedValue({ canceled: false, filePath: '/export/x.db' } as any)
-      fsMock.copyFileSync.mockImplementation(() => {
-        throw new Error('disk full')
-      })
+      backup.mockRejectedValue(new Error('disk full'))
 
       const result = await service.createManualBackup()
 
@@ -182,22 +199,14 @@ describe('BackupService', () => {
       expect(result.error).toContain('não encontrado')
     })
 
-    it('deve criar backup de segurança e substituir a database', async () => {
+    it('deve rejeitar um arquivo inválido sem substituir a database', async () => {
       const sourceBackup = path.join(BACKUPS_DIR, 'backup_x.db')
 
       const result = await service.restoreFromAutoBackup(sourceBackup)
 
-      expect(result.success).toBe(true)
-      expect(fsMock.copyFileSync).toHaveBeenCalledTimes(2)
-      // 1ª cópia: safety backup da DB atual
-      const [safetySource, safetyDest] = fsMock.copyFileSync.mock.calls[0]
-      expect(safetySource).toBe(FAKE_DB_PATH)
-      expect(String(safetyDest)).toContain('pre_restore_')
-      // 2ª cópia: restauração do backup sobre a DB
-      expect(fsMock.copyFileSync.mock.calls[1]).toEqual([sourceBackup, FAKE_DB_PATH])
-      // Remove WAL/SHM órfãos
-      expect(fsMock.unlinkSync).toHaveBeenCalledWith(`${FAKE_DB_PATH}-wal`)
-      expect(fsMock.unlinkSync).toHaveBeenCalledWith(`${FAKE_DB_PATH}-shm`)
+      expect(result.success).toBe(false)
+      expect(fsMock.renameSync).not.toHaveBeenCalled()
+      expect(backup).not.toHaveBeenCalled()
     })
   })
 
@@ -242,18 +251,15 @@ describe('BackupService', () => {
 
       expect(result.success).toBe(true)
       expect(result.archivedPath).toContain('archived_')
-      expect(fsMock.renameSync).toHaveBeenCalledTimes(1)
-      const [source, dest] = fsMock.renameSync.mock.calls[0]
-      expect(source).toBe(FAKE_DB_PATH)
+      const [dest] = backup.mock.calls[0]
       expect(String(dest)).toContain(path.join(BACKUPS_DIR, 'archived_'))
+      expect(fsMock.unlinkSync).toHaveBeenCalledWith(FAKE_DB_PATH)
       expect(fsMock.unlinkSync).toHaveBeenCalledWith(`${FAKE_DB_PATH}-wal`)
       expect(fsMock.unlinkSync).toHaveBeenCalledWith(`${FAKE_DB_PATH}-shm`)
     })
 
     it('deve retornar erro quando o arquivamento falha', async () => {
-      fsMock.renameSync.mockImplementation(() => {
-        throw new Error('EBUSY')
-      })
+      backup.mockRejectedValue(new Error('EBUSY'))
 
       const result = await service.resetDatabase()
 

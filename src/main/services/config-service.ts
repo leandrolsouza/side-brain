@@ -10,7 +10,6 @@ const logger = createScopedLogger('config')
 
 const CONFIG_FILENAME = 'config.json'
 const DB_FILENAME = 'work-organizer.db'
-const LOCK_FILENAME = 'work-organizer.lock'
 
 const DEFAULT_WORKSPACE: Workspace = {
   id: 'default',
@@ -32,6 +31,7 @@ const DEFAULT_CONFIG: WorkspaceConfig = {
 export class ConfigService {
   private configPath: string
   private lockFilePath: string | null = null
+  private readonly lockToken = uuidv4()
 
   constructor() {
     this.configPath = path.join(app.getPath('userData'), CONFIG_FILENAME)
@@ -133,13 +133,12 @@ export class ConfigService {
       return { success: false, error: 'Workspace não encontrado.' }
     }
 
+    if (config.activeWorkspaceId === id) {
+      return { success: false, error: 'Troque de workspace antes de remover o workspace ativo.' }
+    }
+
     workspaces.splice(index, 1)
     config.workspaces = workspaces
-
-    // Se removeu o ativo, troca pro primeiro da lista
-    if (config.activeWorkspaceId === id) {
-      config.activeWorkspaceId = workspaces[0].id
-    }
 
     this.writeConfig(config)
     return { success: true }
@@ -161,6 +160,15 @@ export class ConfigService {
       return { success: true } // Já é o ativo
     }
 
+    if (path.resolve(target.databasePath) === path.resolve(this.getDatabasePath())) {
+      config.activeWorkspaceId = workspaceId
+      this.writeConfig(config)
+      return { success: true }
+    }
+
+    const lock = this.claimLock(target.databasePath)
+    if (!lock.acquired) return { success: false, error: `Banco em uso ou bloqueado: ${lock.owner}` }
+
     try {
       // Checkpoint WAL e fecha a DB antes de trocar
       try {
@@ -172,20 +180,25 @@ export class ConfigService {
       }
 
       closeDatabase()
-      this.releaseLock()
-
       // Salva o novo workspace ativo
       config.activeWorkspaceId = workspaceId
       this.writeConfig(config)
+      this.releaseLock()
+      this.lockFilePath = lock.path
 
       // Recarrega a janela para usar o novo banco
       const windows = BrowserWindow.getAllWindows()
       if (windows.length > 0) {
-        windows[0].reload()
+        try {
+          windows[0].reload()
+        } catch (error) {
+          logger.error('[ConfigService] Erro ao recarregar janela:', error)
+        }
       }
 
       return { success: true }
     } catch (error) {
+      this.releaseClaim(lock.path)
       logger.error('[ConfigService] Erro ao trocar workspace:', error)
       return { success: false, error: 'Erro ao trocar de workspace.' }
     }
@@ -256,53 +269,53 @@ export class ConfigService {
         fs.mkdirSync(newDir, { recursive: true })
       }
 
-      if (mode === 'move' && fs.existsSync(currentDbPath)) {
-        try {
-          const { getDatabase } = require('../database/schema')
-          const db = getDatabase()
-          db.pragma('wal_checkpoint(TRUNCATE)')
-        } catch {
-          // Segue em frente
-        }
-
-        closeDatabase()
-        this.releaseLock()
-
-        fs.copyFileSync(currentDbPath, newDbPath)
-        fs.unlinkSync(currentDbPath)
-
-        const walPath = `${currentDbPath}-wal`
-        const shmPath = `${currentDbPath}-shm`
-        if (fs.existsSync(walPath)) fs.unlinkSync(walPath)
-        if (fs.existsSync(shmPath)) fs.unlinkSync(shmPath)
-      } else if (mode === 'new') {
-        closeDatabase()
-        this.releaseLock()
-      } else if (mode === 'existing') {
-        // Apenas reaponta para o DB existente no destino, sem mover nem criar
-        if (!fs.existsSync(newDbPath)) {
-          return { success: false, error: 'Nenhuma database encontrada no destino.' }
-        }
-        closeDatabase()
-        this.releaseLock()
+      if (path.resolve(newDbPath) === path.resolve(currentDbPath)) return { success: true }
+      if (mode === 'existing' && !fs.existsSync(newDbPath)) {
+        return { success: false, error: 'Nenhuma database encontrada no destino.' }
       }
+      if (mode === 'move' && fs.existsSync(newDbPath)) {
+        return { success: false, error: 'Já existe uma database no destino.' }
+      }
+      const lock = this.claimLock(newDbPath)
+      if (!lock.acquired) return { success: false, error: `Banco em uso ou bloqueado: ${lock.owner}` }
 
-      // Atualiza o workspace ativo com o novo caminho
-      const config = this.readConfig()
-      const workspaces = config.workspaces
-      const activeIdx = workspaces.findIndex((ws) => ws.id === config.activeWorkspaceId)
-      if (activeIdx !== -1) {
+      try {
+        if (mode === 'move' && fs.existsSync(currentDbPath)) {
+          const { getDatabase } = require('../database/schema')
+          await getDatabase().backup(newDbPath)
+          closeDatabase()
+        } else if (mode === 'new') {
+          closeDatabase()
+        } else {
+          closeDatabase()
+        }
+
+        // Atualiza o workspace ativo com o novo caminho
+        const config = this.readConfig()
+        const workspaces = config.workspaces
+        const activeIdx = workspaces.findIndex((ws) => ws.id === config.activeWorkspaceId)
+        if (activeIdx === -1) throw new Error('Workspace ativo não encontrado')
         workspaces[activeIdx].databasePath = newDbPath
         config.workspaces = workspaces
         this.writeConfig(config)
-      }
 
-      const windows = BrowserWindow.getAllWindows()
-      if (windows.length > 0) {
-        windows[0].reload()
-      }
+        this.releaseLock()
+        this.lockFilePath = lock.path
 
-      return { success: true }
+        const windows = BrowserWindow.getAllWindows()
+        if (windows.length > 0) {
+          try {
+            windows[0].reload()
+          } catch (error) {
+            logger.error('[ConfigService] Erro ao recarregar janela:', error)
+          }
+        }
+
+        return { success: true }
+      } catch (error) {
+        this.releaseClaim(lock.path)
+        throw error
+      }
     } catch (error) {
       logger.error('[ConfigService] Erro ao mudar caminho da database:', error)
       return { success: false, error: 'Erro ao mudar o caminho da database.' }
@@ -336,58 +349,46 @@ export class ConfigService {
   // === Lock File ===
 
   acquireLock(): { acquired: boolean; owner?: string } {
-    const dbPath = this.getDatabasePath()
-    this.lockFilePath = dbPath.replace(/\.db$/, '.lock')
+    const result = this.claimLock(this.getDatabasePath())
+    if (result.acquired) this.lockFilePath = result.path
+    return result
+  }
 
-    if (fs.existsSync(this.lockFilePath)) {
-      try {
-        const lockData = JSON.parse(fs.readFileSync(this.lockFilePath, 'utf-8'))
-        const lockAge = Date.now() - new Date(lockData.timestamp).getTime()
-
-        if (lockAge > 5 * 60 * 1000) {
-          this.writeLockFile()
-          return { acquired: true }
-        }
-
-        return { acquired: false, owner: lockData.machine || 'outra máquina' }
-      } catch {
-        this.writeLockFile()
-        return { acquired: true }
+  private claimLock(dbPath: string): { acquired: true; path: string } | { acquired: false; owner: string } {
+    const lockPath = dbPath.replace(/\.db$/i, '.lock')
+    try {
+      fs.mkdirSync(path.dirname(lockPath), { recursive: true })
+      fs.writeFileSync(
+        lockPath,
+        JSON.stringify({ machine: require('node:os').hostname(), pid: process.pid, token: this.lockToken }),
+        { flag: 'wx' }
+      )
+      return { acquired: true, path: lockPath }
+    } catch (error) {
+      let owner = 'não foi possível criar o arquivo de lock'
+      if ((error as NodeJS.ErrnoException).code === 'EEXIST') {
+        owner = `arquivo ${lockPath} já existe. Se nenhuma instância estiver usando o banco, remova esse arquivo e tente novamente.`
       }
+      return { acquired: false, owner }
     }
+  }
 
-    this.writeLockFile()
-    return { acquired: true }
+  private releaseClaim(lockPath: string): void {
+    try {
+      const lock = JSON.parse(fs.readFileSync(lockPath, 'utf-8'))
+      if (lock.token === this.lockToken) fs.unlinkSync(lockPath)
+    } catch {
+      // Never remove a lock whose ownership cannot be verified.
+    }
   }
 
   releaseLock(): void {
-    if (this.lockFilePath && fs.existsSync(this.lockFilePath)) {
-      try {
-        fs.unlinkSync(this.lockFilePath)
-      } catch {
-        // Silently fail
-      }
-    }
+    if (this.lockFilePath) this.releaseClaim(this.lockFilePath)
+    this.lockFilePath = null
   }
 
   renewLock(): void {
-    if (this.lockFilePath) {
-      this.writeLockFile()
-    }
-  }
-
-  private writeLockFile(): void {
-    if (!this.lockFilePath) return
-    const lockData = {
-      machine: require('node:os').hostname(),
-      pid: process.pid,
-      timestamp: new Date().toISOString(),
-    }
-    try {
-      fs.writeFileSync(this.lockFilePath, JSON.stringify(lockData, null, 2), 'utf-8')
-    } catch {
-      // Silently fail
-    }
+    // Exclusive locks do not expire; ownership is retained until release.
   }
 
   // === Config File ===
@@ -410,6 +411,7 @@ export class ConfigService {
       fs.writeFileSync(this.configPath, JSON.stringify(config, null, 2), 'utf-8')
     } catch (error) {
       logger.error('[ConfigService] Erro ao escrever config.json:', error)
+      throw error
     }
   }
 

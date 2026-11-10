@@ -34,15 +34,16 @@ process.on('uncaughtException', (error) => {
 import { registerIpcHandlers } from './ipc/handlers'
 import { closeDatabase } from './database/schema'
 import { NotificationService } from './services/notification-service'
-import { BackupService } from './services/backup-service'
 import { getConfigService } from './services/config-service'
 import { getErrorService } from './services/error-service'
 import { getUpdaterService } from './services/updater-service'
 import { getContainer } from './services/container'
+import { BackupService } from './services/backup-service'
 
 let mainWindow: BrowserWindow | null = null
 let notificationService: NotificationService | null = null
-let lockRenewalInterval: ReturnType<typeof setInterval> | null = null
+let backupService: BackupService | null = null
+let shutdownReady = false
 let tray: Tray | null = null
 let trayEnabled = true
 
@@ -254,29 +255,24 @@ export function isTrayEnabled(): boolean {
   return trayEnabled
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  if (!gotTheLock) return
   try {
     // Forçar tema escuro nos controles nativos (select dropdown, scrollbar, etc)
     nativeTheme.themeSource = 'dark'
 
-    // Auto backup antes de abrir a database
-    const backupService = new BackupService()
-    backupService.createAutoBackup()
-
-    // Adquirir lock file da database
     const configService = getConfigService()
     const lockResult = configService.acquireLock()
     if (!lockResult.acquired) {
-      logger.warn(`[Lock] Database pode estar em uso por: ${lockResult.owner}`)
+      dialog.showErrorBox('SideBrain - Banco bloqueado', lockResult.owner || 'Não foi possível bloquear o banco.')
+      app.quit()
+      return
     }
-
-    // Renovar lock a cada 2 minutos
-    lockRenewalInterval = setInterval(
-      () => {
-        configService.renewLock()
-      },
-      2 * 60 * 1000
-    )
+    backupService = new BackupService()
+    await backupService.createStartupBackup()
+    if ((app as any).isQuitting) return
+    backupService = getContainer().backupService
+    backupService.startPeriodicBackup()
 
     registerIpcHandlers()
 
@@ -363,24 +359,31 @@ app.on('window-all-closed', () => {
   }
 })
 
-app.on('before-quit', () => {
+app.on('before-quit', (event) => {
   ;(app as any).isQuitting = true
+  if (backupService && !shutdownReady) {
+    event.preventDefault()
+    backupService.stopPeriodicBackup()
+    void backupService.waitForBackup().finally(() => {
+      shutdownReady = true
+      app.quit()
+    })
+  }
 })
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll()
   if (notificationService) notificationService.stop()
-  if (lockRenewalInterval) clearInterval(lockRenewalInterval)
   if (tray) {
     tray.destroy()
     tray = null
   }
   // Disconnect MCP servers
   try {
-    getContainer().mcpManager.disconnectAll()
+    if (backupService) getContainer().mcpManager.disconnectAll()
   } catch {
     /* ignore */
   }
-  getConfigService().releaseLock()
   closeDatabase()
+  getConfigService().releaseLock()
 })

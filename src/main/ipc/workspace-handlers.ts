@@ -6,6 +6,23 @@ import fs from 'node:fs'
 export function registerWorkspaceHandlers(): void {
   const configService = getConfigService()
   const { backupService } = getContainer()
+  let previousOperation: Promise<unknown> = Promise.resolve()
+  const withBackupPaused = async <T>(operation: () => Promise<T>): Promise<T> => {
+    backupService.pausePeriodicBackup()
+    const previous = previousOperation
+    let release: () => void = () => {}
+    previousOperation = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    try {
+      await previous
+      await backupService.waitForBackup()
+      return await operation()
+    } finally {
+      release()
+      backupService.resumePeriodicBackup()
+    }
+  }
 
   // Workspace handlers
   safeHandle('workspace:list', async () => {
@@ -29,7 +46,7 @@ export function registerWorkspaceHandlers(): void {
   })
 
   safeHandle('workspace:switch', async (_event, workspaceId: string) => {
-    return configService.switchWorkspace(workspaceId)
+    return withBackupPaused(() => configService.switchWorkspace(workspaceId))
   })
 
   safeHandle('workspace:selectFolder', async () => {
@@ -54,11 +71,11 @@ export function registerWorkspaceHandlers(): void {
   })
 
   safeHandle('database:setPath', async (_event, newPath: string, mode: 'move' | 'new' | 'existing') => {
-    return configService.setDatabasePath(newPath, mode)
+    return withBackupPaused(() => configService.setDatabasePath(newPath, mode))
   })
 
   safeHandle('database:resetPath', async (_event, mode: 'move' | 'new' | 'existing') => {
-    return configService.resetToDefaultPath(mode)
+    return withBackupPaused(() => configService.resetToDefaultPath(mode))
   })
 
   // Backup handlers
@@ -67,19 +84,19 @@ export function registerWorkspaceHandlers(): void {
   })
 
   safeHandle('backup:create', async () => {
-    return backupService.createManualBackup()
+    return withBackupPaused(() => backupService.createManualBackup())
   })
 
   safeHandle('backup:restore', async (_event, filePath: string) => {
-    return backupService.restoreFromAutoBackup(filePath)
+    return withBackupPaused(() => backupService.restoreFromAutoBackup(filePath))
   })
 
   safeHandle('backup:import', async () => {
-    return backupService.importBackup()
+    return withBackupPaused(() => backupService.importBackup())
   })
 
   safeHandle('backup:importForOnboarding', async () => {
-    return backupService.importBackup({ markOnboardingComplete: true })
+    return withBackupPaused(() => backupService.importBackup({ markOnboardingComplete: true }))
   })
 
   safeHandle('backup:delete', async (_event, filePath: string) => {
@@ -87,6 +104,6 @@ export function registerWorkspaceHandlers(): void {
   })
 
   safeHandle('database:reset', async () => {
-    return backupService.resetDatabase()
+    return withBackupPaused(() => backupService.resetDatabase())
   })
 }
