@@ -26,13 +26,12 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
   const handleCheckUpdates = async () => {
     setUpdateState('checking')
     try {
-      // Note: the main process returns an UpdateStatusPayload (with `info`), so
-      // `updateInfo` is always undefined here today. The cast preserves the
-      // legacy access without changing runtime behavior.
-      const result = (await window.electronAPI.checkForUpdates()) as { updateInfo?: { version?: string } } | undefined
-      if (result?.updateInfo?.version && result.updateInfo.version !== version) {
-        setUpdateVersion(result.updateInfo.version)
+      const result = await window.electronAPI.checkForUpdates()
+      if (result.status === 'available' && result.info?.version) {
+        setUpdateVersion(result.info.version)
         setUpdateState('available')
+      } else if (result.status === 'error') {
+        setUpdateState('error')
       } else {
         setUpdateState('not-available')
       }

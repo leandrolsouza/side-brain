@@ -132,19 +132,22 @@ src/
 
 The project uses `electron-builder` and GitHub Actions for CI/CD:
 
-- **CI (Tests)** — Runs lint, type check, i18n check, build and tests automatically on push/PR to main
-- **Release** — Automated builds for Windows (NSIS), macOS (DMG), and Linux (AppImage) when a `v*` tag is created
+- **CI (Tests)** — Runs lint, type check, build, and main/renderer tests (including i18n tests) on push/PR to main
+- **Release** — Runs CI and builds Windows, macOS, and Linux packages when a `v*` tag is created
 - **Auto-update** — `electron-updater` checks for new versions via GitHub Releases
 
 ### Creating a Release
 
 ```bash
-# Bump the version in package.json, commit, and create a tag
-git tag v0.2.0
-git push origin v0.2.0
+# Update package.json and package-lock.json, commit, and create the matching tag
+npm version 0.9.1 --no-git-tag-version
+git add package.json package-lock.json
+git commit -m "chore: release 0.9.1"
+git tag v0.9.1
+git push origin main --follow-tags
 ```
 
-The release workflow builds for all platforms and publishes to GitHub Releases.
+The tag must match the package version. The workflow validates the update manifests and artifacts before publishing a draft; failed builds can be retried without replacing a published release. Automatic updates require publicly accessible releases in `leandrolsouza/side-brain`. Builds are currently unsigned: macOS distribution and automatic updates require a signed application and appropriate notarization. Test an installed update on each supported platform before relying on a release.
 
 ## Author
 

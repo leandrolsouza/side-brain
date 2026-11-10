@@ -1,6 +1,7 @@
 name: Tests
 
 on:
+  workflow_call:
   push:
     branches: [main, master]
   pull_request:
@@ -29,9 +30,6 @@ jobs:
 
       - name: Type check
         run: npm run typecheck
-
-      - name: Check i18n keys
-        run: npm run check-i18n
 
       - name: Build
         run: npm run build

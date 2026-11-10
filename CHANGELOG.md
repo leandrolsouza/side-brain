@@ -5,6 +5,21 @@ Todas as mudanças notáveis do SideBrain serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.10.0] - 2026-11-09
+
+### Adicionado
+- Aprovação de ações de agentes, configuração de permissões e persistência do histórico de conversas.
+- Proteções para acesso ao banco e testes para migrações, backups e ferramentas de agentes.
+
+### Corrigido
+- Persistência do idioma ao iniciar o aplicativo e trocar de workspace.
+- Verificação de atualizações na tela Sobre, incluindo a apresentação de erros de acesso.
+- Origem das atualizações e geração do pacote ZIP necessário para atualização no macOS.
+
+### Alterado
+- A release executa a CI e valida a versão, os manifestos e os artefatos antes da publicação.
+- Reexecuções de builds em rascunho reutilizam a release sem apagar versões já publicadas.
+
 ## [0.9.0] - 2026-07-26
 
 ### Adicionado

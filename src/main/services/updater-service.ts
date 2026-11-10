@@ -49,22 +49,6 @@ export class UpdaterService {
     autoUpdater.on('error', (err: Error) => {
       const errorMessage = err.message || 'Erro desconhecido ao atualizar'
 
-      // 404 is expected when no release is published yet or repo is private - silently ignore
-      if (
-        errorMessage.includes('404') ||
-        errorMessage.includes('Not Found') ||
-        errorMessage.includes('releases.atom')
-      ) {
-        this.updateStatus({ status: 'not-available' })
-        return
-      }
-
-      // Network errors during startup check are also non-critical
-      if (errorMessage.includes('net::ERR_') || errorMessage.includes('ENOTFOUND')) {
-        this.updateStatus({ status: 'not-available' })
-        return
-      }
-
       this.updateStatus({ status: 'error', error: errorMessage })
 
       // Log to error service but don't crash
@@ -99,17 +83,7 @@ export class UpdaterService {
     } catch (err: any) {
       const message = err?.message || ''
 
-      // 404 / network errors are non-critical — treat as "no update available"
-      if (
-        message.includes('404') ||
-        message.includes('Not Found') ||
-        message.includes('net::ERR_') ||
-        message.includes('ENOTFOUND')
-      ) {
-        this.updateStatus({ status: 'not-available' })
-      } else {
-        this.updateStatus({ status: 'error', error: message })
-      }
+      this.updateStatus({ status: 'error', error: message })
     }
     return this.currentStatus
   }

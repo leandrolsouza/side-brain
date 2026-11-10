@@ -5,12 +5,22 @@ on:
     tags:
       - "v*"
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+    permissions:
+      contents: read
+
   create-release:
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -19,6 +29,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Validate tag and version
+        shell: bash
+        run: |
+          node -e 'const version = require("./package.json").version; const tag = process.env.GITHUB_REF_NAME; if (tag !== `v${version}`) { console.error(`Expected tag v${version}, got ${tag}`); process.exit(1) }'
 
       - name: Create GitHub Release
         id: create
@@ -35,23 +50,8 @@ jobs:
                 repo: context.repo.repo,
                 tag: tag,
               });
-              // If it exists and is published, delete it so we can recreate as draft
               if (!existing.draft) {
-                await github.rest.repos.deleteRelease({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  release_id: existing.id,
-                });
-                const { data: created } = await github.rest.repos.createRelease({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  tag_name: tag,
-                  name: `SideBrain ${tag}`,
-                  draft: true,
-                  prerelease: tag.includes('beta') || tag.includes('alpha'),
-                  generate_release_notes: true,
-                });
-                release = created;
+                throw new Error(`Release ${tag} is already published; refusing to replace it`);
               } else {
                 // Reuse existing draft release
                 release = existing;
@@ -65,7 +65,7 @@ jobs:
                   tag_name: tag,
                   name: `SideBrain ${tag}`,
                   draft: true,
-                  prerelease: tag.includes('beta') || tag.includes('alpha'),
+                  prerelease: tag.includes('-'),
                   generate_release_notes: true,
                 });
                 release = created;
@@ -89,15 +89,18 @@ jobs:
           - os: windows-latest
             builder-args: --win
             asset-extensions: ".exe,.msi,.blockmap"
-            asset-manifest: latest.yml
+            manifest-suffix: ""
+            required-extensions: ".exe,.msi"
           - os: macos-latest
             builder-args: --mac
             asset-extensions: ".dmg,.zip,.blockmap"
-            asset-manifest: latest-mac.yml
+            manifest-suffix: "-mac"
+            required-extensions: ".dmg,.zip"
           - os: ubuntu-latest
             builder-args: --linux
             asset-extensions: ".AppImage,.deb,.blockmap"
-            asset-manifest: latest-linux.yml
+            manifest-suffix: "-linux"
+            required-extensions: ".AppImage"
 
     steps:
       - name: Checkout code
@@ -126,22 +129,46 @@ jobs:
         env:
           RELEASE_ID: ${{ needs.create-release.outputs.release_id }}
           ASSET_EXTENSIONS: ${{ matrix.asset-extensions }}
-          ASSET_MANIFEST: ${{ matrix.asset-manifest }}
+          MANIFEST_SUFFIX: ${{ matrix.manifest-suffix }}
+          REQUIRED_EXTENSIONS: ${{ matrix.required-extensions }}
         with:
           script: |
             const fs = require('fs');
             const path = require('path');
             const releaseId = parseInt(process.env.RELEASE_ID);
             const extensions = process.env.ASSET_EXTENSIONS.split(',');
-            const manifest = process.env.ASSET_MANIFEST;
+            const version = require(path.join(process.env.GITHUB_WORKSPACE, 'package.json')).version;
+            const channel = version.includes('-') ? version.split('-')[1].split('.')[0] : 'latest';
+            const manifest = `${channel}${process.env.MANIFEST_SUFFIX}.yml`;
             const releaseDir = path.join(process.env.GITHUB_WORKSPACE, 'release');
             const files = fs.readdirSync(releaseDir).filter(f => {
               return extensions.some(ext => f.endsWith(ext)) || f === manifest;
+            });
+            for (const extension of process.env.REQUIRED_EXTENSIONS.split(',')) {
+              if (!files.some(file => file.endsWith(extension))) throw new Error(`Missing ${extension} artifact`);
+            }
+            if (!files.includes(manifest)) throw new Error(`Missing update manifest ${manifest}`);
+            const update = require('js-yaml').load(fs.readFileSync(path.join(releaseDir, manifest), 'utf8'));
+            if (update.version !== version || !Array.isArray(update.files) || update.files.length === 0) {
+              throw new Error(`Invalid update manifest ${manifest}`);
+            }
+            for (const item of update.files) {
+              const name = decodeURIComponent(item.url);
+              if (!files.includes(name)) throw new Error(`Manifest references missing artifact ${name}`);
+            }
+            const existingAssets = await github.paginate(github.rest.repos.listReleaseAssets, {
+              owner: context.repo.owner, repo: context.repo.repo, release_id: releaseId, per_page: 100,
             });
             for (const file of files) {
               const filePath = path.join(releaseDir, file);
               const stat = fs.statSync(filePath);
               if (!stat.isFile()) continue;
+              const existing = existingAssets.find(asset => asset.name === file);
+              if (existing) {
+                await github.rest.repos.deleteReleaseAsset({
+                  owner: context.repo.owner, repo: context.repo.repo, asset_id: existing.id,
+                });
+              }
               console.log(`Uploading ${file} (${stat.size} bytes)`);
               await github.rest.repos.uploadReleaseAsset({
                 owner: context.repo.owner,
