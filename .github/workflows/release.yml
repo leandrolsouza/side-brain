@@ -42,36 +42,30 @@ jobs:
           script: |
             const tag = context.ref.replace('refs/tags/', '');
 
-            // Check if a release already exists for this tag
+            // The release-by-tag endpoint does not return drafts.
+            const releases = await github.paginate(github.rest.repos.listReleases, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100,
+            });
+            const existing = releases.find(item => item.tag_name === tag);
             let release;
-            try {
-              const { data: existing } = await github.rest.repos.getReleaseByTag({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                tag: tag,
-              });
+            if (existing) {
               if (!existing.draft) {
                 throw new Error(`Release ${tag} is already published; refusing to replace it`);
-              } else {
-                // Reuse existing draft release
-                release = existing;
               }
-            } catch (e) {
-              if (e.status === 404) {
-                // No existing release, create a new one
-                const { data: created } = await github.rest.repos.createRelease({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  tag_name: tag,
-                  name: `SideBrain ${tag}`,
-                  draft: true,
-                  prerelease: tag.includes('-'),
-                  generate_release_notes: true,
-                });
-                release = created;
-              } else {
-                throw e;
-              }
+              release = existing;
+            } else {
+              const { data: created } = await github.rest.repos.createRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag_name: tag,
+                name: `SideBrain ${tag}`,
+                draft: true,
+                prerelease: tag.includes('-'),
+                generate_release_notes: true,
+              });
+              release = created;
             }
 
             core.setOutput('release_id', String(release.id));
