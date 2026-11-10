@@ -24,6 +24,20 @@ describe('ChatHistoryRepository', () => {
     closeTestDatabase()
   })
 
+  it('preserva os resultados das ações no histórico', () => {
+    const conversation = repo.createConversation('Ações')
+    const actions = [{ type: 'create_task' as const, success: false, description: 'Recusada' }]
+    repo.addMessage(conversation.id, {
+      id: 'message',
+      role: 'assistant',
+      content: 'Proposta',
+      actions,
+      createdAt: new Date().toISOString(),
+    })
+    expect(repo.getMessages(conversation.id)[0].actions).toEqual(actions)
+    expect(repo.getRecentMessages(conversation.id, 5)[0].actions).toEqual(actions)
+  })
+
   describe('createConversation', () => {
     it('deve criar uma conversa com título', () => {
       const conversation = repo.createConversation('Dúvidas sobre o projeto')

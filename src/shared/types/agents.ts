@@ -53,6 +53,8 @@ export interface AgentScope {
   dateRange?: { from: string; to: string }
   /** Optional filter by entry types */
   entryTypes?: string[]
+  /** MCP tools explicitly enabled for this agent. Missing means none. */
+  mcpTools?: { serverId: string; name: string }[]
 }
 
 /**

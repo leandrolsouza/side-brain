@@ -1,4 +1,5 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
+import { AjvJsonSchemaValidator } from '@modelcontextprotocol/sdk/validation/ajv'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import type {
   ToolDefinition,
@@ -266,6 +267,15 @@ export class MCPManager {
       allTools.push(...tools)
     }
     return allTools
+  }
+
+  validateToolArguments(serverId: string, name: string, args: unknown): void {
+    const tool = this.getAllTools().find((item) => item.serverId === serverId && item.name === name)
+    if (!tool) throw new Error('Ferramenta MCP não encontrada.')
+    const schema = tool.inputSchema as Parameters<AjvJsonSchemaValidator['getValidator']>[0]
+    if (!schema || typeof schema !== 'object' || schema.type !== 'object') throw new Error('Schema MCP inválido.')
+    const result = new AjvJsonSchemaValidator().getValidator(schema)(args)
+    if (!result.valid) throw new Error(`Argumentos MCP inválidos: ${result.errorMessage}`)
   }
 
   /**

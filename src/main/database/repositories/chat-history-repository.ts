@@ -1,6 +1,6 @@
 import { v4 as uuid } from 'uuid'
 import { getDatabase } from '../schema'
-import type { ChatConversation, SmartChatMessage, SmartChatSource } from '../../../shared/types'
+import type { ChatActionResult, ChatConversation, SmartChatMessage, SmartChatSource } from '../../../shared/types'
 
 export class ChatHistoryRepository {
   // === Conversations ===
@@ -75,16 +75,20 @@ export class ChatHistoryRepository {
     const db = getDatabase()
     const rows = db
       .prepare(`
-      SELECT id, conversation_id as conversationId, role, content, sources, created_at as createdAt
+      SELECT id, conversation_id as conversationId, role, content, sources, actions, created_at as createdAt
       FROM chat_messages
       WHERE conversation_id = ?
       ORDER BY created_at ASC
     `)
-      .all(conversationId) as (Omit<SmartChatMessage, 'sources'> & { sources: string | null })[]
+      .all(conversationId) as (Omit<SmartChatMessage, 'sources' | 'actions'> & {
+      sources: string | null
+      actions: string | null
+    })[]
 
     return rows.map((row) => ({
       ...row,
       sources: row.sources ? (JSON.parse(row.sources) as SmartChatSource[]) : undefined,
+      actions: row.actions ? (JSON.parse(row.actions) as ChatActionResult[]) : undefined,
     }))
   }
 
@@ -92,18 +96,22 @@ export class ChatHistoryRepository {
     const db = getDatabase()
     const rows = db
       .prepare(`
-      SELECT id, conversation_id as conversationId, role, content, sources, created_at as createdAt
+      SELECT id, conversation_id as conversationId, role, content, sources, actions, created_at as createdAt
       FROM chat_messages
       WHERE conversation_id = ?
       ORDER BY created_at DESC
       LIMIT ?
     `)
-      .all(conversationId, limit) as (Omit<SmartChatMessage, 'sources'> & { sources: string | null })[]
+      .all(conversationId, limit) as (Omit<SmartChatMessage, 'sources' | 'actions'> & {
+      sources: string | null
+      actions: string | null
+    })[]
 
     // Reverse to get chronological order
     return rows.reverse().map((row) => ({
       ...row,
       sources: row.sources ? (JSON.parse(row.sources) as SmartChatSource[]) : undefined,
+      actions: row.actions ? (JSON.parse(row.actions) as ChatActionResult[]) : undefined,
     }))
   }
 
@@ -124,9 +132,17 @@ export class ChatHistoryRepository {
     const sourcesJson = message.sources ? JSON.stringify(message.sources) : null
 
     db.prepare(`
-      INSERT INTO chat_messages (id, conversation_id, role, content, sources, created_at)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(id, conversationId, message.role, message.content, sourcesJson, now)
+      INSERT INTO chat_messages (id, conversation_id, role, content, sources, actions, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      id,
+      conversationId,
+      message.role,
+      message.content,
+      sourcesJson,
+      message.actions ? JSON.stringify(message.actions) : null,
+      now
+    )
 
     // Touch conversation to update its timestamp
     this.touchConversation(conversationId)
@@ -137,6 +153,7 @@ export class ChatHistoryRepository {
       role: message.role,
       content: message.content,
       sources: message.sources,
+      actions: message.actions,
       createdAt: now,
     }
   }

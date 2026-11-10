@@ -1,4 +1,8 @@
 {
+  "mcpPermissionsTitle": "Allowed MCP tools",
+  "mcpPermissionsHint": "Choose which tools this agent can use. Each call requires confirmation.",
+  "mcpPermissionsEmpty": "No tools connected. Connect an MCP server to choose tools.",
+  "mcpToolOffline": "disconnected",
   "headerTitle": "Ask your history",
   "badge": "AI",
   "welcomeTitle": "Chat with your data",

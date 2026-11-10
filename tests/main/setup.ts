@@ -40,6 +40,7 @@ vi.mock('electron', () => ({
   dialog: {
     showSaveDialog: vi.fn(),
     showOpenDialog: vi.fn(),
+    showMessageBox: vi.fn(),
     showErrorBox: vi.fn(),
   },
   ipcMain: {
@@ -256,6 +257,7 @@ export function createTestDatabase(): Database.Database {
       role TEXT NOT NULL CHECK(role IN ('user', 'assistant')),
       content TEXT NOT NULL,
       sources TEXT,
+      actions TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY (conversation_id) REFERENCES chat_conversations(id) ON DELETE CASCADE
     );

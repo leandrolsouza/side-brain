@@ -1,4 +1,17 @@
 {
+  "action_approval": {
+    "title": "Confirm action",
+    "message": "{{origin}} requests to run: {{action}}",
+    "reject": "Reject",
+    "approve": "Confirm",
+    "results": "See the action results below.",
+    "rejected": "Action rejected by the user.",
+    "changed": "The data changed after confirmation. Request the action again.",
+    "ambiguous_task": "Several tasks match. Specify a project or task ID.",
+    "select_project": "Specify a project for this action.",
+    "project_missing": "Project not found.",
+    "yes": "Yes"
+  },
   "digest_ready": {
     "title": "Daily digest ready",
     "body": "Your daily summary is available. See what happened and what needs attention."

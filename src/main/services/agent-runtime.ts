@@ -14,6 +14,7 @@ import type { AIProvider } from './ai-provider'
 import type { AgentToolRegistry } from './agent-tool-registry'
 import type { MCPManager } from './mcp-manager'
 import { BrowserWindow } from 'electron'
+import { confirmAction } from './action-approval-service'
 
 /** Maximum recursion depth for agent delegation chains */
 const MAX_DELEGATION_DEPTH = 3
@@ -150,7 +151,14 @@ export class AgentRuntime {
 
     // Add MCP tools if agent has mcp_tools skill
     if (agent.skills.includes('mcp_tools') && this.mcpManager) {
-      const mcpTools = this.mcpManager.getToolDefinitions()
+      const allowed = agent.scope.mcpTools || []
+      const permittedNames = new Set(
+        this.mcpManager
+          .getAllTools()
+          .filter((tool) => allowed.some((item) => item.serverId === tool.serverId && item.name === tool.name))
+          .map((tool) => `mcp_${tool.serverId.slice(0, 8)}_${tool.name}`)
+      )
+      const mcpTools = this.mcpManager.getToolDefinitions().filter((tool) => permittedNames.has(tool.name))
       allTools = [...allTools, ...mcpTools]
     }
 
@@ -217,6 +225,7 @@ export class AgentRuntime {
 
       // Execute each tool call
       for (const toolCall of response.toolCalls) {
+        if (stepCount >= agent.maxSteps) break
         stepCount++
 
         // Record the step
@@ -237,15 +246,73 @@ export class AgentRuntime {
         let toolResult: string
 
         try {
+          const liveAgent = this.agentRepo.getById(agent.id)
+          if (
+            !liveAgent?.isActive ||
+            JSON.stringify(liveAgent.skills) !== JSON.stringify(agent.skills) ||
+            JSON.stringify(liveAgent.scope) !== JSON.stringify(agent.scope) ||
+            JSON.stringify(liveAgent.canDelegate) !== JSON.stringify(agent.canDelegate) ||
+            liveAgent.requiresApproval !== agent.requiresApproval
+          ) {
+            throw new Error('As permissões do agente mudaram. Execute novamente.')
+          }
+          if (!allTools.some((definition) => definition.name === toolCall.name)) {
+            throw new Error('Ferramenta não autorizada para este agente.')
+          }
+          let prepared = toolCall
+          if (toolCall.name === 'delegate') {
+            this.toolRegistry.validateArguments(this.getDelegateToolDefinition(agent), toolCall.arguments)
+            if (!agent.skills.includes('delegate') || !agent.canDelegate.includes(toolCall.arguments.agentId)) {
+              throw new Error('Delegação não autorizada.')
+            }
+          } else if (toolCall.name.startsWith('mcp_')) {
+            this.validateMCPToolCall(toolCall, liveAgent)
+          } else {
+            prepared = this.toolRegistry.prepareCall(toolCall, agent)
+          }
+          const requiresConfirmation =
+            agent.requiresApproval ||
+            ['create_task', 'update_task', 'create_entry', 'send_notification'].includes(toolCall.name) ||
+            toolCall.name.startsWith('mcp_')
+          const details =
+            toolCall.name.startsWith('mcp_') || toolCall.name === 'delegate'
+              ? { arguments: prepared.arguments }
+              : this.toolRegistry.getApprovalDetails(prepared)
+          if (requiresConfirmation) {
+            const mcpTool = toolCall.name.startsWith('mcp_') ? this.validateMCPToolCall(toolCall, liveAgent) : null
+            const origin = mcpTool ? `${agent.name} — ${mcpTool.serverName} (${mcpTool.serverId})` : agent.name
+            if (!(await confirmAction(origin, mcpTool?.name || toolCall.name, details)))
+              throw new Error('Ação recusada pelo usuário.')
+            const currentAgent = this.agentRepo.getById(agent.id)
+            if (
+              !currentAgent?.isActive ||
+              JSON.stringify(currentAgent.skills) !== JSON.stringify(agent.skills) ||
+              JSON.stringify(currentAgent.scope) !== JSON.stringify(agent.scope) ||
+              JSON.stringify(currentAgent.canDelegate) !== JSON.stringify(agent.canDelegate) ||
+              currentAgent.requiresApproval !== agent.requiresApproval
+            ) {
+              throw new Error('As permissões do agente mudaram. Execute novamente.')
+            }
+            if (toolCall.name.startsWith('mcp_')) this.validateMCPToolCall(prepared, currentAgent)
+            else if (toolCall.name !== 'delegate') {
+              const refreshed = this.toolRegistry.prepareCall(prepared, currentAgent)
+              if (JSON.stringify(this.toolRegistry.getApprovalDetails(refreshed)) !== JSON.stringify(details)) {
+                throw new Error('Os dados mudaram após a confirmação. Execute novamente.')
+              }
+              prepared = refreshed
+            }
+          }
+          if (!this.runningExecutions.has(execution.id)) throw new Error('Execução cancelada.')
           if (toolCall.name === 'delegate') {
             // Handle delegation to another agent
-            toolResult = await this.handleDelegation(toolCall, agent, delegationDepth)
+            toolResult = await this.handleDelegation(prepared, agent, delegationDepth)
           } else if (toolCall.name.startsWith('mcp_') && this.mcpManager) {
             // Handle MCP tool call — parse serverId and toolName from the namespaced name
-            toolResult = await this.handleMCPToolCall(toolCall)
+            toolResult = await this.handleMCPToolCall(prepared, agent)
           } else {
             // Execute via tool registry
-            const result = await this.toolRegistry.executeTool(toolCall, agent)
+            const result = await this.toolRegistry.executeTool(prepared, agent)
+            if (!result.success) throw new Error(result.error || 'Falha ao executar ferramenta.')
             toolResult = JSON.stringify(result.success ? result.result : { error: result.error })
           }
 
@@ -323,30 +390,34 @@ export class AgentRuntime {
    * Handle a tool call routed to an MCP server.
    * Tool names are formatted as: mcp_{serverId8chars}_{originalToolName}
    */
-  private async handleMCPToolCall(toolCall: ToolCall): Promise<string> {
+  private validateMCPToolCall(
+    toolCall: ToolCall,
+    agent: AgentDefinition
+  ): { serverId: string; serverName: string; name: string } {
     if (!this.mcpManager) {
-      return JSON.stringify({ error: 'MCP not available' })
+      throw new Error('MCP não disponível.')
     }
-
-    // Parse the namespaced tool name: mcp_{serverId8}_{toolName}
     const match = toolCall.name.match(/^mcp_([a-f0-9]{8})_(.+)$/)
-    if (!match) {
-      return JSON.stringify({ error: `Invalid MCP tool name format: ${toolCall.name}` })
+    if (!match || !agent.skills.includes('mcp_tools')) throw new Error('Ferramenta MCP não autorizada.')
+    const matches = this.mcpManager
+      .getAllTools()
+      .filter((item) => item.serverId.startsWith(match[1]) && item.name === match[2])
+    if (matches.length !== 1) throw new Error('Ferramenta MCP não encontrada ou ambígua.')
+    const mcpTool = matches[0]
+    if (
+      !(agent.scope.mcpTools || []).some((item) => item.serverId === mcpTool.serverId && item.name === mcpTool.name)
+    ) {
+      throw new Error('Ferramenta MCP não autorizada.')
     }
+    this.mcpManager.validateToolArguments(mcpTool.serverId, mcpTool.name, toolCall.arguments)
+    return mcpTool
+  }
 
-    const serverIdPrefix = match[1]
-    const toolName = match[2]
-
-    // Find the server by prefix
-    const allTools = this.mcpManager.getAllTools()
-    const mcpTool = allTools.find((t) => t.serverId.startsWith(serverIdPrefix) && t.name === toolName)
-
-    if (!mcpTool) {
-      return JSON.stringify({ error: `MCP tool "${toolName}" not found` })
-    }
-
-    const result = await this.mcpManager.callTool(mcpTool.serverId, toolName, toolCall.arguments)
-    return JSON.stringify(result.success ? result.result : { error: result.error })
+  private async handleMCPToolCall(toolCall: ToolCall, agent: AgentDefinition): Promise<string> {
+    const mcpTool = this.validateMCPToolCall(toolCall, agent)
+    const result = await this.mcpManager!.callTool(mcpTool.serverId, mcpTool.name, toolCall.arguments)
+    if (!result.success) throw new Error(result.error || 'Falha ao executar ferramenta MCP.')
+    return JSON.stringify(result.result)
   }
 
   // ─── Helpers ──────────────────────────────────────────────────

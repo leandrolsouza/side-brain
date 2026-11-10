@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Loader2, Plus, Settings2, Sparkles } from 'lucide-react'
-import type { AgentCreateData, AgentDefinition, AgentSkill } from '@shared/types'
+import type { AgentCreateData, AgentDefinition, AgentSkill, MCPToolInfo } from '@shared/types'
 import { getAgentColor, getAgentIcon } from './agent-visuals'
 
 const AVAILABLE_SKILLS: { key: AgentSkill; label: string; category: string }[] = [
@@ -42,6 +43,7 @@ export function AgentCreator({
   onBack: () => void
   editingAgent?: AgentDefinition
 }) {
+  const { t } = useTranslation('chat')
   const [name, setName] = useState(editingAgent?.name || '')
   const [description, setDescription] = useState(editingAgent?.description || '')
   const [persona, setPersona] = useState(editingAgent?.persona || '')
@@ -53,6 +55,17 @@ export function AgentCreator({
   const [maxSteps, setMaxSteps] = useState(editingAgent?.maxSteps || 6)
   const [canDelegate, setCanDelegate] = useState<string[]>(editingAgent?.canDelegate || [])
   const [requiresApproval, setRequiresApproval] = useState(editingAgent?.requiresApproval || false)
+  const [mcpTools, setMcpTools] = useState<MCPToolInfo[]>([])
+  const [allowedMcpTools, setAllowedMcpTools] = useState(editingAgent?.scope.mcpTools || [])
+
+  useEffect(() => {
+    if (skills.includes('mcp_tools')) {
+      window.electronAPI
+        .mcpGetTools()
+        .then(setMcpTools)
+        .catch(() => setMcpTools([]))
+    }
+  }, [skills])
 
   const isEditing = !!editingAgent
   const [aiPrompt, setAiPrompt] = useState('')
@@ -95,11 +108,11 @@ export function AgentCreator({
       icon,
       color,
       skills,
-      scope: { projectIds: 'all' as const },
-      triggers: [{ type: 'manual' }],
+      scope: { ...(editingAgent?.scope || { projectIds: 'all' as const }), mcpTools: allowedMcpTools },
+      triggers: editingAgent?.triggers || [{ type: 'manual' }],
       canDelegate,
       maxSteps,
-      isActive: true,
+      isActive: editingAgent?.isActive ?? true,
       requiresApproval,
     })
   }
@@ -234,6 +247,53 @@ export function AgentCreator({
             ))}
           </div>
         </div>
+
+        {skills.includes('mcp_tools') && (
+          <div className="agent-form-section">
+            <span className="agent-form-label">{t('mcpPermissionsTitle')}</span>
+            <p className="agent-form-hint">{t('mcpPermissionsHint')}</p>
+            {mcpTools.length === 0 && <p>{t('mcpPermissionsEmpty')}</p>}
+            {mcpTools.map((tool) => {
+              const checked = allowedMcpTools.some((item) => item.serverId === tool.serverId && item.name === tool.name)
+              return (
+                <label key={`${tool.serverId}:${tool.name}`} className="agent-skill-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() =>
+                      setAllowedMcpTools((previous) =>
+                        checked
+                          ? previous.filter((item) => item.serverId !== tool.serverId || item.name !== tool.name)
+                          : [...previous, { serverId: tool.serverId, name: tool.name }]
+                      )
+                    }
+                  />
+                  <span>
+                    {tool.serverName} — {tool.name}
+                  </span>
+                </label>
+              )
+            })}
+            {allowedMcpTools
+              .filter((item) => !mcpTools.some((tool) => tool.serverId === item.serverId && tool.name === item.name))
+              .map((item) => (
+                <label key={`${item.serverId}:${item.name}`} className="agent-skill-checkbox">
+                  <input
+                    type="checkbox"
+                    checked
+                    onChange={() =>
+                      setAllowedMcpTools((previous) =>
+                        previous.filter((entry) => entry.serverId !== item.serverId || entry.name !== item.name)
+                      )
+                    }
+                  />
+                  <span>
+                    {item.serverId} — {item.name} ({t('mcpToolOffline')})
+                  </span>
+                </label>
+              ))}
+          </div>
+        )}
 
         {/* Delegation */}
         {skills.includes('delegate') && agents.length > 0 && (

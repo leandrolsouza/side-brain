@@ -4,6 +4,7 @@ import { ChatActionExecutor } from '../../../src/main/services/chat-action-execu
 import { EntryRepository } from '../../../src/main/database/repositories/entry-repository'
 import { ProjectRepository } from '../../../src/main/database/repositories/project-repository'
 import { TaskRepository } from '../../../src/main/database/repositories/task-repository'
+import { dialog } from 'electron'
 
 vi.mock('../../../src/main/database/schema', async () => {
   const setup = await import('../setup')
@@ -27,6 +28,7 @@ describe('ChatActionExecutor', () => {
     taskRepo = new TaskRepository()
     executor = new ChatActionExecutor(entryRepo, projectRepo, taskRepo)
     vi.clearAllMocks()
+    vi.mocked(dialog.showMessageBox).mockResolvedValue({ response: 1, checkboxChecked: false })
   })
 
   afterEach(() => {
@@ -195,6 +197,58 @@ describe('ChatActionExecutor', () => {
 
       expect(results[0].success).toBe(false)
       expect(results[0].description).toContain('Task não encontrada')
+    })
+
+    it('recusa uma atualização ambígua sem modificar tarefas', async () => {
+      const project = projectRepo.create('P1')
+      const first = taskRepo.create({ projectId: project.id, title: 'Revisar deploy' })
+      const second = taskRepo.create({ projectId: project.id, title: 'Revisar deploy' })
+      const [result] = await executor.executeActions([
+        { action: 'update_task_status', taskTitle: 'Revisar deploy', status: 'done' },
+      ])
+      expect(result.success).toBe(false)
+      expect(result.description).toContain('várias tarefas')
+      expect(taskRepo.getById(first.id)?.status).toBe('todo')
+      expect(taskRepo.getById(second.id)?.status).toBe('todo')
+    })
+
+    it('não altera dados quando o usuário recusa a confirmação', async () => {
+      const project = projectRepo.create('P1')
+      const task = taskRepo.create({ projectId: project.id, title: 'Revisar' })
+      vi.mocked(dialog.showMessageBox).mockResolvedValueOnce({ response: 0, checkboxChecked: false })
+      const [result] = await executor.executeActions([
+        { action: 'update_task_status', taskId: task.id, status: 'done' },
+      ])
+      expect(result.success).toBe(false)
+      expect(taskRepo.getById(task.id)?.status).toBe('todo')
+    })
+
+    it('confirma o alvo e modifica somente a tarefa escolhida', async () => {
+      const project = projectRepo.create('P1')
+      const task = taskRepo.create({ projectId: project.id, title: 'Revisar' })
+      vi.mocked(dialog.showMessageBox).mockResolvedValueOnce({ response: 1, checkboxChecked: false })
+      const [result] = await executor.executeActions([
+        { action: 'update_task_status', taskTitle: 'Revisar', status: 'done' },
+      ])
+      expect(result.success).toBe(true)
+      expect(vi.mocked(dialog.showMessageBox).mock.calls.at(-1)?.[0]).toMatchObject({
+        detail: expect.stringContaining(task.id),
+      })
+      expect(taskRepo.getById(task.id)?.status).toBe('done')
+    })
+
+    it('não executa se a tarefa mudou durante a confirmação', async () => {
+      const project = projectRepo.create('P1')
+      const task = taskRepo.create({ projectId: project.id, title: 'Revisar' })
+      vi.mocked(dialog.showMessageBox).mockImplementationOnce(async () => {
+        taskRepo.update(task.id, { status: 'waiting' })
+        return { response: 1, checkboxChecked: false }
+      })
+      const [result] = await executor.executeActions([
+        { action: 'update_task_status', taskId: task.id, status: 'done' },
+      ])
+      expect(result.success).toBe(false)
+      expect(taskRepo.getById(task.id)?.status).toBe('waiting')
     })
   })
 

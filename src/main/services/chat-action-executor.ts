@@ -2,6 +2,8 @@ import type { ChatActionType, ChatActionResult } from '../../shared/types'
 import type { EntryRepository } from '../database/repositories/entry-repository'
 import type { ProjectRepository } from '../database/repositories/project-repository'
 import type { TaskRepository } from '../database/repositories/task-repository'
+import { confirmAction } from './action-approval-service'
+import { t } from '../i18n'
 
 interface ActionPayload {
   action: ChatActionType
@@ -54,7 +56,22 @@ export class ChatActionExecutor {
 
     for (const payload of payloads) {
       try {
-        const result = await this.executeOne(payload)
+        const prepared = this.prepareAction(payload)
+        if (['create_task', 'update_task_status', 'create_entry'].includes(prepared.action)) {
+          const approved = await confirmAction('Smart Chat', prepared.action, prepared)
+          if (!approved) {
+            results.push({
+              type: prepared.action,
+              success: false,
+              description: t('notifications.action_approval.rejected'),
+            })
+            continue
+          }
+          if (JSON.stringify(this.prepareAction(prepared)) !== JSON.stringify(prepared)) {
+            throw new Error(t('notifications.action_approval.changed'))
+          }
+        }
+        const result = await this.executeOne(prepared)
         results.push(result)
       } catch (error: any) {
         results.push({
@@ -66,6 +83,68 @@ export class ChatActionExecutor {
     }
 
     return results
+  }
+
+  private prepareAction(payload: ActionPayload): ActionPayload {
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new Error('Ação inválida.')
+    for (const [key, value] of Object.entries(payload)) {
+      if (typeof value !== 'string' && value !== undefined && value !== null) {
+        throw new Error(`Parâmetro inválido: ${key}`)
+      }
+    }
+    const prepared = { ...payload }
+    if (prepared.action === 'create_task' && !prepared.title?.trim()) throw new Error('Título da task é obrigatório.')
+    if (prepared.action === 'create_entry' && !prepared.text?.trim()) throw new Error('Texto da entrada é obrigatório.')
+    if (prepared.action === 'update_task_status') {
+      if (!['todo', 'in_progress', 'waiting', 'done'].includes(prepared.status))
+        throw new Error(`Status inválido: ${prepared.status}`)
+      let task = prepared.taskId ? this.taskRepo.getById(prepared.taskId) : null
+      if (prepared.taskId && !task) throw new Error('Task não encontrada.')
+      if (!task && prepared.taskTitle) {
+        let matches = this.taskRepo.search(prepared.taskTitle)
+        if (prepared.projectName) {
+          const project = this.projectRepo.findByName(prepared.projectName)
+          if (!project) throw new Error(t('notifications.action_approval.project_missing'))
+          matches = matches.filter((candidate) => candidate.projectId === project.id)
+        }
+        if (matches.length > 1) throw new Error(t('notifications.action_approval.ambiguous_task'))
+        task = matches[0] || null
+      }
+      if (!task) throw new Error('Task não encontrada.')
+      prepared.taskId = task.id
+      prepared.taskTitle = task.title
+      prepared.projectName = this.projectRepo.getById(task.projectId)?.name
+      prepared.currentStatus = task.status
+    }
+    if (prepared.action === 'create_task' || prepared.action === 'create_entry') {
+      if (prepared.projectId) {
+        const project = this.projectRepo.getById(prepared.projectId)
+        if (!project) throw new Error(t('notifications.action_approval.project_missing'))
+        prepared.projectName = project.name
+      } else if (prepared.projectName) {
+        const project = this.projectRepo.findByName(prepared.projectName)
+        if (project) {
+          prepared.projectId = project.id
+          delete prepared.projectCreation
+        } else if (
+          prepared.action === 'create_entry' &&
+          !(prepared.projectName === 'Geral' && this.projectRepo.getAll().length === 0)
+        ) {
+          throw new Error(t('notifications.action_approval.project_missing'))
+        } else prepared.projectCreation = t('notifications.action_approval.yes')
+      } else {
+        const projects = this.projectRepo.getAll()
+        if (projects.length > 1) throw new Error(t('notifications.action_approval.select_project'))
+        if (projects.length === 1) {
+          prepared.projectId = projects[0].id
+          prepared.projectName = projects[0].name
+        } else {
+          prepared.projectName = 'Geral'
+          prepared.projectCreation = t('notifications.action_approval.yes')
+        }
+      }
+    }
+    return prepared
   }
 
   private async executeOne(payload: ActionPayload): Promise<ChatActionResult> {
@@ -245,6 +324,8 @@ export class ChatActionExecutor {
       const project = this.projectRepo.findByName(projectName)
       if (project) {
         tasks = tasks.filter((t) => t.projectId === project.id)
+      } else {
+        return { type: 'list_tasks', success: false, description: t('notifications.action_approval.project_missing') }
       }
     }
 

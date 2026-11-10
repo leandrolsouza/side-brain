@@ -532,6 +532,13 @@ const migrations: Migration[] = [
       }
     },
   },
+  {
+    version: 16,
+    name: 'add_chat_action_results',
+    up: (database) => {
+      database.exec('ALTER TABLE chat_messages ADD COLUMN actions TEXT')
+    },
+  },
 ]
 
 function runMigrations(database: Database.Database): void {

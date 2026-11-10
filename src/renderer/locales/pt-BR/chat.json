@@ -1,4 +1,8 @@
 {
+  "mcpPermissionsTitle": "Ferramentas MCP autorizadas",
+  "mcpPermissionsHint": "Escolha as ferramentas disponíveis para este agente. Cada chamada pede confirmação.",
+  "mcpPermissionsEmpty": "Nenhuma ferramenta conectada. Conecte um servidor MCP para escolher ferramentas.",
+  "mcpToolOffline": "desconectada",
   "headerTitle": "Pergunte ao seu histórico",
   "badge": "IA",
   "welcomeTitle": "Converse com seus dados",

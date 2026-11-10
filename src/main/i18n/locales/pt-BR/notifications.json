@@ -1,4 +1,17 @@
 {
+  "action_approval": {
+    "title": "Confirmar ação",
+    "message": "{{origin}} solicita executar: {{action}}",
+    "reject": "Recusar",
+    "approve": "Confirmar",
+    "results": "Confira os resultados das ações abaixo.",
+    "rejected": "Ação recusada pelo usuário.",
+    "changed": "Os dados mudaram após a confirmação. Solicite a ação novamente.",
+    "ambiguous_task": "Há várias tarefas correspondentes. Informe o projeto ou o ID da tarefa.",
+    "select_project": "Informe o projeto para esta ação.",
+    "project_missing": "Projeto não encontrado.",
+    "yes": "Sim"
+  },
   "digest_ready": {
     "title": "Digest diário pronto",
     "body": "Seu resumo diário está disponível. Veja o que aconteceu e o que precisa de atenção."

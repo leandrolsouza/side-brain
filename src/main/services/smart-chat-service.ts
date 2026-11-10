@@ -99,7 +99,7 @@ export class SmartChatService {
       id: uuid(),
       conversationId: conversation.id,
       role: 'assistant',
-      content: cleanText || responseText,
+      content: cleanText || (actions?.length ? t('notifications.action_approval.results') : responseText),
       sources,
       actions: actions && actions.length > 0 ? actions : undefined,
       createdAt: new Date().toISOString(),
@@ -216,7 +216,7 @@ Ações disponíveis:
 Regras para ações:
 - Só emita ação quando o usuário EXPLICITAMENTE pedir para fazer algo (criar, mover, registrar, listar)
 - Perguntas informativas (o que decidimos, qual status, etc.) NÃO devem gerar ações
-- Sempre inclua uma resposta textual explicando o que fez
+- Descreva ações de alteração como propostas; elas dependem de confirmação e ainda não foram executadas
 - Projetos disponíveis: ${projectNames || '(nenhum)'}
 - Se o usuário não especificar projeto, use o mais relevante do contexto`
   }

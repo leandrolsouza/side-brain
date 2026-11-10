@@ -65,11 +65,85 @@ export class AgentToolRegistry {
     }
 
     try {
-      const result = await registered.handler(call.arguments, agent.scope)
+      const prepared = this.prepareCall(call, agent)
+      const result = await registered.handler(prepared.arguments, agent.scope)
       return { toolCallId: call.id, success: true, result }
     } catch (error: any) {
       return { toolCallId: call.id, success: false, result: null, error: error.message }
     }
+  }
+
+  validateArguments(definition: ToolDefinition, args: unknown): void {
+    if (!args || typeof args !== 'object' || Array.isArray(args)) throw new Error('Argumentos inválidos.')
+    const values = args as Record<string, unknown>
+    for (const name of definition.requiredParams) {
+      if (values[name] === undefined || values[name] === null || values[name] === '') {
+        throw new Error(`Parâmetro obrigatório: ${name}`)
+      }
+    }
+    for (const [name, value] of Object.entries(values)) {
+      const schema = definition.parameters[name]
+      if (!schema) throw new Error(`Parâmetro desconhecido: ${name}`)
+      const validType =
+        schema.type === 'array'
+          ? Array.isArray(value)
+          : schema.type === 'object'
+            ? typeof value === 'object' && value !== null && !Array.isArray(value)
+            : typeof value === schema.type
+      if (!validType || (schema.enum && !schema.enum.includes(value as string))) {
+        throw new Error(`Parâmetro inválido: ${name}`)
+      }
+    }
+  }
+
+  /** Resolve an update target before it is shown for approval. */
+  prepareCall(call: ToolCall, agent: AgentDefinition): ToolCall {
+    const definition = this.tools.get(call.name as AgentSkill)?.definition
+    if (!definition || !agent.skills.includes(call.name as AgentSkill)) throw new Error('Ferramenta não autorizada.')
+    this.validateArguments(definition, call.arguments)
+    const args = { ...call.arguments }
+    if (call.name === 'update_task') {
+      let task = args.taskId ? this.taskRepo.getById(args.taskId) : null
+      if (args.taskId && !task) throw new Error('Tarefa não encontrada.')
+      if (!task && args.taskTitle) {
+        const project = args.projectName ? this.projectRepo.findByName(args.projectName) : null
+        if (args.projectName && !project) throw new Error('Projeto não encontrado.')
+        const matches = this.taskRepo
+          .getAll(project?.id)
+          .filter(
+            (item) =>
+              item.title.toLowerCase().includes(args.taskTitle.toLowerCase()) &&
+              item.status !== 'done' &&
+              (agent.scope.projectIds === 'all' || agent.scope.projectIds.includes(item.projectId))
+          )
+        if (matches.length > 1) throw new Error('Há várias tarefas correspondentes. Informe o ID da tarefa.')
+        task = matches[0] || null
+      }
+      if (!task) throw new Error('Tarefa não encontrada.')
+      if (agent.scope.projectIds !== 'all' && !agent.scope.projectIds.includes(task.projectId)) {
+        throw new Error('Tarefa pertence a projeto fora do escopo deste agente.')
+      }
+      args.taskId = task.id
+      args.taskTitle = task.title
+      args.projectName = this.projectRepo.getById(task.projectId)?.name
+    }
+    if ((call.name === 'create_task' || call.name === 'create_entry') && agent.scope.projectIds !== 'all') {
+      const project = this.projectRepo.findByName(args.projectName)
+      if (!project || !agent.scope.projectIds.includes(project.id))
+        throw new Error('Projeto fora do escopo deste agente.')
+    }
+    return { ...call, arguments: args }
+  }
+
+  getApprovalDetails(call: ToolCall): Record<string, unknown> {
+    if (call.name === 'update_task' && call.arguments.taskId) {
+      return { arguments: call.arguments, target: this.taskRepo.getById(call.arguments.taskId) }
+    }
+    if (call.name === 'create_task' || call.name === 'create_entry') {
+      const project = this.projectRepo.findByName(call.arguments.projectName)
+      return { arguments: call.arguments, project: project ? { id: project.id, name: project.name } : null }
+    }
+    return { arguments: call.arguments }
   }
 
   /**
@@ -337,6 +411,7 @@ export class AgentToolRegistry {
       handler: async (args, scope) => {
         let project = this.projectRepo.findByName(args.projectName)
         if (!project) {
+          if (scope.projectIds !== 'all') throw new Error('Projeto fora do escopo deste agente.')
           project = this.projectRepo.create(args.projectName, undefined, true)
         }
 
@@ -404,10 +479,11 @@ export class AgentToolRegistry {
           }
 
           const tasks = this.taskRepo.getAll(projectId)
-          const match = tasks.find(
+          const matches = tasks.filter(
             (t) => t.title.toLowerCase().includes(args.taskTitle.toLowerCase()) && t.status !== 'done'
           )
-          if (match) taskId = match.id
+          if (matches.length > 1) throw new Error('Há várias tarefas correspondentes. Informe o ID da tarefa.')
+          if (matches.length === 1) taskId = matches[0].id
         }
 
         if (!taskId) {
@@ -461,6 +537,7 @@ export class AgentToolRegistry {
       handler: async (args, scope) => {
         let project = this.projectRepo.findByName(args.projectName)
         if (!project) {
+          if (scope.projectIds !== 'all') throw new Error('Projeto fora do escopo deste agente.')
           project = this.projectRepo.create(args.projectName, undefined, true)
         }
 
