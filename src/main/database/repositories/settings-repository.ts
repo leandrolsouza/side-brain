@@ -1,12 +1,6 @@
 import { getDatabase } from '../schema'
 import { type AppSettings, DEFAULT_SETTINGS } from '../../../shared/types'
-import {
-  encryptValue,
-  decryptValue,
-  isSensitiveKey,
-  DecryptionError,
-  tryMigrateEncryptedValue,
-} from '../../services/safe-storage-service'
+import { encryptValue, decryptValue, isSensitiveKey, isSafeStorageAvailable } from '../../services/safe-storage-service'
 import { createScopedLogger } from '../../services/logger'
 
 const logger = createScopedLogger('settings')
@@ -17,7 +11,6 @@ export class SettingsRepository {
     const rows = db.prepare('SELECT key, value FROM settings').all() as { key: string; value: string }[]
 
     const settings = { ...DEFAULT_SETTINGS }
-    const corruptedKeys: string[] = []
     const migratedEntries: [string, string][] = []
 
     for (const row of rows) {
@@ -27,23 +20,14 @@ export class SettingsRepository {
           try {
             const value = decryptValue(row.value, key)
             ;(settings as any)[key] = value
-          } catch (error) {
-            if (error instanceof DecryptionError) {
-              // In dev mode, attempt to migrate: try raw safeStorage decryption
-              // before giving up (might work if DPAPI is still valid this session)
-              const migrated = tryMigrateEncryptedValue(row.value)
-              if (migrated !== null) {
-                // Successfully decrypted — re-store as plain-text for dev mode
-                migratedEntries.push([key, migrated])
-                ;(settings as any)[key] = migrated
-              } else {
-                // Truly unrecoverable
-                corruptedKeys.push(key)
-                ;(settings as any)[key] = ''
-              }
-            } else {
-              throw error
+            if (row.value && !row.value.startsWith('enc::') && isSafeStorageAvailable()) {
+              migratedEntries.push([key, encryptValue(row.value)])
             }
+          } catch (error) {
+            // Keep the stored value intact if the keychain is temporarily unavailable
+            // or decryption fails; the user may recover access later.
+            logger.warn('[SettingsRepository] Unable to read an encrypted credential.')
+            ;(settings as any)[key] = ''
           }
         } else {
           ;(settings as any)[key] = row.value
@@ -51,7 +35,7 @@ export class SettingsRepository {
       }
     }
 
-    // Re-store migrated values as plain-text (dev mode only)
+    // Upgrade legacy plaintext only after encryption succeeds.
     if (migratedEntries.length > 0) {
       const upsert = db.prepare(`
         INSERT INTO settings (key, value) VALUES (?, ?)
@@ -63,23 +47,7 @@ export class SettingsRepository {
         }
       })
       upsertMany(migratedEntries)
-      logger.info(
-        `[SettingsRepository] Migrated ${migratedEntries.length} credential(s) from encrypted to plain-text (dev mode): ${migratedEntries.map((e) => e[0]).join(', ')}`
-      )
-    }
-
-    // Remove corrupted encrypted values from DB so user can re-enter
-    if (corruptedKeys.length > 0) {
-      const deleteStmt = db.prepare('DELETE FROM settings WHERE key = ?')
-      const deleteMany = db.transaction((keys: string[]) => {
-        for (const key of keys) {
-          deleteStmt.run(key)
-        }
-      })
-      deleteMany(corruptedKeys)
-      logger.warn(
-        `[SettingsRepository] Cleared ${corruptedKeys.length} corrupted credential(s) from DB: ${corruptedKeys.join(', ')}. User needs to re-enter them.`
-      )
+      logger.info(`[SettingsRepository] Protected ${migratedEntries.length} legacy credential(s).`)
     }
 
     return settings
@@ -98,11 +66,30 @@ export class SettingsRepository {
       }
     })
 
-    const entries: [string, string][] = Object.entries(updates).map(([key, value]) => {
+    const stored = new Map(
+      (db.prepare('SELECT key, value FROM settings').all() as { key: string; value: string }[]).map((row) => [
+        row.key,
+        row.value,
+      ])
+    )
+    const entries: [string, string][] = Object.entries(updates).flatMap(([key, value]): [string, string][] => {
       const strValue = String(value)
+      const current = stored.get(key)
+      if (isSensitiveKey(key) && current?.startsWith('enc::')) {
+        if (!isSafeStorageAvailable()) {
+          if (!strValue) return []
+          throw new Error('Secure storage is unavailable; credentials were not saved.')
+        }
+        try {
+          if (decryptValue(current, key) === strValue) return []
+        } catch {
+          if (!strValue) return []
+        }
+      }
+      if (isSensitiveKey(key) && !isSafeStorageAvailable() && current === strValue) return []
       // Encrypt sensitive keys before storing
       const finalValue = isSensitiveKey(key) ? encryptValue(strValue) : strValue
-      return [key, finalValue]
+      return [[key, finalValue]]
     })
 
     updateMany(entries)

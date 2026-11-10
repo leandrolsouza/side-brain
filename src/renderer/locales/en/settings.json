@@ -8,6 +8,10 @@
   "save_button": "Save Settings",
   "save_button_saving": "Saving...",
   "save_success": "Settings saved successfully",
+  "save_error": "Could not save. Check that the system's secure storage is available.",
+  "secure_storage_unavailable": "System secure storage is unavailable. New credentials will not be saved; existing credentials will be preserved.",
+  "mcp_storage_error": "Could not complete the MCP operation. Check the configuration and system secure storage availability.",
+  "mcp_arguments_protected": "arguments protected",
   "geral": {
     "my_name_label": "My name",
     "my_name_description": "Your first name. Used by the AI to identify your tasks in meetings and separate \"my tasks\" from other participants'.",

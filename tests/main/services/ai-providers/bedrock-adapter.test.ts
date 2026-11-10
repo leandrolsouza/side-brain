@@ -98,9 +98,7 @@ describe('BedrockAdapter', () => {
     it('deve lançar erro em falha HTTP e logar como critical para 5xx', async () => {
       fetchMock.mockResolvedValue(errorResponse(503, 'service unavailable'))
 
-      await expect(adapter.invoke('sys', 'user', settings, 'chat')).rejects.toThrow(
-        'Bedrock API error (503): service unavailable'
-      )
+      await expect(adapter.invoke('sys', 'user', settings, 'chat')).rejects.toThrow('Bedrock API error (503)')
       expect(logErrorMock).toHaveBeenCalledWith(
         expect.objectContaining({ severity: 'critical', message: 'Bedrock API error (503)' })
       )

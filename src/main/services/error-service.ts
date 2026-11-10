@@ -1,6 +1,7 @@
 import { BrowserWindow } from 'electron'
 import { ErrorLogRepository } from '../database/repositories/error-log-repository'
 import type { ErrorCategory, ErrorSeverity, ErrorLog } from '../../shared/types'
+import { redactLogText } from './log-privacy'
 
 let errorServiceInstance: ErrorService | null = null
 
@@ -31,9 +32,8 @@ export class ErrorService {
     const errorLog = this.repo.create({
       category: data.category,
       severity: data.severity || 'error',
-      message: data.message,
-      stack: data.stack,
-      context: data.context ? JSON.stringify(data.context) : undefined,
+      message: redactLogText(data.message),
+      context: data.context ? JSON.stringify(sanitizeContext(data.context)) : undefined,
     })
 
     // Notifica o renderer sobre novo erro (para atualizar badge)
@@ -51,20 +51,16 @@ export class ErrorService {
       this.logError({
         category: 'system',
         severity: 'critical',
-        message: error.message,
-        stack: error.stack,
+        message: 'Unhandled exception',
         context: { type: 'uncaughtException' },
       })
     })
 
     process.on('unhandledRejection', (reason) => {
-      const message = reason instanceof Error ? reason.message : String(reason)
-      const stack = reason instanceof Error ? reason.stack : undefined
       this.logError({
         category: 'system',
         severity: 'error',
-        message,
-        stack,
+        message: 'Unhandled promise rejection',
         context: { type: 'unhandledRejection' },
       })
     })
@@ -117,4 +113,24 @@ export class ErrorService {
       }
     }
   }
+}
+
+const SAFE_CONTEXT_KEYS = new Set([
+  'channel',
+  'operation',
+  'operationType',
+  'provider',
+  'statusCode',
+  'type',
+  'textLength',
+])
+
+function sanitizeContext(context: Record<string, unknown>): Record<string, unknown> {
+  const safe: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(context)) {
+    if (!SAFE_CONTEXT_KEYS.has(key)) continue
+    if (typeof value === 'number' && Number.isFinite(value)) safe[key] = value
+    else if (typeof value === 'string' && /^[a-zA-Z0-9_:.-]{1,80}$/.test(value)) safe[key] = value
+  }
+  return safe
 }

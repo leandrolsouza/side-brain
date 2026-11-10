@@ -31,6 +31,23 @@ describe('ErrorService', () => {
   })
 
   describe('logError', () => {
+    it('omite conteúdo privado do contexto e redige credenciais da mensagem', () => {
+      const log = service.logError({
+        category: 'ai',
+        message: 'Request failed token=secret-value for user@example.com',
+        stack: 'private note',
+        context: {
+          operation: 'invoke',
+          responseBody: 'private note',
+          env: { TOKEN: 'secret-value' },
+          args: ['private note'],
+        },
+      })
+      expect(JSON.stringify(log)).not.toContain('secret-value')
+      expect(JSON.stringify(log)).not.toContain('private note')
+      expect(JSON.stringify(log)).not.toContain('user@example.com')
+      expect(log.context).toBe('{"operation":"invoke"}')
+    })
     it('deve registrar um erro e retornar ErrorLog', () => {
       const log = service.logError({
         category: 'ai',
@@ -62,8 +79,8 @@ describe('ErrorService', () => {
         context: { table: 'entries', operation: 'insert' },
       })
 
-      expect(log.stack).toBe('Error: SQLITE_BUSY\n  at exec()')
-      expect(log.context).toBe('{"table":"entries","operation":"insert"}')
+      expect(log.stack).toBeUndefined()
+      expect(log.context).toBe('{"operation":"insert"}')
     })
 
     it('deve agrupar erros duplicados (mesma mensagem + categoria)', () => {

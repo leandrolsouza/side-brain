@@ -221,7 +221,7 @@ export class MeetingService {
       getErrorService().logError({
         category: 'ai',
         severity: 'error',
-        message: error?.message || t('notifications.errors.meeting_process_ai'),
+        message: t('notifications.errors.meeting_process_ai'),
         stack: error?.stack,
         context: {
           meetingId: id,

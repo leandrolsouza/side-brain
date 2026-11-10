@@ -5,6 +5,7 @@ import { getContainer } from '../services/container'
 import { enableTray, disableTray } from '../index'
 import { setLocale } from '../i18n'
 import type { AppSettings } from '../../shared/types'
+import { isSafeStorageAvailable } from '../services/safe-storage-service'
 
 export function registerSettingsHandlers(): void {
   const { settingsRepo, backupService } = getContainer()
@@ -12,6 +13,8 @@ export function registerSettingsHandlers(): void {
   safeHandle('settings:get', async () => {
     return settingsRepo.get()
   })
+
+  safeHandle('settings:secureStorageAvailable', async () => isSafeStorageAvailable())
 
   safeHandle('settings:update', async (_event, settings: Partial<AppSettings>) => {
     // Sync main process locale if language changed

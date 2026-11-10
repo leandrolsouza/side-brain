@@ -1,4 +1,5 @@
 import log from 'electron-log/main'
+import { redactLogText } from './log-privacy'
 
 /**
  * Structured logger for the main process, backed by electron-log.
@@ -42,12 +43,16 @@ export function initializeLogger(): void {
 function createConsoleFallback(scope: string): ScopedLogger {
   const prefix = `[${scope}]`
   return {
-    error: (...params: unknown[]) => console.error(prefix, ...params),
-    warn: (...params: unknown[]) => console.warn(prefix, ...params),
-    info: (...params: unknown[]) => console.info(prefix, ...params),
-    debug: (...params: unknown[]) => console.debug(prefix, ...params),
-    verbose: (...params: unknown[]) => console.debug(prefix, ...params),
+    error: (...params: unknown[]) => console.error(prefix, safeMessage(params)),
+    warn: (...params: unknown[]) => console.warn(prefix, safeMessage(params)),
+    info: (...params: unknown[]) => console.info(prefix, safeMessage(params)),
+    debug: (...params: unknown[]) => console.debug(prefix, safeMessage(params)),
+    verbose: (...params: unknown[]) => console.debug(prefix, safeMessage(params)),
   }
+}
+
+function safeMessage(params: unknown[]): string {
+  return typeof params[0] === 'string' ? redactLogText(params[0]) : '[REDACTED]'
 }
 
 /**
@@ -60,11 +65,11 @@ export function createScopedLogger(scope: string): ScopedLogger {
   try {
     const scoped = log.scope(scope)
     return {
-      error: (...params: unknown[]) => scoped.error(...params),
-      warn: (...params: unknown[]) => scoped.warn(...params),
-      info: (...params: unknown[]) => scoped.info(...params),
-      debug: (...params: unknown[]) => scoped.debug(...params),
-      verbose: (...params: unknown[]) => scoped.verbose(...params),
+      error: (...params: unknown[]) => scoped.error(safeMessage(params)),
+      warn: (...params: unknown[]) => scoped.warn(safeMessage(params)),
+      info: (...params: unknown[]) => scoped.info(safeMessage(params)),
+      debug: (...params: unknown[]) => scoped.debug(safeMessage(params)),
+      verbose: (...params: unknown[]) => scoped.verbose(safeMessage(params)),
     }
   } catch {
     return createConsoleFallback(scope)

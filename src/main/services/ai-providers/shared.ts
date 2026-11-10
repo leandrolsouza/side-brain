@@ -14,7 +14,7 @@ export interface ProviderFetchResult {
 
 /**
  * Shared HTTP helper for all provider adapters.
- * Performs the POST, measures latency, and throws `${errorLabel} API error (${status}): ${errorText}`
+ * Performs the POST, measures latency, and throws an error without the provider response body.
  * on non-OK responses. The optional onHttpError hook allows callers to log to the error service
  * before the error is thrown (used by simple invocations; tool invocations rely on the facade).
  */
@@ -36,7 +36,7 @@ export async function postProviderRequest(options: {
 
   if (!response.ok) {
     const errorText = await response.text()
-    const error = new Error(`${errorLabel} API error (${response.status}): ${errorText}`)
+    const error = new Error(`${errorLabel} API error (${response.status})`)
     onHttpError?.(response.status, errorText, error)
     throw error
   }
@@ -69,7 +69,6 @@ export function logProviderHttpError(options: {
       ...options.context,
       statusCode: options.status,
       operationType: options.operationType,
-      responseBody: options.errorText.slice(0, 500),
     },
   })
 }

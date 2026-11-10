@@ -8,6 +8,10 @@
   "save_button": "Salvar Configurações",
   "save_button_saving": "Salvando...",
   "save_success": "Configurações salvas com sucesso",
+  "save_error": "Não foi possível salvar. Verifique se o armazenamento seguro do sistema está disponível.",
+  "secure_storage_unavailable": "O armazenamento seguro do sistema está indisponível. Novas credenciais não serão salvas; credenciais existentes serão preservadas.",
+  "mcp_storage_error": "Não foi possível concluir a operação MCP. Verifique a configuração e a disponibilidade do armazenamento seguro do sistema.",
+  "mcp_arguments_protected": "argumentos protegidos",
   "geral": {
     "my_name_label": "Meu nome",
     "my_name_description": "Seu primeiro nome. Usado pela IA para identificar suas tasks em reuniões e separar \"minhas tasks\" das de outros participantes.",

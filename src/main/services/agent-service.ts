@@ -363,7 +363,7 @@ export class AgentService {
           const input = `Execução agendada (${trigger.scheduleConfig!.expression}). Analise o estado atual e execute suas responsabilidades.`
           await this.agentRuntime.execute(agent.id, input, { trigger: 'schedule' })
         } catch (error: any) {
-          logger.error(`Scheduled agent "${agent.name}" failed:`, error.message)
+          logger.error('Scheduled agent failed', error)
         }
       }, intervalMs)
 

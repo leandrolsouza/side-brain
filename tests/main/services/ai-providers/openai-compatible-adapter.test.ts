@@ -158,9 +158,7 @@ describe('OpenAICompatibleAdapter', () => {
       const adapter = new TestAdapter(usage as unknown as UsageTracker, makeConfig())
       fetchMock.mockResolvedValue(errorResponse(500, 'internal error'))
 
-      await expect(adapter.invoke('sys', 'user', settings, 'chat')).rejects.toThrow(
-        'TestProvider API error (500): internal error'
-      )
+      await expect(adapter.invoke('sys', 'user', settings, 'chat')).rejects.toThrow('TestProvider API error (500)')
       expect(logErrorMock).toHaveBeenCalledWith(
         expect.objectContaining({ severity: 'critical', message: 'TestProvider API error (500)' })
       )

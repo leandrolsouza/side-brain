@@ -37,8 +37,7 @@ export class AIProvider {
         getErrorService().logError({
           category: 'ai',
           severity: 'error',
-          message: error.message,
-          stack: error.stack,
+          message: 'AI provider request failed',
           context: { provider: settings.aiProvider, operationType, type: 'network_or_parse' },
         })
       }
@@ -71,8 +70,7 @@ export class AIProvider {
         getErrorService().logError({
           category: 'ai',
           severity: 'error',
-          message: error.message,
-          stack: error.stack,
+          message: 'AI provider tool request failed',
           context: { provider: settings.aiProvider, operationType, type: 'tool_calling_error' },
         })
       }

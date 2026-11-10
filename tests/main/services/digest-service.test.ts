@@ -6,6 +6,7 @@ import { TaskRepository } from '../../../src/main/database/repositories/task-rep
 import { ProjectRepository } from '../../../src/main/database/repositories/project-repository'
 import { SettingsRepository } from '../../../src/main/database/repositories/settings-repository'
 import type { AIService } from '../../../src/main/services/ai-service'
+import { safeStorage } from 'electron'
 
 vi.mock('../../../src/main/database/schema', async () => {
   const setup = await import('../setup')
@@ -36,10 +37,12 @@ describe('DigestService', () => {
     service = new DigestService(entryRepo, taskRepo, projectRepo, settingsRepo, mockAIService)
 
     vi.clearAllMocks()
+    vi.mocked(safeStorage.isEncryptionAvailable).mockReturnValue(true)
   })
 
   afterEach(() => {
     closeTestDatabase()
+    vi.mocked(safeStorage.isEncryptionAvailable).mockReturnValue(false)
   })
 
   describe('generateDailyDigest', () => {

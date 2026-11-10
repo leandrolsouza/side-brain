@@ -17,6 +17,7 @@ import { v4 as uuid } from 'uuid'
 import fs from 'node:fs'
 import { app } from 'electron'
 import { createScopedLogger } from './logger'
+import { decryptValue, encryptValue, isSafeStorageAvailable } from './safe-storage-service'
 
 const logger = createScopedLogger('mcp')
 
@@ -49,9 +50,11 @@ export class MCPManager {
   private clients: Map<string, { client: Client; transport: StdioClientTransport; config: MCPServerConfig }> = new Map()
   private toolCache: Map<string, MCPToolInfo[]> = new Map() // serverId → tools
   private configPath: string
+  private secretsDir: string
 
   constructor(private settingsRepo: SettingsRepository) {
     this.configPath = path.join(app.getPath('userData'), 'mcp-servers.json')
+    this.secretsDir = path.join(app.getPath('userData'), 'mcp-secrets')
   }
 
   // ─── Configuration ────────────────────────────────────────────
@@ -60,28 +63,110 @@ export class MCPManager {
    * Load MCP server configurations from disk.
    */
   getConfigs(): MCPServerConfig[] {
-    try {
-      if (fs.existsSync(this.configPath)) {
-        const data = fs.readFileSync(this.configPath, 'utf-8')
-        return JSON.parse(data) as MCPServerConfig[]
+    const configs = this.readConfigs()
+    if (
+      isSafeStorageAvailable() &&
+      configs.some((config) => config.args?.length || (config.env && Object.keys(config.env).length))
+    ) {
+      try {
+        for (const config of configs) {
+          if (config.args?.length || (config.env && Object.keys(config.env).length)) {
+            this.saveServerSecrets(config.id, { args: config.args || [], env: config.env || {} })
+          }
+        }
+        this.saveConfigs(configs)
+      } catch {
+        // Leave the original configuration untouched so the user can retry.
+        logger.warn('Unable to migrate legacy MCP credentials to secure storage.')
       }
-    } catch (error) {
-      logger.error('Failed to load MCP configs:', error)
     }
-    return []
+    return configs.map(({ env: _env, ...config }) => ({ ...config, args: [] }))
+  }
+
+  private readConfigs(): MCPServerConfig[] {
+    if (!fs.existsSync(this.configPath)) return []
+    let value: unknown
+    try {
+      value = JSON.parse(fs.readFileSync(this.configPath, 'utf-8'))
+    } catch {
+      throw new Error('Invalid MCP configuration.')
+    }
+    if (!Array.isArray(value)) throw new Error('Invalid MCP configuration.')
+    return value as MCPServerConfig[]
+  }
+
+  private secretPath(id: string): string {
+    if (!/^[0-9a-f-]{36}$/i.test(id)) throw new Error('Invalid MCP server ID.')
+    return path.join(this.secretsDir, `${id}.secret`)
+  }
+
+  private writeAtomic(filePath: string, data: string): void {
+    fs.mkdirSync(path.dirname(filePath), { recursive: true })
+    const temporary = `${filePath}.${uuid()}.tmp`
+    try {
+      fs.writeFileSync(temporary, data, { encoding: 'utf-8', mode: 0o600, flag: 'wx' })
+      fs.renameSync(temporary, filePath)
+    } finally {
+      if (fs.existsSync(temporary)) fs.unlinkSync(temporary)
+    }
+  }
+
+  private saveServerSecrets(id: string, secrets: { args: string[]; env: Record<string, string> }): void {
+    if (
+      !Array.isArray(secrets.args) ||
+      secrets.args.some((value) => typeof value !== 'string') ||
+      !secrets.env ||
+      typeof secrets.env !== 'object' ||
+      Array.isArray(secrets.env) ||
+      Object.values(secrets.env).some((value) => typeof value !== 'string')
+    )
+      throw new Error('Invalid MCP configuration.')
+    const encrypted = encryptValue(JSON.stringify(secrets))
+    this.writeAtomic(this.secretPath(id), encrypted)
+  }
+
+  private getServerSecrets(id: string): { args: string[]; env: Record<string, string> } {
+    const legacy = this.readConfigs().find((config) => config.id === id)
+    if (legacy && (legacy.args?.length || (legacy.env && Object.keys(legacy.env).length))) {
+      throw new Error('Legacy MCP credentials could not be moved to secure storage.')
+    }
+    const secretPath = this.secretPath(id)
+    if (fs.existsSync(secretPath)) {
+      if (!isSafeStorageAvailable()) throw new Error('Secure storage is unavailable.')
+      try {
+        const encrypted = fs.readFileSync(secretPath, 'utf-8')
+        if (!encrypted.startsWith('enc::')) throw new Error()
+        const result = JSON.parse(decryptValue(encrypted)) as {
+          args: string[]
+          env: Record<string, string>
+        }
+        if (!Array.isArray(result.args) || !result.env || typeof result.env !== 'object') throw new Error()
+        return result
+      } catch {
+        throw new Error('Unable to access MCP credentials.')
+      }
+    }
+    return { args: [], env: {} }
+  }
+
+  private ensureMigrated(): void {
+    if (this.readConfigs().some((config) => config.args?.length || (config.env && Object.keys(config.env).length))) {
+      throw new Error('Secure storage is unavailable; existing MCP credentials were not changed.')
+    }
   }
 
   /**
    * Save MCP server configurations to disk.
    */
   private saveConfigs(configs: MCPServerConfig[]): void {
-    try {
-      const dir = path.dirname(this.configPath)
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-      fs.writeFileSync(this.configPath, JSON.stringify(configs, null, 2), 'utf-8')
-    } catch (error) {
-      logger.error('Failed to save MCP configs:', error)
-    }
+    this.writeAtomic(
+      this.configPath,
+      JSON.stringify(
+        configs.map(({ env: _env, ...config }) => ({ ...config, args: [] })),
+        null,
+        2
+      )
+    )
   }
 
   /**
@@ -89,10 +174,15 @@ export class MCPManager {
    */
   addServer(config: Omit<MCPServerConfig, 'id'>): MCPServerConfig {
     const configs = this.getConfigs()
+    this.ensureMigrated()
     const newConfig: MCPServerConfig = { ...config, id: uuid() }
+    if (config.args?.length || (config.env && Object.keys(config.env).length)) {
+      this.saveServerSecrets(newConfig.id, { args: config.args || [], env: config.env || {} })
+    }
     configs.push(newConfig)
     this.saveConfigs(configs)
-    return newConfig
+    const { env: _env, ...safeConfig } = newConfig
+    return { ...safeConfig, args: [] }
   }
 
   /**
@@ -100,10 +190,15 @@ export class MCPManager {
    */
   updateServer(id: string, updates: Partial<Omit<MCPServerConfig, 'id'>>): MCPServerConfig | null {
     const configs = this.getConfigs()
+    this.ensureMigrated()
     const index = configs.findIndex((c) => c.id === id)
     if (index === -1) return null
 
-    configs[index] = { ...configs[index], ...updates }
+    if (updates.env !== undefined || updates.args !== undefined) {
+      const current = this.getServerSecrets(id)
+      this.saveServerSecrets(id, { env: updates.env ?? current.env, args: updates.args ?? current.args })
+    }
+    configs[index] = { ...configs[index], ...updates, args: [], env: undefined }
     this.saveConfigs(configs)
     return configs[index]
   }
@@ -112,11 +207,14 @@ export class MCPManager {
    * Remove a server configuration and disconnect if running.
    */
   async removeServer(id: string): Promise<boolean> {
-    await this.disconnectServer(id, false) // Don't persist, we're deleting
     const configs = this.getConfigs()
+    this.ensureMigrated()
+    await this.disconnectServer(id, false) // Don't persist, we're deleting
     const filtered = configs.filter((c) => c.id !== id)
     if (filtered.length === configs.length) return false
     this.saveConfigs(filtered)
+    const secretPath = this.secretPath(id)
+    if (fs.existsSync(secretPath)) fs.unlinkSync(secretPath)
     return true
   }
 
@@ -138,7 +236,7 @@ export class MCPManager {
 
     // Disconnect if already connected
     if (this.clients.has(id)) {
-      await this.disconnectServer(id)
+      await this.disconnectServer(id, false)
     }
 
     this.emitStatus(id, config.name, 'connecting')
@@ -146,11 +244,12 @@ export class MCPManager {
     try {
       const client = new Client({ name: 'sidebrain', version: '1.0.0' }, { capabilities: {} })
 
-      const env = { ...process.env, ...(config.env || {}) } as Record<string, string>
+      const secrets = this.getServerSecrets(id)
+      const env = { ...process.env, ...secrets.env } as Record<string, string>
 
       const transport = new StdioClientTransport({
         command: config.command,
-        args: config.args,
+        args: secrets.args,
         env,
       })
 
@@ -171,9 +270,8 @@ export class MCPManager {
       getErrorService().logError({
         category: 'ai',
         severity: 'error',
-        message: `MCP server "${config.name}" failed to connect: ${err.message}`,
-        stack: err.stack,
-        context: { serverId: id, command: config.command },
+        message: 'MCP server failed to connect',
+        context: { serverId: id },
       })
 
       throw error

@@ -24,9 +24,8 @@ export function safeHandle<TArgs extends unknown[]>(
         getErrorService().logError({
           category,
           severity: 'error',
-          message: err?.message || `Erro no handler ${channel}`,
-          stack: err?.stack,
-          context: { channel, args: sanitizeArgs(args) },
+          message: `IPC handler failed: ${channel}`,
+          context: { channel },
         })
       }
       throw error
@@ -57,20 +56,4 @@ export function inferCategory(channel: string): ErrorCategory {
     return 'database'
   if (channel.startsWith('notification:') || channel.startsWith('ai-usage:')) return 'database'
   return 'ipc'
-}
-
-function sanitizeArgs(args: unknown[]): string {
-  try {
-    const sanitized = args.map((arg) => {
-      if (typeof arg === 'string' && arg.length > 200) return `${arg.slice(0, 200)}...`
-      if (typeof arg === 'object' && arg !== null) {
-        const str = JSON.stringify(arg)
-        return str.length > 300 ? `${str.slice(0, 300)}...` : str
-      }
-      return arg
-    })
-    return JSON.stringify(sanitized).slice(0, 500)
-  } catch {
-    return '[não serializável]'
-  }
 }

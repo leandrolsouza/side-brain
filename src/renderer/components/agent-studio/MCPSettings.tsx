@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ChevronRight, Loader2, Plug, Plus, Power, PowerOff, Trash2 } from 'lucide-react'
 import type { MCPServerConfig, MCPServerStatus, MCPToolInfo } from '@shared/types'
+import { useTranslation } from 'react-i18next'
 
 /**
  * Shape of a server entry in an imported MCP JSON config
@@ -14,6 +15,7 @@ interface MCPImportedServerConfig {
 }
 
 export function MCPSettings() {
+  const { t } = useTranslation('settings')
   const [servers, setServers] = useState<MCPServerConfig[]>([])
   const [statuses, setStatuses] = useState<MCPServerStatus[]>([])
   const [showAddForm, setShowAddForm] = useState(false)
@@ -26,10 +28,16 @@ export function MCPSettings() {
   const [newCommand, setNewCommand] = useState('')
   const [newArgs, setNewArgs] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [operationError, setOperationError] = useState<string | null>(null)
+  const [secureStorageAvailable, setSecureStorageAvailable] = useState<boolean | null>(null)
 
   useEffect(() => {
     loadServers()
     loadStatuses()
+    window.electronAPI
+      .secureStorageAvailable()
+      .then(setSecureStorageAvailable)
+      .catch(() => setSecureStorageAvailable(false))
   }, [])
 
   const loadServers = async () => {
@@ -53,6 +61,7 @@ export function MCPSettings() {
   const handleAdd = async () => {
     if (!newName.trim() || !newCommand.trim()) return
     setIsLoading(true)
+    setOperationError(null)
     try {
       await window.electronAPI.mcpAddServer({
         name: newName.trim(),
@@ -67,7 +76,7 @@ export function MCPSettings() {
       await loadServers()
       await loadStatuses()
     } catch (error) {
-      console.error('Failed to add MCP server:', error)
+      setOperationError(t('mcp_storage_error'))
     } finally {
       setIsLoading(false)
     }
@@ -116,8 +125,8 @@ export function MCPSettings() {
       setShowJsonEditor(false)
       await loadServers()
       await loadStatuses()
-    } catch (error) {
-      setJsonError(`Erro ao parsear JSON: ${error instanceof Error ? error.message : String(error)}`)
+    } catch {
+      setJsonError(t('mcp_storage_error'))
     } finally {
       setIsLoading(false)
     }
@@ -134,11 +143,12 @@ export function MCPSettings() {
   }
 
   const handleConnect = async (id: string) => {
+    setOperationError(null)
     try {
       await window.electronAPI.mcpConnect(id)
       await loadStatuses()
-    } catch (error) {
-      console.error('Failed to connect MCP server:', error)
+    } catch {
+      setOperationError(t('mcp_storage_error'))
       await loadStatuses()
     }
   }
@@ -173,6 +183,8 @@ export function MCPSettings() {
 
   return (
     <div className="agent-studio-panel">
+      {operationError && <p role="alert">{operationError}</p>}
+      {secureStorageAvailable === false && <p role="alert">{t('secure_storage_unavailable')}</p>}
       <div className="agent-studio-header">
         <div className="agent-studio-title">
           <Plug size={20} />
@@ -342,7 +354,7 @@ export function MCPSettings() {
                     </div>
                     <div className="mcp-server-command">
                       <code>
-                        {server.command} {server.args.join(' ')}
+                        {server.command} <span>({t('mcp_arguments_protected')})</span>
                       </code>
                     </div>
                   </div>

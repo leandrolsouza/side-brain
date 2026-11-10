@@ -21,7 +21,7 @@ const logger = createScopedLogger('main')
 // Catch any uncaught errors during module loading
 const startupLogPath = path.join(app.getPath('userData'), 'startup-error.log')
 process.on('uncaughtException', (error) => {
-  const msg = `[${new Date().toISOString()}] Uncaught Exception:\n${error.stack || error.message}\n\n`
+  const msg = `[${new Date().toISOString()}] Uncaught exception\n`
   try {
     fs.appendFileSync(startupLogPath, msg)
   } catch {

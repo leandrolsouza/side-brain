@@ -115,9 +115,7 @@ describe('GeminiAdapter', () => {
     it('deve lançar erro em falha HTTP e logar 429 como warning', async () => {
       fetchMock.mockResolvedValue(errorResponse(429, 'quota exceeded'))
 
-      await expect(adapter.invoke('sys', 'user', settings, 'chat')).rejects.toThrow(
-        'Gemini API error (429): quota exceeded'
-      )
+      await expect(adapter.invoke('sys', 'user', settings, 'chat')).rejects.toThrow('Gemini API error (429)')
       expect(logErrorMock).toHaveBeenCalledWith(
         expect.objectContaining({ severity: 'warning', message: 'Gemini API error (429)' })
       )

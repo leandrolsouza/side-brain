@@ -18,6 +18,7 @@ function renderSettings() {
 
 describe('Settings - Language Selector', () => {
   beforeEach(() => {
+    window.electronAPI.secureStorageAvailable = vi.fn().mockResolvedValue(true)
     // Mock additional APIs used by Settings
     window.electronAPI.getSettings = vi.fn().mockResolvedValue({
       aiProvider: 'bedrock',
@@ -69,6 +70,35 @@ describe('Settings - Language Selector', () => {
 
     // Ensure i18n is set to pt-BR for tests
     i18n.changeLanguage('pt-BR')
+  })
+
+  it('avisa quando o armazenamento seguro não está disponível', async () => {
+    window.electronAPI.secureStorageAvailable = vi.fn().mockResolvedValue(false)
+    renderSettings()
+    expect(await screen.findByRole('alert')).toHaveTextContent('armazenamento seguro do sistema está indisponível')
+  })
+
+  it('preserva alterações ao trocar de aba e não reenvia credenciais inalteradas', async () => {
+    const user = userEvent.setup()
+    renderSettings()
+    const name = await screen.findByPlaceholderText('Ex: Leandro')
+    await user.type(name, 'Ana')
+    await user.click(screen.getByRole('button', { name: 'Aparência' }))
+    await user.click(screen.getByRole('button', { name: 'Geral' }))
+    expect(screen.getByPlaceholderText('Ex: Leandro')).toHaveValue('Ana')
+    await user.click(screen.getByRole('button', { name: 'Salvar Configurações' }))
+    await waitFor(() => expect(window.electronAPI.updateSettings).toHaveBeenCalled())
+    expect(window.electronAPI.updateSettings).toHaveBeenCalledWith(expect.objectContaining({ userName: 'Ana' }))
+    expect(vi.mocked(window.electronAPI.updateSettings).mock.calls.at(-1)?.[0]).not.toHaveProperty('openaiApiKey')
+  })
+
+  it('solicita confirmação antes de importar backup', async () => {
+    const user = userEvent.setup()
+    renderSettings()
+    await user.click(await screen.findByRole('button', { name: 'Dados' }))
+    await user.click(screen.getByRole('button', { name: 'Importar Backup' }))
+    expect(window.electronAPI.importBackup).not.toHaveBeenCalled()
+    expect(screen.getByText(/Restaurar um backup substituirá todos os dados atuais/)).toBeInTheDocument()
   })
 
   it('deve renderizar a aba Aparência com seletor de idioma', async () => {

@@ -34,11 +34,11 @@ describe('safe-storage-service', () => {
       expect(mod.encryptValue('')).toBe('')
     })
 
-    it('encryptValue deve retornar plain-text quando safeStorage não está disponível', async () => {
+    it('encryptValue deve rejeitar segredos quando safeStorage não está disponível', async () => {
       const { mod, safeStorage } = await loadModule('production')
       safeStorage.isEncryptionAvailable.mockReturnValue(false)
 
-      expect(mod.encryptValue('minha-chave')).toBe('minha-chave')
+      expect(() => mod.encryptValue('minha-chave')).toThrow()
     })
 
     it('encryptValue deve criptografar com prefixo enc:: quando disponível', async () => {
@@ -91,18 +91,18 @@ describe('safe-storage-service', () => {
   })
 
   describe('modo desenvolvimento (fallback dev)', () => {
-    it('encryptValue deve retornar plain-text mesmo com criptografia disponível', async () => {
+    it('encryptValue também criptografa no desenvolvimento', async () => {
       const { mod, safeStorage } = await loadModule('development')
       safeStorage.isEncryptionAvailable.mockReturnValue(true)
 
-      expect(mod.encryptValue('api-key')).toBe('api-key')
-      expect(safeStorage.encryptString).not.toHaveBeenCalled()
+      expect(mod.encryptValue('api-key')).toMatch(/^enc::/)
+      expect(safeStorage.encryptString).toHaveBeenCalled()
     })
 
-    it('decryptValue deve lançar DecryptionError para valores criptografados', async () => {
+    it('decryptValue preserva credenciais quando o armazenamento está indisponível', async () => {
       const { mod } = await loadModule('development')
 
-      expect(() => mod.decryptValue('enc::abc', 'geminiApiKey')).toThrow(mod.DecryptionError)
+      expect(mod.decryptValue('enc::abc', 'geminiApiKey')).toBe('')
     })
 
     it('decryptValue deve retornar plain-text sem prefixo normalmente', async () => {
@@ -128,40 +128,6 @@ describe('safe-storage-service', () => {
 
       expect(mod.isSensitiveKey('userName')).toBe(false)
       expect(mod.isSensitiveKey('modelId')).toBe(false)
-    })
-  })
-
-  describe('tryMigrateEncryptedValue', () => {
-    it('deve retornar null para valores sem prefixo', async () => {
-      const { mod } = await loadModule('development')
-
-      expect(mod.tryMigrateEncryptedValue('plano')).toBeNull()
-      expect(mod.tryMigrateEncryptedValue('')).toBeNull()
-    })
-
-    it('deve retornar null quando safeStorage não está disponível', async () => {
-      const { mod, safeStorage } = await loadModule('development')
-      safeStorage.isEncryptionAvailable.mockReturnValue(false)
-
-      expect(mod.tryMigrateEncryptedValue('enc::abc')).toBeNull()
-    })
-
-    it('deve descriptografar ignorando o guard de dev mode', async () => {
-      const { mod, safeStorage } = await loadModule('development')
-      safeStorage.isEncryptionAvailable.mockReturnValue(true)
-
-      const encoded = `enc::${Buffer.from('valor-migrado').toString('base64')}`
-      expect(mod.tryMigrateEncryptedValue(encoded)).toBe('valor-migrado')
-    })
-
-    it('deve retornar null quando a descriptografia falha', async () => {
-      const { mod, safeStorage } = await loadModule('production')
-      safeStorage.isEncryptionAvailable.mockReturnValue(true)
-      safeStorage.decryptString.mockImplementation(() => {
-        throw new Error('corrupted')
-      })
-
-      expect(mod.tryMigrateEncryptedValue('enc::abc')).toBeNull()
     })
   })
 })

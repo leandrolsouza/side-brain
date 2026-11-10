@@ -88,7 +88,7 @@ export class EmbeddingsService {
       getErrorService().logError({
         category: 'ai',
         severity: 'warning',
-        message: `Embedding generation failed: ${error.message}`,
+        message: 'Embedding generation failed',
         stack: error.stack,
         context: { provider: s.aiProvider, textLength: text.length },
       })

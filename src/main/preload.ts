@@ -132,6 +132,7 @@ export interface ElectronAPI {
 
   // Settings
   getSettings: () => Promise<AppSettings>
+  secureStorageAvailable: () => Promise<boolean>
   updateSettings: (settings: Partial<AppSettings>) => Promise<void>
   toggleTray: (enabled: boolean) => Promise<void>
 
@@ -443,6 +444,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Settings
   getSettings: () => ipcRenderer.invoke('settings:get'),
+  secureStorageAvailable: () => ipcRenderer.invoke('settings:secureStorageAvailable'),
   updateSettings: (settings: Partial<AppSettings>) => ipcRenderer.invoke('settings:update', settings),
   toggleTray: (enabled: boolean) => ipcRenderer.invoke('tray:toggle', enabled),
 

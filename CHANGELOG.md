@@ -5,6 +5,17 @@ Todas as mudanças notáveis do SideBrain serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.10.1] - 2026-11-10
+
+### Corrigido
+- A reconexão de servidores MCP preserva a conexão automática após reiniciar o aplicativo.
+- Credenciais não são gravadas em texto puro quando o armazenamento seguro está indisponível; valores existentes são preservados.
+
+### Alterado
+- Argumentos e variáveis de ambiente MCP passam a ser protegidos pelo armazenamento seguro do sistema; configurações antigas são migradas quando possível.
+- Registros de erro deixam de incluir argumentos IPC, respostas brutas dos provedores e rastreamentos de pilha, reduzindo a exposição de dados sensíveis.
+- As telas de configurações e reuniões foram divididas em componentes e controladores menores.
+
 ## [0.10.0] - 2026-11-09
 
 ### Adicionado

@@ -10,6 +10,7 @@ initI18n('pt-BR')
  * Each test can override specific methods via vi.mocked().
  */
 const mockElectronAPI = {
+  secureStorageAvailable: vi.fn().mockResolvedValue(true),
   // Entries
   createEntry: vi.fn().mockResolvedValue({}),
   previewEntry: vi.fn().mockResolvedValue({

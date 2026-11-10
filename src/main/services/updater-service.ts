@@ -55,7 +55,7 @@ export class UpdaterService {
       try {
         const errorService = getErrorService()
         errorService.logError({
-          message: `Auto-update error: ${errorMessage}`,
+          message: 'Auto-update error',
           category: 'system',
           severity: 'warning',
           context: { stack: err.stack },

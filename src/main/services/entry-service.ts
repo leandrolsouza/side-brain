@@ -302,11 +302,11 @@ export class EntryService {
 
     if (entityType === 'entry') {
       this.embeddingsService.indexEntry(entityId).catch((err) => {
-        logger.error(`Background embedding failed for entry ${entityId}:`, err.message)
+        logger.error('Background embedding failed for entry', err)
       })
     } else {
       this.embeddingsService.indexTask(entityId).catch((err) => {
-        logger.error(`Background embedding failed for task ${entityId}:`, err.message)
+        logger.error('Background embedding failed for task', err)
       })
     }
   }

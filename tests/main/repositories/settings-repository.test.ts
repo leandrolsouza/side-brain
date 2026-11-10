@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { createTestDatabase, closeTestDatabase } from '../setup'
 import { SettingsRepository } from '../../../src/main/database/repositories/settings-repository'
 import { DEFAULT_SETTINGS } from '../../../src/shared/types'
+import { safeStorage } from 'electron'
 
 vi.mock('../../../src/main/database/schema', async () => {
   const setup = await import('../setup')
@@ -17,14 +18,50 @@ describe('SettingsRepository', () => {
 
   beforeEach(() => {
     createTestDatabase()
+    vi.mocked(safeStorage.isEncryptionAvailable).mockReturnValue(true)
     repo = new SettingsRepository()
   })
 
   afterEach(() => {
     closeTestDatabase()
+    vi.mocked(safeStorage.isEncryptionAvailable).mockReturnValue(false)
   })
 
   describe('get', () => {
+    it('protege credenciais antigas em texto puro quando o chaveiro está disponível', async () => {
+      const { getTestDatabase } = await import('../setup')
+      const db = getTestDatabase()
+      db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('openaiApiKey', 'legacy-secret')
+      expect(repo.get().openaiApiKey).toBe('legacy-secret')
+      expect(
+        (db.prepare('SELECT value FROM settings WHERE key = ?').get('openaiApiKey') as { value: string }).value
+      ).toMatch(/^enc::/)
+    })
+
+    it('preserva o valor criptografado se o armazenamento estiver indisponível', async () => {
+      const { getTestDatabase } = await import('../setup')
+      repo.update({ openaiApiKey: 'existing-secret' })
+      const db = getTestDatabase()
+      const before = db.prepare('SELECT value FROM settings WHERE key = ?').get('openaiApiKey')
+      vi.mocked(safeStorage.isEncryptionAvailable).mockReturnValue(false)
+      expect(repo.get().openaiApiKey).toBe('')
+      repo.update({ openaiApiKey: '', fontSize: '18' })
+      expect(db.prepare('SELECT value FROM settings WHERE key = ?').get('openaiApiKey')).toEqual(before)
+      expect(() => repo.update({ openaiApiKey: 'new-secret' })).toThrow()
+      expect(db.prepare('SELECT value FROM settings WHERE key = ?').get('openaiApiKey')).toEqual(before)
+    })
+
+    it('não apaga credenciais se a descriptografia falhar', async () => {
+      const { getTestDatabase } = await import('../setup')
+      repo.update({ openaiApiKey: 'existing-secret' })
+      const db = getTestDatabase()
+      const before = db.prepare('SELECT value FROM settings WHERE key = ?').get('openaiApiKey')
+      vi.mocked(safeStorage.decryptString).mockImplementationOnce(() => {
+        throw new Error('failed')
+      })
+      expect(repo.get().openaiApiKey).toBe('')
+      expect(db.prepare('SELECT value FROM settings WHERE key = ?').get('openaiApiKey')).toEqual(before)
+    })
     it('deve retornar DEFAULT_SETTINGS quando não há dados no banco', () => {
       const settings = repo.get()
 
